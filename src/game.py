@@ -19,12 +19,15 @@ class Game():
         pygame.mixer.music.load(sounds.main_theme)
         pygame.mixer.music.play()
 
-        self.font = pygame.font.Font(None, 20)
+        self.font = pygame.font.Font(None, 16)
 
         self.quit_state = None
         self.tick = pygame.USEREVENT
-        self.time = Digit_System(Vector2(610, 49), 3, 0) #Displays time on screen
-        self.timer = 0 # timer for counting up the race time
+        self.time = Digit_System(Vector2(10, 10), 3, 0)
+        #self.fps = Digit_System(Vector2(80, 10), 5, 0)
+        #self.ups = Digit_System(Vector2(150, 10), 4, 0, 0, 1750)
+        #self.acc = Digit_System(Vector2(230, 10), 3, 0, 0, 200)
+        #self.timer = 0 # timer for counting up the race time
         pygame.time.set_timer(self.tick, 1000)
 
     def draw(self):
@@ -34,10 +37,6 @@ class Game():
         self.draw_colliders()
         config.player.draw()
         self.draw_digit_systems()
-
-        #font = pygame.font.Font(None, 16)
-        #text_surface = font.render(f"Speed: {math.ceil(config.player.vel.x * 1000)}", True, (255, 255, 255))
-        #config.surface.blit(text_surface, (100, 100))
 
     def draw_background(self):
         """Extract rectangle from background image based on camera position"""
@@ -63,7 +62,22 @@ class Game():
 
     def draw_digit_systems(self):
         """Draw all digit systems on screen"""
-        self.time.draw()
+
+        #self.time.draw()
+
+        fps = config.clock.get_fps()
+        fpss = f"{0 if math.isinf(fps) else round(fps)}".rjust(6, "0")
+        fps_text = self.font.render(f"FPS: {fpss}", True, (255, 255, 255))
+        config.surface.blit(fps_text, (10, 10))
+
+        acc = f"{config.LAST_BOOST}".rjust(4, "0")
+        acc_text = self.font.render(f"ACC: {acc}", True, self.color_gradient(config.LAST_BOOST, 0, 200))
+        config.surface.blit(acc_text, (120, 10))
+
+        ups = f"{round(config.player.vel.x * 1000)}".rjust(5, "0")
+        fps_text = self.font.render(f"UPS: {ups}", True,
+                                    self.color_gradient(config.player.vel.x, 0, config.MAX_OVERAL_VEL))
+        config.surface.blit(fps_text, (220, 10))
 
     def update_level(self):
         """Update all Gameobjects in the level"""
@@ -135,24 +149,8 @@ class Game():
             config.surface.fill(config.BACKGROUND_COLOR)
 
             self.update_level()
-
             self.draw()
 
-            
             config.screen.blit(config.surface, (0, 0))
-
-
-            fps = config.clock.get_fps()
-            fpss = f"{0 if math.isinf(fps) else round(fps)}".rjust(6, "0")
-            fps_text = self.font.render(f"FPS: {fpss}", True, (255, 255, 255))
-            config.screen.blit(fps_text, (10, 10))
-
-            acc = f"{config.LAST_BOOST}".rjust(4, "0")
-            acc_text = self.font.render(f"ACC: {acc}", True, self.color_gradient(config.LAST_BOOST, 0, 200))
-            config.screen.blit(acc_text, (120, 10))
-
-            ups = f"{round(config.player.vel.x * 1000)}".rjust(5, "0")
-            fps_text = self.font.render(f"UPS: {ups}", True, self.color_gradient(config.player.vel.x,0, config.MAX_OVERAL_VEL))
-            config.screen.blit(fps_text, (220, 10))
 
             pygame.display.update()
