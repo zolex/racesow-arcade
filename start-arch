@@ -1,0 +1,4 @@
+#!/bin/bash
+source bin/activate
+WINDOWED=1 python main.py
+
