@@ -4,10 +4,9 @@ import pygame as pg
 screen = None
 surface = None
 clock = None
-camera = None
 keys = None
+mods = None
 delta_time = None
-player = None
 final_count_down = False
 
 #Controller Inputs
@@ -53,9 +52,10 @@ GRAVITY = 0.019
 MAX_JUMP_HEIGHT = 100000
 MAX_WALLJUMP_HEIGHT = 42
 FRICTION = 1
-DECEL_FRICTION = 0.905
-BRAKE_FRICTION = 0.991
-RAMP_FRICTION = 0.991
+DECEL_FRICTION = 0.90
+CROUCH_FRICTION = 0.94
+SLIDE_FRICTION = 0.99
+RAMPSLIDE_FRICTION = 1
 
 #Velocities for different events
 BOUNCE_VEL = 0.1

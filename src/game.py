@@ -4,9 +4,10 @@ from src.basetypes import Camera, Vector2, Rectangle, Digit_System
 
 class Game():
     """Contains main loop and handles the game"""
-    def __init__(self):
-        config.camera = Camera(Vector2(), config.SCREEN_WIDTH, config.SCREEN_HEIGHT)
-        config.player = player.Player(Rectangle(Vector2(config.PLAYER_START_X, config.PLAYER_START_Y), config.PLAYER_WIDTH, config.PLAYER_HEIGHT))
+    def __init__(self, surface):
+        self.surface = surface
+        self.camera = Camera(Vector2(), config.SCREEN_WIDTH, config.SCREEN_HEIGHT)
+        self.player = player.Player(Rectangle(Vector2(config.PLAYER_START_X, config.PLAYER_START_Y), config.PLAYER_WIDTH, config.PLAYER_HEIGHT))
 
         sprites.background = sprites.background.convert_alpha()
         #sprites.background.set_colorkey((255, 0, 255))
@@ -32,33 +33,47 @@ class Game():
 
     def draw(self):
         """Draw all GameObjects and sprites that are currently on screen"""
-        config.surface.fill(config.BACKGROUND_COLOR)
+        self.surface.fill(config.BACKGROUND_COLOR)
         self.draw_background()
         self.draw_colliders()
-        config.player.draw()
+        self.draw_items()
+        self.draw_decals()
+        self.player.draw(self.camera, self.surface)
         self.draw_digit_systems()
 
     def draw_background(self):
         """Extract rectangle from background image based on camera position"""
-        config.surface.blit(sprites.background,
-                       (0, 0),
-                       (config.camera.pos.x, config.camera.pos.y, config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
+        self.surface.blit(sprites.background, (0, 0), (self.camera.pos.x, self.camera.pos.y, config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
 
     def draw_colliders(self):
         for collider in level.static_colliders:
-            view_pos = config.camera.to_view_space(collider.rect.pos)
-            pygame.draw.rect(config.surface, (0, 0, 0), (view_pos.x, view_pos.y, collider.rect.w, collider.rect.h))
+            view_pos = self.camera.to_view_space(collider.rect.pos)
+            pygame.draw.rect(self.surface, (0, 0, 0), (view_pos.x, view_pos.y, collider.rect.w, collider.rect.h))
 
         for collider in level.wall_colliders:
-            view_pos = config.camera.to_view_space(collider.rect.pos)
-            pygame.draw.rect(config.surface, (0, 0, 255), (view_pos.x, view_pos.y, collider.rect.w, collider.rect.h))
+            view_pos = self.camera.to_view_space(collider.rect.pos)
+            pygame.draw.rect(self.surface, (0, 0, 255), (view_pos.x, view_pos.y, collider.rect.w, collider.rect.h))
 
         for triangle in level.ramp_colliders:
-            pygame.draw.polygon(config.surface, (160, 0, 44), [
-                (triangle.rect.p1.x - config.camera.pos.x, triangle.rect.p1.y - config.camera.pos.y),
-                (triangle.rect.p2.x - config.camera.pos.x, triangle.rect.p2.y - config.camera.pos.y),
-                (triangle.rect.p3.x - config.camera.pos.x, triangle.rect.p3.y - config.camera.pos.y)
+            pygame.draw.polygon(self.surface, (160, 0, 44), [
+                (triangle.rect.p1.x - self.camera.pos.x, triangle.rect.p1.y - self.camera.pos.y),
+                (triangle.rect.p2.x - self.camera.pos.x, triangle.rect.p2.y - self.camera.pos.y),
+                (triangle.rect.p3.x - self.camera.pos.x, triangle.rect.p3.y - self.camera.pos.y)
             ])
+
+    def draw_items(self):
+        for item in level.items:
+            if item.get('picked_up', False):
+                continue
+            view_pos = self.camera.to_view_space(Vector2(item['pos'][0], item['pos'][1]))
+            if item['type'] == 'rocket':
+                self.surface.blit(sprites.item_set, (view_pos.x, view_pos.y), sprites.ITEM_ROCKET)
+            elif item['type'] == 'plasma':
+                self.surface.blit(sprites.item_set, (view_pos.x, view_pos.y), sprites.ITEM_PLASMA)
+
+    def draw_decals(self):
+        for decal in level.decals:
+            self.surface.blit(sprites.item_set, (decal.x - self.camera.pos.x, decal.y - self.camera.pos.y), decal.sprite)
 
     def draw_digit_systems(self):
         """Draw all digit systems on screen"""
@@ -68,21 +83,26 @@ class Game():
         fps = config.clock.get_fps()
         fpss = f"{0 if math.isinf(fps) else round(fps)}".rjust(6, "0")
         fps_text = self.font.render(f"FPS: {fpss}", True, (255, 255, 255))
-        config.surface.blit(fps_text, (10, 10))
+        self.surface.blit(fps_text, (10, 10))
 
         acc = f"{config.LAST_BOOST}".rjust(4, "0")
         acc_text = self.font.render(f"ACC: {acc}", True, self.color_gradient(config.LAST_BOOST, 0, 200))
-        config.surface.blit(acc_text, (120, 10))
+        self.surface.blit(acc_text, (120, 10))
 
-        ups = f"{round(config.player.vel.x * 1000)}".rjust(5, "0")
+        ups = f"{round(self.player.vel.x * 1000)}".rjust(5, "0")
         fps_text = self.font.render(f"UPS: {ups}", True,
-                                    self.color_gradient(config.player.vel.x, 0, config.MAX_OVERAL_VEL))
-        config.surface.blit(fps_text, (220, 10))
+                                    self.color_gradient(self.player.vel.x, 0, config.MAX_OVERAL_VEL))
+        self.surface.blit(fps_text, (220, 10))
 
     def update_level(self):
         """Update all Gameobjects in the level"""
-        config.player.update()
-        config.camera.update()
+
+        for i in range(len(level.decals) - 1, -1, -1):
+            if level.decals[i].start_time + level.decals[i].duration < pygame.time.get_ticks():
+                del level.decals[i]
+
+        self.player.update()
+        self.camera.update(self.player)
 
     def handle_pygame_events(self):
         for event in pygame.event.get():
@@ -107,13 +127,10 @@ class Game():
             if event.type == pygame.QUIT:
                 return False
 
-        if config.player.to_menu:
-            self.quit_state = 'menu'
-            return False
 
         if config.keys[pygame.K_ESCAPE] or config.INPUT_BUTTONS[8]:
-            self.quit_state = 'menu'
             return False
+
         return True
 
     def color_gradient(self, value, min_value, max_value):
@@ -140,17 +157,17 @@ class Game():
 
     def game_loop(self):
         """Main game loop, updates and draws the level every frame"""
+        pygame.mixer.init()
+        pygame.mixer.set_num_channels(64)
         while True:
             config.delta_time = config.clock.tick()
             config.keys = pygame.key.get_pressed()
+            config.mods = pygame.key.get_mods()
             if not self.handle_pygame_events():
                 break
 
-            config.surface.fill(config.BACKGROUND_COLOR)
-
+            self.surface.fill(config.BACKGROUND_COLOR)
             self.update_level()
             self.draw()
-
-            config.screen.blit(config.surface, (0, 0))
 
             pygame.display.update()

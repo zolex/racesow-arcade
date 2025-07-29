@@ -6,6 +6,7 @@ static_colliders = []
 ramp_colliders = []
 wall_colliders = []
 dynamic_colliders = []
+decals = []
 
 
 graphics_folder = path.join(path.dirname(path.dirname(__file__)), 'assets', 'maps', 'egypt')
@@ -13,6 +14,9 @@ map_file = path.join(graphics_folder, 'map.yaml')
 
 with open(map_file, 'r') as file:
     data = yaml.safe_load(file)
+
+items = data['items']
+print(items)
 
 for rect in data['static']:
     static_colliders.append(Collider(Rectangle(Vector2(rect[0], rect[1]), rect[2], rect[3])))

@@ -7,10 +7,9 @@ if __name__ == '__main__':
         display_options += pygame.FULLSCREEN
     
     pygame.init()    
-    config.screen = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT), display_options)
-    config.surface = pygame.Surface((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
+    screen = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT), display_options)
     config.clock = pygame.time.Clock()
 
-    game.Game().game_loop()
+    game.Game(screen).game_loop()
     
     pygame.quit()

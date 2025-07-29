@@ -1,3 +1,5 @@
+import pygame
+
 from src import sprites, config as c
 import math
 
@@ -159,6 +161,13 @@ class Entity(GameObject):
         super(Entity, self).__init__(rect)
         self.vel = vel
 
+class Decal(Vector2):
+    def __init__(self, sprite, duration, x, y):
+        super(Decal, self).__init__(x, y)
+        self.sprite = sprite
+        self.duration = duration
+        self.start_time = pygame.time.get_ticks()
+
 class Camera(Rectangle):
     def __init__(self, pos, w, h):
         super(Camera, self).__init__(pos, w, h)
@@ -172,17 +181,12 @@ class Camera(Rectangle):
         """Returns position relative to camera"""
         return Vector2(pos.x - self.pos.x, pos.y - self.pos.y )
 
-    def update(self):
+    def update(self, player):
         """Update position of camera based on player velocity and position"""
-        #c.camera.pos.x = self.pos.x * c.ACCELERATION
-        c.camera.pos.x = c.player.pos.x - 30 - (c.player.vel.x * 50)
+        self.pos.x = player.pos.x - 30 - (player.vel.x * 50)
 
-        if c.player.pos.y < 20:
-            self.pos.y = c.player.pos.y - 20
-
-        #if self.pos.x < c.MAXIMUM_CAMERA_SCROLL:
-        #    if c.player.pos.x > c.camera.pos.x + c.CAMERA_FOLLOW_X and c.player.vel.x > 0:
-        #        c.camera.pos.x += c.player.vel.x * c.delta_time
+        if player.pos.y < 20:
+            self.pos.y = player.pos.y - 20
 
 class State_Machine():
     """Manages states"""
@@ -244,11 +248,11 @@ class Digit_System():
         else:
             self.digit_array = [0] * self.number_of_digits
     
-    def draw(self):
+    def draw(self, surface):
         """Draw the digit system"""
         for i, x in enumerate(self.digit_array):
             #Digit width = 24
-            c.surface.blit(sprites.digits, (self.start_pos.x + 24 * i, self.start_pos.y), (24 * x, 0, 24, 21))
+            surface.blit(sprites.digits, (self.start_pos.x + 24 * i, self.start_pos.y), (24 * x, 0, 24, 21))
 
     def get_number_of_digits(self, value):
         """Gets the number of digits in an integer"""

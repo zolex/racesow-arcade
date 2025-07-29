@@ -13,6 +13,9 @@ walljump2 = pg.mixer.Sound(path.join(sounds_folder, 'player', 'wj_2.ogg'))
 jump1 = pg.mixer.Sound(path.join(sounds_folder, 'player', 'jump_1.ogg'))
 jump2 = pg.mixer.Sound(path.join(sounds_folder, 'player', 'jump_2.ogg'))
 death = pg.mixer.Sound(path.join(sounds_folder, 'player', 'death.ogg'))
+plasma = pg.mixer.Sound(path.join(sounds_folder, 'items', 'plasma.ogg'))
+rocket = pg.mixer.Sound(path.join(sounds_folder, 'items', 'rocket.ogg'))
+pickup = pg.mixer.Sound(path.join(sounds_folder, 'items', 'pickup.ogg'))
 
 #Get path to music files
 main_theme = path.join(sounds_folder, 'menu_1.ogg')
