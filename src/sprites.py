@@ -15,10 +15,14 @@ I_HEIGHT_S = I_HEIGHT * I_SCALE
 items = pg.image.load(path.join(graphics_folder, 'graphics', 'items.png'))
 new_size = (items.get_width() * I_SCALE, items.get_height() * I_SCALE)
 item_set = pg.transform.smoothscale(items, new_size)
-ITEM_ROCKET = (0    * I_SCALE, 0    * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
-ITEM_PLASMA = (128  * I_SCALE, 0    * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
-DECAL_ROCKET = (0    * I_SCALE, 128  * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
-DECAL_PLASMA = (128  * I_SCALE, 128    * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
+
+ITEM_ROCKET       = (0    * I_SCALE, 0    * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
+DECAL_ROCKET      = (0    * I_SCALE, 128  * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
+PROJECTILE_ROCKET = (0    * I_SCALE, 256  * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
+
+ITEM_PLASMA       = (128  * I_SCALE, 0    * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
+DECAL_PLSAMA      = (128  * I_SCALE, 128  * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
+PROJECTILE_PLASMA = (128  * I_SCALE, 128  * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
 
 P_SCALE    = 0.5
 P_WIDTH    = 128
@@ -41,6 +45,7 @@ PLAYER_CROUCH_ROCKET = (0    * P_SCALE, 1024 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
 PLAYER_SLIDE         = (0    * P_SCALE, 1280 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
 PLAYER_SLIDE_PLASMA  = (256  * P_SCALE, 1280 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
 PLAYER_SLIDE_ROCKET  = (128  * P_SCALE, 1280 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
+PLAYER_PLASMA_CLIMB  = (640  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
 PLAYER_RUN = [
                        (0    * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
                        (128  * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),

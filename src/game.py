@@ -1,6 +1,9 @@
+import random
+
 import pygame, math
 from src import level, sounds, sprites, config, player
-from src.basetypes import Camera, Vector2, Rectangle, Digit_System
+from src.basetypes import Camera, Vector2, Rectangle, Digit_System, Decal
+
 
 class Game():
     """Contains main loop and handles the game"""
@@ -31,11 +34,13 @@ class Game():
         #self.timer = 0 # timer for counting up the race time
         pygame.time.set_timer(self.tick, 1000)
 
+        self.last_velocity = 0
+
     def draw(self):
         """Draw all GameObjects and sprites that are currently on screen"""
         self.surface.fill(config.BACKGROUND_COLOR)
         self.draw_background()
-        self.draw_colliders()
+        #self.draw_colliders()
         self.draw_items()
         self.draw_decals()
         self.player.draw(self.camera, self.surface)
@@ -100,6 +105,35 @@ class Game():
         for i in range(len(level.decals) - 1, -1, -1):
             if level.decals[i].start_time + level.decals[i].duration < pygame.time.get_ticks():
                 del level.decals[i]
+            elif level.decals[i].vel_x > 0:
+                level.decals[i].x += level.decals[i].vel_x * config.delta_time
+                self.last_velocity += config.delta_time
+                if self.last_velocity > 1000 and (level.decals[i].vel_x > level.decals[i].target_vel):
+                    level.decals[i].vel_x += level.decals[i].acc
+                if level.decals[i].sound is not None:
+                    distance = abs(self.player.pos.x - level.decals[i].x)
+                    level.decals[i].sound.set_volume(1 - (distance / 1000))
+                if level.decals[i].sprite == sprites.PROJECTILE_PLASMA or level.decals[i].sprite == sprites.PROJECTILE_ROCKET:
+                    collider = level.decals[i].check_collisions(level.static_colliders + level.ramp_colliders)
+                    if collider is not None:
+                        if level.decals[i].sprite == sprites.PROJECTILE_ROCKET:
+                            x = level.decals[i].x
+                            y = level.decals[i].y
+                            del level.decals[i]
+                            level.decals.append(Decal(sprites.DECAL_ROCKET, 500, x, y))
+                            distance = abs(self.player.pos.x - x)
+                            sounds.rocket.set_volume(1 - (distance / 1000))
+                            sounds.rocket.play()
+                        if level.decals[i].sprite == sprites.PROJECTILE_PLASMA:
+                            level.decals[i].x += random.randrange(-5, 5)
+                            level.decals[i].y += random.randrange(-5, 5)
+                            level.decals[i].vel_x = 0
+                            level.decals[i].start_time = pygame.time.get_ticks()
+                            level.decals[i].duration = 300
+
+
+
+
 
         self.player.update()
         self.camera.update(self.player)

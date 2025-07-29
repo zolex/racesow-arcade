@@ -48,6 +48,14 @@ class Animation():
         self.active_slide_anim = sprites.PLAYER_SLIDE_ROCKET
         self.active_idle_anim = sprites.PLAYER_IDLE_ROCKET
 
+    def set_active_weapon(self):
+        if self.player.active_weapon == 'plasma':
+            self.select_plasma()
+        elif self.player.active_weapon == 'rocket':
+            self.select_rocket()
+        else:
+            self.select_no_weapon()
+
     def reset_anim(self):
         """Reset animation variables"""
         self.anim_frame = 0
@@ -97,6 +105,10 @@ class Animation():
 
     def jump_anim(self):
         """Animation when jumping"""
+        if self.player.is_plasma_climbing:
+            self.current_sprite = sprites.PLAYER_PLASMA_CLIMB
+            return
+
         frame_time = 50
         self.anim_timer += config.delta_time
         self.current_sprite = self.active_run_anim[self.anim_frame]

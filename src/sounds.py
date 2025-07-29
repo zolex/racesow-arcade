@@ -15,6 +15,8 @@ jump2 = pg.mixer.Sound(path.join(sounds_folder, 'player', 'jump_2.ogg'))
 death = pg.mixer.Sound(path.join(sounds_folder, 'player', 'death.ogg'))
 plasma = pg.mixer.Sound(path.join(sounds_folder, 'items', 'plasma.ogg'))
 rocket = pg.mixer.Sound(path.join(sounds_folder, 'items', 'rocket.ogg'))
+rocket_fly = pg.mixer.Sound(path.join(sounds_folder, 'items', 'rocket_fly.mp3'))
+rocket_launch = pg.mixer.Sound(path.join(sounds_folder, 'items', 'rocket_launch.mp3'))
 pickup = pg.mixer.Sound(path.join(sounds_folder, 'items', 'pickup.ogg'))
 
 #Get path to music files

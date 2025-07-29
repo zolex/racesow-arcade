@@ -56,9 +56,15 @@ class Rectangle():
     def check_collisions(self, collider_list):
         """Check collisions between two rectangles, if in a rangle of 100px, returns a single collider"""
         for collider in collider_list:
-            if abs(self.pos.x - collider.pos.x) < 100 or collider.rect.w >= 100: #Wider colliders are checked anyway
+            if abs(self.pos.x - collider.pos.x) < 100 or collider.rect.w >= 100:  # Wider colliders are checked anyway
                 if self.overlaps(collider.rect):
                     return collider
+
+    def check_center_collisions(self, collider_list):
+        """Check collision of the center of this rect and another rectangle"""
+        for collider in collider_list:
+            if collider.pos.x <= self.pos.x + self.w // 2 <= collider.pos.x + collider.rect.w and collider.pos.y <= self.pos.y + self.h // 2 <= collider.pos.y + collider.rect.h:
+                return collider
 
     def check_triangle_collisions(self, collider_list):
         """Returns True if this rectangle collides with the given triangle."""
@@ -162,11 +168,54 @@ class Entity(GameObject):
         self.vel = vel
 
 class Decal(Vector2):
-    def __init__(self, sprite, duration, x, y):
+    def __init__(self, sprite, duration, x, y, vel_x = 0, target_vel = 0, acc = 0, sound = None):
         super(Decal, self).__init__(x, y)
+        self.vel_x = vel_x
+        self.target_vel = target_vel
+        self.acc = acc
         self.sprite = sprite
         self.duration = duration
         self.start_time = pygame.time.get_ticks()
+        self.sound = sound
+
+    def point_in_triangle(self, pt, t):
+        def sign(p1, p2, p3):
+            return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y)
+
+        b1 = sign(pt, t.p1, t.p2) < 0.0
+        b2 = sign(pt, t.p2, t.p3) < 0.0
+        b3 = sign(pt, t.p3, t.p1) < 0.0
+        return (b1 == b2) and (b2 == b3)
+
+    def check_collisions(self, collider_list):
+        """Check collisions:
+           - For Rectangle: usual AABB test
+           - For Triangle: uses point_in_triangle function
+           If collision is detected, returns the collider.
+        """
+
+        for collider in collider_list:
+            if isinstance(collider.rect, Rectangle):
+                if (collider.rect.pos.x < self.x < collider.rect.pos.x + collider.rect.w and
+                        collider.rect.pos.y < self.y < collider.rect.pos.y + collider.rect.h):
+                    if self.sound is not None:
+                        self.sound.stop()
+                    return collider
+            elif isinstance(collider.rect, Triangle):
+                # Assuming self.x and self.y represent the point to test
+                class Pt:  # Minimal point object for compatibility
+                    def __init__(self, x, y):
+                        self.x = x
+                        self.y = y
+
+                pt = Pt(self.x, self.y)
+                if self.point_in_triangle(pt, collider.rect):
+                    if self.sound is not None:
+                        self.sound.stop()
+                    return collider
+
+        return None
+
 
 class Camera(Rectangle):
     def __init__(self, pos, w, h):
