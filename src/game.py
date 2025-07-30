@@ -12,8 +12,8 @@ class Game():
         self.surface = surface
         self.camera = Camera(Vector2(), config.SCREEN_WIDTH, config.SCREEN_HEIGHT)
         self.level = level.Level(self.surface, self.camera)
-        self.level.load('egypt')
         self.player = player.Player(self.surface, self.camera)
+        self.level.load('egypt', self.player)
         self.player.set_level(self.level)
 
 
@@ -43,10 +43,9 @@ class Game():
         """Draw all GameObjects and sprites that are currently on screen"""
         self.level.draw()
         self.player.draw()
-        self.draw_digit_systems()
+        self.draw_hud()
 
-    def draw_digit_systems(self):
-        """Draw all digit systems on screen"""
+    def draw_hud(self):
 
         #self.time.draw()
 
@@ -63,6 +62,16 @@ class Game():
         ups = f"{round(self.player.vel.x * 1000)}".rjust(5, "0")
         fps_text = self.font.render(f"UPS: {ups}", True, color_gradient(self.player.vel.x, 0, config.MAX_OVERAL_VEL))
         self.surface.blit(fps_text, (220, 10))
+
+        if self.player.has_plasma:
+            self.surface.blit(sprites.item_set, (config.SCREEN_WIDTH - 45, config.SCREEN_HEIGHT - 20), sprites.ITEM_PLASMA)
+            fps_text = self.font.render(f"{self.player.plasma_ammo}", True, (255, 255, 255))
+            self.surface.blit(fps_text, (config.SCREEN_WIDTH - 20, config.SCREEN_HEIGHT - 15))
+
+        if self.player.has_rocket:
+            self.surface.blit(sprites.item_set, (config.SCREEN_WIDTH - 90, config.SCREEN_HEIGHT - 20), sprites.ITEM_ROCKET)
+            fps_text = self.font.render(f"{self.player.rocket_ammo}", True, (255, 255, 255))
+            self.surface.blit(fps_text, (config.SCREEN_WIDTH - 60, config.SCREEN_HEIGHT - 15))
 
     def update(self):
         self.player.update()

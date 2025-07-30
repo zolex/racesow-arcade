@@ -9,10 +9,7 @@ from src import level, sounds, sprites, config
 
 class Player(Entity):
     def __init__(self, surface: pygame.surface.Surface, camera: Camera):
-        vel = Vector2(0, 0)
-        rect = Rectangle(Vector2(config.PLAYER_START_X, config.PLAYER_START_Y), config.PLAYER_WIDTH, config.PLAYER_HEIGHT)
-        super(Player, self).__init__(vel, rect)
-
+        super(Player, self).__init__(Vector2(0, 0), Rectangle(Vector2(0, 0), config.PLAYER_WIDTH, config.PLAYER_HEIGHT))
         self.camera = camera
         self.surface = surface
         self.level = None
@@ -58,6 +55,7 @@ class Player(Entity):
 
     def set_level(self, level):
         self.level = level
+        self.rect.pos = level.player_start
 
     def __getattr__(self, name):
         if name == 'current_action_state':
@@ -155,9 +153,6 @@ class Player(Entity):
             if self.jump_diff < 300:
                 self.action_states.on_event('jump')
 
-        #if self.vel.x == 0 and self.vel.y == 0 and self.crouching and not self.can_uncrouch:
-        #    self.player_states.on_event('dead')
-
         if not self.freeze_movement:
             self.state_events()
             self.action_states.update()
@@ -177,37 +172,45 @@ class Player(Entity):
             if self.active_weapon == 'rocket':
                 if self.last_rocket_time + 1337 < ticks:
                     self.last_rocket_time = pygame.time.get_ticks()
-                    if self.pressed_down:
-                        sounds.rocket_launch.play()
-                        sounds.rocket.play()
-                        self.action_states.on_event('rocket')
+                    if self.rocket_ammo <= 0:
+                        sounds.weapon_empty.play()
                     else:
-                        sounds.rocket_launch.play()
-                        channel = sounds.rocket_fly.play(loops=-1)
-                        self.level.decals.append(Decal(sprites.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 0.6, 0.6, -0.0005, channel))
+                        self.rocket_ammo -= 1
+                        if self.pressed_down:
+                            sounds.rocket_launch.play()
+                            sounds.rocket.play()
+                            self.action_states.on_event('rocket')
+                        else:
+                            sounds.rocket_launch.play()
+                            channel = sounds.rocket_fly.play(loops=-1)
+                            self.level.decals.append(Decal(sprites.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 0.6, 0.6, -0.0005, channel))
 
 
             elif self.active_weapon == 'plasma':
                 if self.last_plasma_time + 100 < ticks:
-                    sounds.plasma.play()
                     self.last_plasma_time = ticks
-                    if (self.pressed_down or self.pressed_left or self.pressed_up or self.pressed_right) and self.plasma_climb_collisions():
-                        self.action_states.on_event('plasma')
-                        self.level.decals.append(Decal(sprites.DECAL_PLASMA, 300, self.pos.x + 25, self.pos.y + 5))
-                        if self.pressed_down:
-                            if self.pressed_left or self.pressed_right:
-                                self.vel.y -= 0.08
-                            else:
-                                self.vel.y -= 0.1
-                        elif self.pressed_up:
-                            self.vel.y += 0.02
-
-                        if self.pressed_left:
-                            self.vel.x += 0.05
-                        elif self.pressed_right:
-                            self.vel.x -= 0.05
+                    if self.plasma_ammo <= 0:
+                        sounds.weapon_empty.play()
                     else:
-                        self.level.decals.append(Decal(sprites.PROJECTILE_PLASMA, 10000, self.pos.x + 30, self.pos.y + 5, 1 + self.vel.x))
+                        sounds.plasma.play()
+                        self.plasma_ammo -= 1
+                        if (self.pressed_down or self.pressed_left or self.pressed_up or self.pressed_right) and self.plasma_climb_collisions():
+                            self.action_states.on_event('plasma')
+                            self.level.decals.append(Decal(sprites.DECAL_PLASMA, 300, self.pos.x + 25, self.pos.y + 5))
+                            if self.pressed_down:
+                                if self.pressed_left or self.pressed_right:
+                                    self.vel.y -= 0.08
+                                else:
+                                    self.vel.y -= 0.1
+                            elif self.pressed_up:
+                                self.vel.y += 0.02
+
+                            if self.pressed_left:
+                                self.vel.x += 0.05
+                            elif self.pressed_right:
+                                self.vel.x -= 0.05
+                        else:
+                            self.level.decals.append(Decal(sprites.PROJECTILE_PLASMA, 10000, self.pos.x + 30, self.pos.y + 5, 1 + self.vel.x))
 
         self.animation.animate()
 
@@ -370,7 +373,7 @@ class Player(Entity):
         for item in self.level.items:
             if item.picked_up:
                 continue
-            if self.pos.x + self.rect.w / 2 >= item.pos.x:
+            if item.pos.x - 10 <= self.pos.x + self.rect.w / 2 <= item.pos.x + 10 and item.pos.y - 10 <= self.pos.y + self.rect.h / 2 <= item.pos.y + 10:
                 sounds.pickup.play()
                 self.active_weapon = item.item_type
                 if item.item_type == 'rocket':
@@ -510,6 +513,10 @@ class Player(Entity):
 
             owner_object.add_jump_velocity()
 
+        def update(self, owner_object):
+            if owner_object.pressed_right and owner_object.vel.x < 0.1:
+                config.ACCELERATION = 0.0005
+
     class Walljump_State(State):
         def on_event(self, event):
             if event == 'fall':
@@ -588,8 +595,12 @@ class Player(Entity):
             #print(__class__, pygame.time.get_ticks())
             owner_object.last_ramp_radians = 0
             # allows moving forward when stuck in front of a wall
-            if owner_object.vel.x == 0:
-                owner_object.vel.x = 0.02
+            #if owner_object.vel.x == 0:
+            #    owner_object.vel.x = 0.02
+
+        def update(self, owner_object):
+            if owner_object.pressed_right and owner_object.vel.x < 0.1:
+                config.ACCELERATION = 0.0005
 
     class Move_State(State):
         """State when moving on the ground and not breaking or decelerating"""

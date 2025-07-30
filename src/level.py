@@ -20,9 +20,10 @@ class Level:
         self.items = []
         self.last_decal_velocity = 0
         self.height_offset = 0
+        self.player_start = Vector2(70, 70)
         self.background_height = config.SCREEN_HEIGHT
 
-    def load(self, map_name: str):
+    def load(self, map_name: str, player: Player):
 
         self.map_name = map_name
 
@@ -45,6 +46,22 @@ class Level:
         map_file = path.join(sprites.assets_folder, 'maps', self.map_name, 'map.yaml')
         with open(map_file, 'r') as file:
             data = yaml.safe_load(file)
+
+        start_pos = data.get('player_start', None)
+        if start_pos is not None:
+            self.player_start = Vector2(start_pos[0], start_pos[1])
+
+        for item in data.get('player_items', []):
+            if item['type'] == 'plasma':
+                player.has_plasma = True
+                player.plasma_ammo = item['ammo']
+                player.animation.select_plasma()
+                player.active_weapon = 'plasma'
+            if item['type'] == 'rocket':
+                player.has_rocket = True
+                player.rocket_ammo = item['ammo']
+                player.animation.select_rocket()
+                player.active_weapon = 'rocket'
 
         for item in data['items']:
             self.items.append(Item(item['type'], Vector2(item['pos'][0], item['pos'][1] + self.height_offset), item['ammo']))
@@ -98,7 +115,7 @@ class Level:
 
     def draw_background(self):
         """Extract rectangle from background image based on camera position"""
-        self.surface.blit(self.background, (0, self.height_offset + 14), (self.camera.pos.x, self.camera.pos.y, config.SCREEN_WIDTH, self.background_height))
+        self.surface.blit(self.background, (0, self.height_offset), (self.camera.pos.x, self.camera.pos.y, config.SCREEN_WIDTH, self.background_height))
 
     def draw_colliders(self):
 
