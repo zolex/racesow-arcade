@@ -183,7 +183,7 @@ class Player(Entity):
                         else:
                             sounds.rocket_launch.play()
                             channel = sounds.rocket_fly.play(loops=-1)
-                            self.level.decals.append(Decal(sprites.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 0.6, 0.6, -0.0005, channel))
+                            self.level.decals.append(Decal(sprites.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 1, 1, -0.00075, channel))
 
 
             elif self.active_weapon == 'plasma':
@@ -383,8 +383,7 @@ class Player(Entity):
                     self.has_plasma = True
                     self.plasma_ammo = item.ammo
                 item.picked_up = True
-                self.animation.set_active_weapon()
-
+                self.animation.set_active_weapon()#
 
     def walljump_collisions(self):
         wall_collider = self.rect.check_collisions(self.level.wall_colliders)

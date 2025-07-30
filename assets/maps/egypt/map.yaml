@@ -1,6 +1,11 @@
 name: Example 1
 version: 1.0
 
+background: 'background.png'
+sky: 'sky.png'
+overlay1: 'overlay.png'
+overlay2: 'overlay2.png'
+
 player_start: [70, 100]
 #player_items:
 #  - type: rocket
@@ -17,14 +22,14 @@ static:
 walls:
   - [ 545, 480, 257, 109 ]
   - [ 3754, 449, 384, 127 ]
-  - [ 5550, 0, 10000, 620 ]
+  - [ 5550, 0, 100000, 620 ]
 
 ramps:
   - [ 1945, 575, 2315, 575, 2315, 462 ]
 
 items:
   - type: rocket
-    ammo: 3
+    ammo: 100
     pos: [ 100, 555 ]
   - type: plasma
     ammo: 100
