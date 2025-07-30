@@ -3,13 +3,20 @@ import copy, math, pygame, random
 from pygame.time import get_ticks
 
 from src.animation import Animation
-from src.basetypes import Vector2, Entity, State_Machine, State, Decal
+from src.basetypes import Vector2, Entity, State_Machine, State, Decal, Camera, Rectangle
 from src.utils import accelerate
 from src import level, sounds, sprites, config
 
 class Player(Entity):
-    def __init__(self, rect, vel = Vector2()):
+    def __init__(self, surface: pygame.surface.Surface, camera: Camera):
+        vel = Vector2(0, 0)
+        rect = Rectangle(Vector2(config.PLAYER_START_X, config.PLAYER_START_Y), config.PLAYER_WIDTH, config.PLAYER_HEIGHT)
         super(Player, self).__init__(vel, rect)
+
+        self.camera = camera
+        self.surface = surface
+        self.level = None
+
         self.ground_touch_time = 0
         self.last_walljump = 0
         self.last_ramp_radians = -1
@@ -22,7 +29,7 @@ class Player(Entity):
         self.pressed_right = False
         self.lifted_right = False
         self.jump_pressed_at = None
-        self.spacebar = False
+        self.pressed_jump = False
         self.crouching = False
         self.pressed_down = False
         self.freeze_movement = False
@@ -49,6 +56,9 @@ class Player(Entity):
 
         sprites.player_set = sprites.player_set.convert_alpha()
 
+    def set_level(self, level):
+        self.level = level
+
     def __getattr__(self, name):
         if name == 'current_action_state':
             return self.action_states.get_state()
@@ -58,9 +68,9 @@ class Player(Entity):
             return self.player_states.get_state()
         return object.__getattribute__(self, name)
 
-    def draw(self, camera, surface):
+    def draw(self):
         #if camera.contains(self.rect):
-        view_pos_sprite = camera.to_view_space(
+        view_pos_sprite = self.camera.to_view_space(
             Vector2(
                 self.rect.pos.x - 16,
                 self.rect.pos.y - (31 if self.crouching else 21)
@@ -78,7 +88,7 @@ class Player(Entity):
                                                view_pos_sprite.y + sprite_surface.get_height() // 2))
 
         # 4. Blit the rotated sprite
-        surface.blit(rotated_sprite, rect.topleft)
+        self.surface.blit(rotated_sprite, rect.topleft)
 
     def handle_inputs(self):
         if self.freeze_input:
@@ -86,21 +96,28 @@ class Player(Entity):
 
         if config.INPUT_UP or config.keys[pygame.K_w]:
             self.pressed_up = True
-
-        if not config.INPUT_UP and not config.keys[pygame.K_w]:
+        elif not config.INPUT_UP and not config.keys[pygame.K_w]:
             self.pressed_up = False
-            self.is_plasma_climbing = False
+
+        if config.keys[pygame.K_s] or config.INPUT_DOWN:
+            self.pressed_down = True
+        elif not config.keys[pygame.K_s] and not config.INPUT_DOWN:
+            self.pressed_down = False
 
         if config.INPUT_RIGHT or config.keys[pygame.K_d]:
             self.pressed_right = True
-
-        if self.pressed_right and not config.keys[pygame.K_d] and not config.INPUT_RIGHT:
+        elif not config.INPUT_RIGHT and not config.keys[pygame.K_d]:
             self.lifted_right = True
             self.pressed_right = False
 
+        if config.INPUT_LEFT or config.keys[pygame.K_a]:
+            self.pressed_left = True
+        elif not config.INPUT_LEFT and not config.keys[pygame.K_a]:
+            self.pressed_left = False
+
+
         if (config.INPUT_BUTTONS[1] or config.mods & pygame.KMOD_ALT) and (pygame.time.get_ticks() - self.last_walljump > 1000) and self.walljump_collisions():
             self.last_walljump = pygame.time.get_ticks()
-            self.is_plasma_climbing = False
             self.action_states.on_event('walljump')
 
         if (config.INPUT_BUTTONS[3] or config.mods & pygame.KMOD_CTRL) and self.last_weapon_switch + 666 < pygame.time.get_ticks():
@@ -115,22 +132,17 @@ class Player(Entity):
             self.shooting = True
         elif not config.keys[pygame.K_RETURN] and not config.INPUT_BUTTONS[2]:
             self.shooting = False
-            self.is_plasma_climbing = False
 
-        if (config.keys[pygame.K_SPACE] or config.INPUT_BUTTONS[0]) and not self.spacebar:
+        if (config.keys[pygame.K_SPACE] or config.INPUT_BUTTONS[0]) and not self.pressed_jump:
             if self.jump_pressed_at is None:
                 self.jump_pressed_at = pygame.time.get_ticks()
-            self.spacebar = True
+            self.pressed_jump = True
 
 
         if not config.keys[pygame.K_SPACE] and not config.INPUT_BUTTONS[0]:
             self.jump_pressed_at = None
-            self.spacebar = False
+            self.pressed_jump = False
 
-        if config.keys[pygame.K_s] or config.INPUT_DOWN:
-            self.crouch = True
-        else:
-            self.crouch = False
 
     def update(self):
 
@@ -138,7 +150,7 @@ class Player(Entity):
 
         self.can_uncrouch = self.crouching and self.check_can_uncrouch()
 
-        if self.spacebar and (not self.crouching or self.can_uncrouch):
+        if self.pressed_jump and (not self.crouching or self.can_uncrouch):
             self.jump_diff = pygame.time.get_ticks() - self.jump_pressed_at
             if self.jump_diff < 300:
                 self.action_states.on_event('jump')
@@ -152,8 +164,8 @@ class Player(Entity):
             self.movement()
 
             #Make sure that player can't jump when running off a ledge
-            if self.pos.y > self.start_height:
-                self.action_states.on_event('fall')
+            #if self.pos.y > self.start_height:
+            #    self.action_states.on_event('fall')
 
         self.player_states.update()
 
@@ -165,28 +177,37 @@ class Player(Entity):
             if self.active_weapon == 'rocket':
                 if self.last_rocket_time + 1337 < ticks:
                     self.last_rocket_time = pygame.time.get_ticks()
-                    if self.crouch:
+                    if self.pressed_down:
                         sounds.rocket_launch.play()
                         sounds.rocket.play()
                         self.action_states.on_event('rocket')
                     else:
                         sounds.rocket_launch.play()
                         channel = sounds.rocket_fly.play(loops=-1)
-                        level.decals.append(Decal(sprites.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 0.6, 0.6, -0.0005, channel))
+                        self.level.decals.append(Decal(sprites.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 0.6, 0.6, -0.0005, channel))
+
 
             elif self.active_weapon == 'plasma':
                 if self.last_plasma_time + 100 < ticks:
-                    self.is_plasma_climbing = False
                     sounds.plasma.play()
                     self.last_plasma_time = ticks
-                    print(self.pressed_up)
-                    if self.pressed_up:
-                        if self.plasma_climb_collisions():
-                            level.decals.append(Decal(sprites.DECAL_PLSAMA, 300, self.pos.x + 30, self.pos.y + 5))
-                            self.vel.y -= 0.1
-                            self.is_plasma_climbing = True
+                    if (self.pressed_down or self.pressed_left or self.pressed_up or self.pressed_right) and self.plasma_climb_collisions():
+                        self.action_states.on_event('plasma')
+                        self.level.decals.append(Decal(sprites.DECAL_PLASMA, 300, self.pos.x + 25, self.pos.y + 5))
+                        if self.pressed_down:
+                            if self.pressed_left or self.pressed_right:
+                                self.vel.y -= 0.08
+                            else:
+                                self.vel.y -= 0.1
+                        elif self.pressed_up:
+                            self.vel.y += 0.02
+
+                        if self.pressed_left:
+                            self.vel.x += 0.05
+                        elif self.pressed_right:
+                            self.vel.x -= 0.05
                     else:
-                        level.decals.append(Decal(sprites.PROJECTILE_PLASMA, 10000, self.pos.x + 30, self.pos.y + 5, 1 + self.vel.x))
+                        self.level.decals.append(Decal(sprites.PROJECTILE_PLASMA, 10000, self.pos.x + 30, self.pos.y + 5, 1 + self.vel.x))
 
         self.animation.animate()
 
@@ -197,7 +218,7 @@ class Player(Entity):
         min_distance = None  # None means no collider found below
 
         # Check static (rectangle) colliders
-        for collider in level.static_colliders:
+        for collider in self.level.static_colliders:
             if collider.rect.pos.x <= player_centerx <= collider.rect.pos.x + collider.rect.w:
                 if collider.rect.pos.y >= player_bottom:
                     distance = collider.rect.pos.y - player_bottom
@@ -205,7 +226,7 @@ class Player(Entity):
                         min_distance = distance
 
         # Check ramp (triangle) colliders
-        for collider in level.ramp_colliders:
+        for collider in self.level.ramp_colliders:
             tri = collider.rect
             if tri.p1.x <= player_centerx <= tri.p2.x:
                 print("above ramp")
@@ -227,7 +248,9 @@ class Player(Entity):
             self.last_velocity = 0
             #if any(self.current_action_state == state for state in ['Jump_State', 'Walljump_State', 'Fall_State', 'Idle_State', 'Crouch_State']):
             self.vel.y += config.GRAVITY
-            if self.vel.y >= 0:
+            if self.vel.y >= 0 and self.current_action_state != 'Plasma_State':
+                self.action_states.on_event('fall')
+            if not self.pressed_left and not self.pressed_right and not self.pressed_up and not self.pressed_down and self.current_action_state == 'Plasma_State':
                 self.action_states.on_event('fall')
 
         accelerate(self, config.ACCELERATION, 0, config.MAX_OVERAL_VEL)
@@ -253,10 +276,10 @@ class Player(Entity):
 
         if self.vel.y == 0 and (not self.crouching or self.can_uncrouch):
 
-            if self.pressed_right and not self.crouch:
+            if self.pressed_right and not self.pressed_down:
                 self.action_states.on_event('move')
 
-            if self.vel.x > 0 and not self.pressed_right and not self.crouch:
+            if self.vel.x > 0 and not self.pressed_right and not self.pressed_down:
                 self.action_states.on_event('decel')
 
             if abs(self.vel.x) < 0.02 and self.current_action_state != 'Move_State':
@@ -269,14 +292,17 @@ class Player(Entity):
         if all(self.current_action_state != state for state in ['Decel_State', 'Crouch_State']):
             config.FRICTION = 1
 
-        if self.current_action_state != 'Crouch_State' and self.crouch:
+        if self.current_action_state != 'Crouch_State' and self.pressed_down:
             self.action_states.on_event('crouch')
 
     def collider_collisions(self, dx, dy):
-        other_collider = self.rect.check_collisions(level.static_colliders)
+        other_collider = self.rect.check_collisions(self.level.static_colliders)
 
         if other_collider is None:
             return
+
+        if self.current_action_state == 'Plasma_State':
+         self.vel.x -= 0.1
 
         if dx > 0:
             if self.current_action_state == 'Move_State':
@@ -304,7 +330,7 @@ class Player(Entity):
         if self.current_action_state == 'Jump_State' or self.current_action_state == 'Rocket_State':
             return
 
-        ramp_collider = self.rect.check_triangle_collisions(level.ramp_colliders)
+        ramp_collider = self.rect.check_triangle_collisions(self.level.ramp_colliders)
 
         # keep momentum when leaving a ramp
         if ramp_collider is None:
@@ -341,30 +367,29 @@ class Player(Entity):
         self.action_states.on_event('ramp')
 
     def item_collisions(self):
-        for item in level.items:
-            if item.get('picked_up', False):
+        for item in self.level.items:
+            if item.picked_up:
                 continue
-            if self.pos.x + self.rect.w / 2 >= item['pos'][0]:
-                print("pickup", item)
+            if self.pos.x + self.rect.w / 2 >= item.pos.x:
                 sounds.pickup.play()
-                self.active_weapon = item['type']
-                if item['type'] == 'rocket':
+                self.active_weapon = item.item_type
+                if item.item_type == 'rocket':
                     self.has_rocket = True
-                    self.rocket_ammo = item['ammo']
-                elif item['type'] == 'plasma':
+                    self.rocket_ammo = item.ammo
+                elif item.item_type == 'plasma':
                     self.has_plasma = True
-                    self.plasma_ammo = item['ammo']
-                item['picked_up'] = True
+                    self.plasma_ammo = item.ammo
+                item.picked_up = True
                 self.animation.set_active_weapon()
 
 
     def walljump_collisions(self):
-        wall_collider = self.rect.check_collisions(level.wall_colliders)
+        wall_collider = self.rect.check_collisions(self.level.wall_colliders)
 
         return wall_collider is not None
 
     def plasma_climb_collisions(self):
-        wall_collider = self.rect.check_center_collisions(level.wall_colliders)
+        wall_collider = self.rect.check_center_collisions(self.level.wall_colliders)
 
         return wall_collider is not None
 
@@ -373,7 +398,7 @@ class Player(Entity):
         stand_rect.pos = copy.copy(self.rect.pos)
         stand_rect.pos.y -= (config.PLAYER_HEIGHT - self.rect.h)
         stand_rect.h = config.PLAYER_HEIGHT
-        for collider in level.static_colliders:
+        for collider in self.level.static_colliders:
             if abs(self.pos.x - collider.pos.x) < 100 or collider.rect.w >= 100:
                 if stand_rect.overlaps(collider.rect):
                     return False
@@ -408,7 +433,7 @@ class Player(Entity):
         distance = self.get_distance_to_collider_below()
         print("rocket distance", distance)
         if distance is not None:
-            if distance < 1 and not self.spacebar:
+            if distance < 1 and not self.pressed_jump:
                 vel = 0.4
             elif distance <= 5:
                 vel = 0.32
@@ -450,6 +475,8 @@ class Player(Entity):
                 return Player.Crouch_State()
             elif event == 'rocket':
                 return Player.Rocket_State()
+            elif event == 'plasma':
+                return Player.Plasma_State()
             return self
 
         def on_enter(self, owner_object):
@@ -466,6 +493,8 @@ class Player(Entity):
                 return Player.Walljump_State()
             elif event == 'rocket':
                 return Player.Rocket_State()
+            elif event == 'plasma':
+                return Player.Plasma_State()
             return self
 
         def on_enter(self, owner_object):
@@ -489,6 +518,8 @@ class Player(Entity):
                 return Player.Walljump_State()
             elif event == 'rocket':
                 return Player.Rocket_State()
+            elif event == 'plasma':
+                return Player.Plasma_State()
             return self
 
         def on_enter(self, owner_object):
@@ -509,17 +540,30 @@ class Player(Entity):
                 return Player.Fall_State()
             elif event == 'walljump':
                 return Player.Walljump_State()
+            elif event == 'plasma':
+                return Player.Plasma_State()
             return self
 
         def on_enter(self, owner_object):
             owner_object.animation.reset_anim()
             distance = owner_object.add_rocket_velocity()
-            level.decals.append(Decal(sprites.DECAL_ROCKET, 500, owner_object.pos.x, owner_object.pos.y + distance + owner_object.rect.h / 2 + 10))
+            owner_object.level.decals.append(Decal(sprites.DECAL_ROCKET, 500, owner_object.pos.x, owner_object.pos.y + distance + owner_object.rect.h / 2 + 10))
 
 
         def update(self, owner_object):
             if owner_object.last_rocket_time + 350 > pygame.time.get_ticks():
                 owner_object.action_states.on_event('jump')
+
+    class Plasma_State(State):
+        def on_event(self, event):
+            if event == 'fall':
+                return Player.Fall_State()
+            elif event == 'walljump':
+                return Player.Walljump_State()
+            return self
+
+        def on_enter(self, owner_object):
+            owner_object.animation.reset_anim()
 
     class Fall_State(State):
         """State when in mid air but spacebar input does not affect velocity"""
@@ -536,6 +580,8 @@ class Player(Entity):
                 return Player.Move_State()
             elif event == 'rocket':
                 return Player.Rocket_State()
+            elif event == 'plasma':
+                return Player.Plasma_State()
             return self
 
         def on_enter(self, owner_object):
@@ -560,6 +606,8 @@ class Player(Entity):
                 return Player.Idle_State()
             elif event == 'rocket':
                 return Player.Rocket_State()
+            elif event == 'plasma':
+                return Player.Plasma_State()
             return self
 
         def on_enter(self, owner_object):
@@ -595,6 +643,8 @@ class Player(Entity):
                 return Player.Crouch_State()
             elif event == 'rocket':
                 return Player.Rocket_State()
+            elif event == 'plasma':
+                return Player.Plasma_State()
             return self
 
         def on_enter(self, owner_object):
@@ -629,6 +679,8 @@ class Player(Entity):
                 return Player.Idle_State()
             elif event == 'rocket':
                 return Player.Rocket_State()
+            elif event == 'plasma':
+                return Player.Plasma_State()
             return self
 
         def on_enter(self, owner_object):

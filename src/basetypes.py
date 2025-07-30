@@ -39,6 +39,15 @@ class Vector2():
         """Overload Addition"""
         return Vector2(self.x + other.x, self.y + other.y)
 
+class Item():
+    """Item class for items that can be picked up"""
+    def __init__(self, item_type: str, pos: Vector2, ammo = 0):
+        self.item_type = item_type
+        self.pos = pos
+        self.sprite = sprites.ITEM_ROCKET if item_type == 'rocket' else sprites.ITEM_PLASMA
+        self.ammo = ammo
+        self.picked_up = False
+
 class Rectangle():
     """Rectangle class for collider rectangles"""
     def __init__(self, pos = Vector2(), w = 0, h = 0):

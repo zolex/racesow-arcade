@@ -78,6 +78,9 @@ class Animation():
             self.crouch_anim()
         elif self.player.current_action_state == 'Rocket_State':
             self.rocket_anim()
+        elif self.player.current_action_state == 'Plasma_State':
+            self.plasma_anim()
+
 
     def idle_anim(self):
         self.current_sprite = self.active_idle_anim
@@ -89,7 +92,6 @@ class Animation():
             self.current_sprite = self.active_crouch_anim
 
     def run_anim(self):
-        """Animation when running"""
         frame_time = 50 / max(0.7, self.player.vel.x * 2.5)
         self.current_sprite = self.active_run_anim[self.anim_frame]
         self.anim_timer += config.delta_time
@@ -104,11 +106,6 @@ class Animation():
         self.end_frame = 5 if current_frame < 5 or current_frame == 11 else 11
 
     def jump_anim(self):
-        """Animation when jumping"""
-        if self.player.is_plasma_climbing:
-            self.current_sprite = sprites.PLAYER_PLASMA_CLIMB
-            return
-
         frame_time = 50
         self.anim_timer += config.delta_time
         self.current_sprite = self.active_run_anim[self.anim_frame]
@@ -137,3 +134,6 @@ class Animation():
         if self.anim_timer > frame_time:
             self.anim_timer = 0
             self.anim_frame += 1
+
+    def plasma_anim(self):
+        self.current_sprite = sprites.PLAYER_SHOOT_PLASMA[0]

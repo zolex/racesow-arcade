@@ -2,17 +2,15 @@ from os import path
 
 import pygame as pg
 
-graphics_folder = path.join(path.dirname(path.dirname(__file__)), 'assets')
-
-background = pg.image.load(path.join(graphics_folder, 'maps', 'egypt', 'background.png'))
-digits = pg.image.load(path.join(graphics_folder, 'graphics', 'digits.png'))
+assets_folder = path.join(path.dirname(path.dirname(__file__)), 'assets')
+digits = pg.image.load(path.join(assets_folder, 'graphics', 'digits.png'))
 
 I_SCALE    = 0.15
 I_WIDTH    = 128
 I_HEIGHT   = 128
 I_WIDTH_S  = I_WIDTH  * I_SCALE
 I_HEIGHT_S = I_HEIGHT * I_SCALE
-items = pg.image.load(path.join(graphics_folder, 'graphics', 'items.png'))
+items = pg.image.load(path.join(assets_folder, 'graphics', 'items.png'))
 new_size = (items.get_width() * I_SCALE, items.get_height() * I_SCALE)
 item_set = pg.transform.smoothscale(items, new_size)
 
@@ -21,7 +19,7 @@ DECAL_ROCKET      = (0    * I_SCALE, 128  * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
 PROJECTILE_ROCKET = (0    * I_SCALE, 256  * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
 
 ITEM_PLASMA       = (128  * I_SCALE, 0    * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
-DECAL_PLSAMA      = (128  * I_SCALE, 128  * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
+DECAL_PLASMA      = (128 * I_SCALE, 128 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
 PROJECTILE_PLASMA = (128  * I_SCALE, 128  * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
 
 P_SCALE    = 0.5
@@ -30,7 +28,7 @@ P_HEIGHT   = 128
 P_WIDTH_S  = P_WIDTH  * P_SCALE
 P_HEIGHT_S = P_HEIGHT * P_SCALE
 
-player = pg.image.load(path.join(graphics_folder, 'graphics', 'player.png'))
+player = pg.image.load(path.join(assets_folder, 'graphics', 'player.png'))
 new_size = (player.get_width() * P_SCALE, player.get_height() * P_SCALE)
 player_set = pg.transform.smoothscale(player, new_size)
 
