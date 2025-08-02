@@ -154,6 +154,12 @@ class Player(Entity):
 
         self.can_uncrouch = self.crouching and self.check_can_uncrouch()
 
+        # Handle state transitions
+        if self.vel.y > 0 and self.current_action_state != 'Plasma_State':
+            self.action_states.on_event('fall')
+        if not self.pressed_left and not self.pressed_right and not self.pressed_up and not self.pressed_down and self.current_action_state == 'Plasma_State':
+            self.action_states.on_event('fall')
+
         if self.pressed_jump and (not self.crouching or self.can_uncrouch):
             self.jump_diff = pygame.time.get_ticks() - self.jump_pressed_at
             if self.jump_diff < 300:
@@ -245,22 +251,55 @@ class Player(Entity):
 
         return min_distance
 
+    def get_friction(self):
+        if self.current_action_state == 'Move_State':
+            if self.vel.x > 1:
+                return 1 - self.vel.x / 1280
+            else:
+                return 1 - self.vel.x / 4096
+        elif self.current_action_state == 'Jump_State':
+            return 1
+        elif self.current_action_state == 'Fall_State':
+            return 1
+        elif self.current_action_state == 'Walljump_State':
+            return 1
+        elif self.current_action_state == 'Rocket_State':
+            return 1
+        elif self.current_action_state == 'Plasma_State':
+            return 1
+        elif self.current_action_state == 'Decel_State':
+            return 0.995
+        elif self.current_action_state == 'Crouch_State':
+            if self.pressed_right:
+                if self.last_ramp_radians > 0:
+                    # For down ramps, friction should be above 1 to create acceleration based on steepness
+                    # The steeper the ramp, the higher the value (more acceleration)
+                    ramp_steepness = math.cos(self.last_ramp_radians)
+                    return 1.0 + ramp_steepness * 0.0045  # Ensures friction is always > 1
+                elif self.last_ramp_radians < 0:
+                    # For up ramps, friction should be below 1 to create decelaration based on steepness
+                    # The steeper the ramp, the higher the value (more acceleration)
+                    ramp_steepness = math.cos(self.last_ramp_radians)
+                    return 1.0 - ramp_steepness * 0.00225  # Ensures friction is always < 1
+                else:
+                    return 0.9998
+            else:
+                return 0.998
+
+        else:
+            return 0.99
+
     def movement(self):
-        self.last_velocity += config.delta_time
-        if self.last_velocity > 20:
-            self.vel.x *= config.FRICTION
-            self.last_velocity = 0
-            #if any(self.current_action_state == state for state in ['Jump_State', 'Walljump_State', 'Fall_State', 'Idle_State', 'Crouch_State']):
-            self.vel.y += config.GRAVITY
+        # pow() ensures friction to be applied independent of framerate
+        friction_factor = pow(self.get_friction(), config.delta_time)
+        self.vel.x *= friction_factor
 
-            if self.vel.y >= 0 and self.current_action_state != 'Plasma_State':
-                self.vel.y = min(self.vel.y, config.MAX_FALL_VEL)
-                self.action_states.on_event('fall')
-            if not self.pressed_left and not self.pressed_right and not self.pressed_up and not self.pressed_down and self.current_action_state == 'Plasma_State':
-                self.action_states.on_event('fall')
+        # Cap vertical velocity
+        if self.vel.y > config.MAX_FALL_VEL:
+            self.vel.y = config.MAX_FALL_VEL
 
-
-        accelerate(self, self.acceleration, 0, config.MAX_OVERAL_VEL)
+        # Now call the movement and acceleration functions
+        accelerate(self, self.acceleration, config.GRAVITY, config.MAX_OVERAL_VEL)
         self.move()
 
     def move(self):
@@ -296,9 +335,6 @@ class Player(Entity):
         elif self.crouching and self.vel.x < 0.02:
             self.vel.x = 0
 
-        if all(self.current_action_state != state for state in ['Decel_State', 'Crouch_State']):
-            config.FRICTION = 1
-
         if self.current_action_state != 'Crouch_State' and self.pressed_down:
             self.action_states.on_event('crouch')
 
@@ -312,19 +348,19 @@ class Player(Entity):
          self.vel.x -= 0.1
 
         if dx > 0:
-            if self.current_action_state == 'Move_State':
-                self.action_states.on_event('idle')
+            if self.current_action_state == 'Move_State' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
+                self.action_states.on_event('decel')
             self.pos.x = other_collider.pos.x - self.shape.w
             self.vel.x = 0
         elif dx < 0:
-            if self.current_action_state == 'Move_State':
-                self.action_states.on_event('idle')
+            if self.current_action_state == 'Move_State' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
+                self.action_states.on_event('decel')
             self.pos.x = other_collider.pos.x + other_collider.shape.w
             self.vel.x = 0
         elif dy > 0:
             if self.current_action_state == 'Fall_State':
                 self.ground_touch_time = pygame.time.get_ticks()
-                self.action_states.on_event('idle')
+                self.action_states.on_event('decel')
             self.pos.y = other_collider.pos.y - self.shape.h
             self.vel.y = 0
         elif dy < 0:
@@ -361,15 +397,14 @@ class Player(Entity):
 
     def ramp_collisions(self):
 
-        #if self.current_action_state == 'Jump_State' or self.current_action_state == 'Rocket_State':
-        #    return
-
         ramp_collider = self.shape.check_triangle_top_sides_collision(self.level.ramp_colliders)
 
-        # keep momentum when leaving a ramp
         if ramp_collider is None:
+            # launch when leaving a ramp
             if self.last_ramp_radians < 0:
                 self.add_ramp_momentum()
+
+            # no ramp collision
             self.last_ramp_radians = 0
             return
 
@@ -382,13 +417,12 @@ class Player(Entity):
         # Remember an angle for momentum when leaving the ramp
         next_rad = math.atan2(x1 - x0, y1 - y0)
 
-        # keep momentum when sliding over the peak of a two-sided ramp
+        # launch when sliding over the peak of a two-sided ramp
         if self.last_ramp_radians < 0 < next_rad:
             self.add_ramp_momentum()
             return
 
         self.last_ramp_radians = next_rad
-
 
         # Calculate horizontal progress (progress ratio) across the ramp
         x = self.shape.pos.x + self.shape.w / 2  # Player center x
@@ -399,10 +433,8 @@ class Player(Entity):
         # Linear interpolation from base y to top y
         y_on_ramp = (1 - progress) * y0 + progress * y1
 
-        # Set player's feet to ramp surface (assume rect.h = player height)
+        # Set player's feet to ramp surface
         self.shape.pos.y = y_on_ramp - self.shape.h
-
-
 
         self.vel.y = 0
 
@@ -518,7 +550,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             return
 
     class Jump_State(State):
@@ -536,7 +568,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
 
             owner_object.last_walljump = 0
             owner_object.animation.begin_jump()
@@ -565,7 +597,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
 
             if random.choice([True, False]):
                 sounds.walljump1.play()
@@ -587,6 +619,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
+            print(__class__, pygame.time.get_ticks())
             owner_object.animation.reset_anim()
             distance = owner_object.add_rocket_velocity()
             owner_object.level.decals.append(Decal(Decal.DECAL_ROCKET, 500, owner_object.pos.x, owner_object.pos.y + distance + owner_object.shape.h / 2 + 10))
@@ -611,6 +644,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
+            print(__class__, pygame.time.get_ticks())
             owner_object.animation.reset_anim()
 
     class Fall_State(State):
@@ -633,7 +667,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             owner_object.last_ramp_radians = 0
             # allows moving forward when stuck in front of a wall
             #if owner_object.vel.x == 0:
@@ -663,22 +697,11 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             return
 
         def update(self, owner_object):
-            if not owner_object.pressed_right:
-                return
-
-            if owner_object.vel.x > 1:
-                config.FRICTION = 1 - owner_object.vel.x / 23
-            else:
-                config.FRICTION = 1 - owner_object.vel.x / 142
-
-            if owner_object.vel.x < config.MAX_RUN_VEL:
-                owner_object.acceleration = config.PLAYER_ACCELERATION
-            else:
-               owner_object.acceleration = 0
+            owner_object.acceleration = config.PLAYER_ACCELERATION
 
     class Decel_State(State):
         """State when moving when there is no longer any input"""
@@ -700,9 +723,8 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             owner_object.acceleration = 0
-            config.FRICTION = config.DECEL_FRICTION
 
     class Default_Player(State):
         """State when player is big"""
@@ -714,7 +736,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             return
 
     class Crouch_State(State):
@@ -735,7 +757,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
 
             owner_object.pos.y += (HEIGHT - CROUCH_HEIGHT)
             owner_object.shape.h = CROUCH_HEIGHT
@@ -743,20 +765,9 @@ class Player(Entity):
 
         def update(self, owner_object):
             owner_object.acceleration = 0
-
-            if owner_object.pressed_right:
-                if owner_object.vel.x == 0 and owner_object.lifted_right:
-                    owner_object.vel.x = 0.1
-                    owner_object.lifted_right = False
-                if owner_object.last_ramp_radians > 0:
-                    # For ramps, friction should be above 1 to create acceleration based on steepness
-                    # The steeper the ramp, the higher the value (more acceleration)
-                    ramp_steepness = math.cos(owner_object.last_ramp_radians)
-                    config.FRICTION = 1.0 + ramp_steepness * 0.1 # Ensures friction is always > 1
-                else:
-                    config.FRICTION = config.SLIDE_FRICTION
-            else:
-                config.FRICTION = config.CROUCH_FRICTION
+            if owner_object.vel.x == 0 and owner_object.pressed_right and owner_object.lifted_right:
+                owner_object.vel.x = 0.1
+                owner_object.lifted_right = False
 
         def on_exit(self, owner_object):
             owner_object.pos.y -= (HEIGHT - CROUCH_HEIGHT)
@@ -774,7 +785,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
 
             owner_object.animation.current_sprite = DEAD_PLAYER
             owner_object.vel.y = config.DEATH_VEL_Y

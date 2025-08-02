@@ -66,8 +66,8 @@ class Camera(Rectangle):
         return self.pos.x <= point.x <= self.pos.x + config.SCREEN_WIDTH
 
     def set_start_pos_y(self, y):
-        self.start_pos_y = y - 80
-        self.pos.y = y - 80
+        # This method is now a no-op as the camera always follows the player
+        pass
 
     def to_view_space(self, pos):
         """Returns position relative to camera"""
@@ -77,28 +77,23 @@ class Camera(Rectangle):
         """Update position of camera based on player velocity and position"""
         # Update x position as before
         self.pos.x = player.pos.x - 30 - (player.vel.x * 50)
-
-        # Calculate the top edge of the screen in world coordinates
-        screen_top = self.pos.y
-
-        # Calculate the position where the player would be too high in the view
-        # (e.g., 1/4 of the screen height from the top)
-        threshold_y = screen_top + (config.SCREEN_HEIGHT * 0.15)
-
-        # If player is above the threshold, smoothly move the camera up
-        if player.pos.y < threshold_y:
-            # Calculate how far above the threshold the player is
-            diff_y = threshold_y - player.pos.y
-
-            # Move the camera up, but with smooth interpolation
-            # The 0.1 factor controls the smoothness - lower is smoother
-            self.pos.y -= diff_y * 0.1
-        # If the camera is above its original position and the player is falling
-        # (or already below the threshold), smoothly move the camera back down
-        elif self.pos.y < self.start_pos_y:
-            # Calculate how far the camera is from its original position
-            diff_y = self.start_pos_y - self.pos.y
-
-            # Move the camera down, but with smooth interpolation
-            # The 0.05 factor controls the smoothness - lower is smoother
-            self.pos.y += diff_y * 0.005
+        
+        # Calculate the player's position relative to the camera view
+        player_rel_y = player.pos.y - self.pos.y
+        
+        # Define thresholds - player can move freely within these bounds
+        top_threshold = config.SCREEN_HEIGHT * 0.25    # 25% from the top
+        bottom_threshold = config.SCREEN_HEIGHT * 0.6  # 60% from the top
+        
+        # Only move camera if player goes beyond thresholds
+        if player_rel_y < top_threshold:
+            # Player is too high - move camera up
+            target_y = player.pos.y - top_threshold
+            diff_y = target_y - self.pos.y
+            self.pos.y += diff_y * 0.1
+        elif player_rel_y > bottom_threshold:
+            # Player is too low - move camera down
+            target_y = player.pos.y - bottom_threshold
+            diff_y = target_y - self.pos.y
+            self.pos.y += diff_y * 0.1
+        # If player is between thresholds, camera doesn't move vertically

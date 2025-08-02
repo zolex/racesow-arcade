@@ -100,7 +100,7 @@ class Game():
         pygame.mixer.init()
         pygame.mixer.set_num_channels(64)
         while True:
-            config.delta_time = config.clock.tick()
+            config.delta_time = config.clock.tick(120)
             config.keys = pygame.key.get_pressed()
             config.mods = pygame.key.get_mods()
             if not self.handle_pygame_events():
