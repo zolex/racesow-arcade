@@ -34,7 +34,7 @@ class Player(Entity):
         self.can_uncrouch = False
         self.flip_sprites = False
         self.shooting = False
-        self.jump_diff = 666666
+        self.jump_diff = float("inf")
 
         self.start_height = 0
 
@@ -55,13 +55,13 @@ class Player(Entity):
 
     def set_level(self, level):
         self.level = level
-        self.rect.pos = level.player_start
+        self.shape.pos = level.player_start
 
     def __getattr__(self, name):
         if name == 'current_action_state':
             return self.action_states.get_state()
         elif name == 'pos':
-            return self.rect.pos
+            return self.shape.pos
         elif name == 'current_player_state':
             return self.player_states.get_state()
         return object.__getattribute__(self, name)
@@ -70,8 +70,8 @@ class Player(Entity):
         #if camera.contains(self.rect):
         view_pos_sprite = self.camera.to_view_space(
             Vector2(
-                self.rect.pos.x - 16,
-                self.rect.pos.y - (31 if self.crouching else 21)
+                self.shape.pos.x - 16,
+                self.shape.pos.y - (31 if self.crouching else 21)
             )
         )
 
@@ -79,7 +79,7 @@ class Player(Entity):
         sprite_surface = sprites.player_set.subsurface(self.animation.current_sprite).copy()
 
         # 2. Rotate the sprite
-        rotated_sprite = pygame.transform.rotate(sprite_surface, self.last_ramp_radians * 9)
+        rotated_sprite = pygame.transform.rotate(sprite_surface, self.last_ramp_radians * -10)
 
         # 3. Center the rotated sprite on the position
         rect = rotated_sprite.get_rect(center=(view_pos_sprite.x + sprite_surface.get_width() // 2,
@@ -158,14 +158,7 @@ class Player(Entity):
             self.action_states.update()
             self.movement()
 
-            #Make sure that player can't jump when running off a ledge
-            #if self.pos.y > self.start_height:
-            #    self.action_states.on_event('fall')
-
         self.player_states.update()
-
-        if self.pos.y > config.SCREEN_HEIGHT:
-            self.player_states.on_event('dead')
 
         if self.shooting:
             ticks = pygame.time.get_ticks()
@@ -196,7 +189,7 @@ class Player(Entity):
                         self.plasma_ammo -= 1
                         if (self.pressed_down or self.pressed_left or self.pressed_up or self.pressed_right) and self.plasma_climb_collisions():
                             self.action_states.on_event('plasma')
-                            self.level.decals.append(Decal(sprites.DECAL_PLASMA, 300, self.pos.x + 25, self.pos.y + 5))
+                            self.level.decals.append(Decal(sprites.DECAL_PLASMA, 1000, self.pos.x + 25, self.pos.y + 5))
                             if self.pressed_down:
                                 if self.pressed_left or self.pressed_right:
                                     self.vel.y -= 0.08
@@ -212,25 +205,30 @@ class Player(Entity):
                         else:
                             self.level.decals.append(Decal(sprites.PROJECTILE_PLASMA, 10000, self.pos.x + 30, self.pos.y + 5, 1 + self.vel.x))
 
+        else:
+            if self.current_action_state == 'Plasma_State':
+                self.action_states.on_event('fall')
+
+
         self.animation.animate()
 
     def get_distance_to_collider_below(self):
-        player_bottom = self.rect.pos.y + self.rect.h
-        player_centerx = self.rect.pos.x + self.rect.w / 2
+        player_bottom = self.shape.pos.y + self.shape.h
+        player_centerx = self.shape.pos.x + self.shape.w / 2
 
         min_distance = None  # None means no collider found below
 
         # Check static (rectangle) colliders
         for collider in self.level.static_colliders:
-            if collider.rect.pos.x <= player_centerx <= collider.rect.pos.x + collider.rect.w:
-                if collider.rect.pos.y >= player_bottom:
-                    distance = collider.rect.pos.y - player_bottom
+            if collider.shape.pos.x <= player_centerx <= collider.shape.pos.x + collider.shape.w:
+                if collider.shape.pos.y >= player_bottom:
+                    distance = collider.shape.pos.y - player_bottom
                     if min_distance is None or distance < min_distance:
                         min_distance = distance
 
         # Check ramp (triangle) colliders
         for collider in self.level.ramp_colliders:
-            tri = collider.rect
+            tri = collider.shape
             if tri.p1.x <= player_centerx <= tri.p2.x:
                 print("above ramp")
                 t = (player_centerx - tri.p1.x) / (tri.p3.x - tri.p1.x)
@@ -251,7 +249,9 @@ class Player(Entity):
             self.last_velocity = 0
             #if any(self.current_action_state == state for state in ['Jump_State', 'Walljump_State', 'Fall_State', 'Idle_State', 'Crouch_State']):
             self.vel.y += config.GRAVITY
+
             if self.vel.y >= 0 and self.current_action_state != 'Plasma_State':
+                self.vel.y = min(self.vel.y, config.MAX_FALL_VEL)
                 self.action_states.on_event('fall')
             if not self.pressed_left and not self.pressed_right and not self.pressed_up and not self.pressed_down and self.current_action_state == 'Plasma_State':
                 self.action_states.on_event('fall')
@@ -299,7 +299,7 @@ class Player(Entity):
             self.action_states.on_event('crouch')
 
     def collider_collisions(self, dx, dy):
-        other_collider = self.rect.check_collisions(self.level.static_colliders)
+        other_collider = self.shape.check_collisions(self.level.static_colliders)
 
         if other_collider is None:
             return
@@ -310,49 +310,88 @@ class Player(Entity):
         if dx > 0:
             if self.current_action_state == 'Move_State':
                 self.action_states.on_event('idle')
-            self.pos.x = other_collider.pos.x - self.rect.w
+            self.pos.x = other_collider.pos.x - self.shape.w
             self.vel.x = 0
         elif dx < 0:
             if self.current_action_state == 'Move_State':
                 self.action_states.on_event('idle')
-            self.pos.x = other_collider.pos.x + other_collider.rect.w
+            self.pos.x = other_collider.pos.x + other_collider.shape.w
             self.vel.x = 0
         elif dy > 0:
             if self.current_action_state == 'Fall_State':
                 self.ground_touch_time = pygame.time.get_ticks()
                 self.action_states.on_event('idle')
-            self.pos.y = other_collider.pos.y - self.rect.h
+            self.pos.y = other_collider.pos.y - self.shape.h
             self.vel.y = 0
         elif dy < 0:
             self.action_states.on_event('fall')
-            self.pos.y = other_collider.pos.y + other_collider.rect.h
+            self.pos.y = other_collider.pos.y + other_collider.shape.h
             self.vel.y = config.BOUNCE_VEL
+
+    def add_ramp_momentum(self):
+        # Calculate the component of velocity parallel to the ramp
+        # Note: ramp_radians is the angle from horizontal, so we need to adjust
+        parallel_velocity = self.vel.x * math.cos(self.last_ramp_radians) - self.vel.y * math.sin(self.last_ramp_radians)
+
+        # Apply conservation of momentum when leaving the ramp
+        # The parallel component gets split between x and y based on ramp angle
+        # We use a coefficient to tune the effect for gameplay feel
+        coefficient = 1.3  # Tuned for gameplay feel (0.85 = 85% conservation)
+
+        # Calculate new vertical velocity component
+        # More horizontal speed and steeper ramps result in more "launch"
+        momentum = coefficient * parallel_velocity * math.sin(self.last_ramp_radians)
+
+        # Add a small boost based on ramp steepness for more dramatic effects on steep ramps
+        steepness_boost = abs(math.sin(self.last_ramp_radians)) * 0.1
+
+        # Apply the momentum and boost to vertical velocity
+        self.vel.y += momentum + steepness_boost
+
+        # Cap the vertical velocity to prevent excessive launching
+        max_launch_vel = config.MAX_FALL_VEL * coefficient
+        self.vel.y = max(-max_launch_vel, min(self.vel.y, max_launch_vel))
+
+        # Debug info
+        print("ramp momentum", momentum, "steepness boost", steepness_boost, "final y-vel", self.vel.y)
+
+        # Set the player state to falling
+        self.action_states.on_event('fall')
 
     def ramp_collisions(self):
 
-        if self.current_action_state == 'Jump_State' or self.current_action_state == 'Rocket_State':
-            return
+        #if self.current_action_state == 'Jump_State' or self.current_action_state == 'Rocket_State':
+        #    return
 
-        ramp_collider = self.rect.check_triangle_collisions(self.level.ramp_colliders)
+        ramp_collider = self.shape.check_triangle_top_sides_collision(self.level.ramp_colliders)
 
         # keep momentum when leaving a ramp
         if ramp_collider is None:
-            if self.last_ramp_radians > 0:
-                self.vel.y = - 0.4 * (self.vel.x * math.sin(self.last_ramp_radians) + self.vel.x * math.cos(
-                    self.last_ramp_radians))
-                self.last_ramp_radians = 0
-                self.action_states.on_event('fall')
+            if self.last_ramp_radians < 0:
+                self.add_ramp_momentum()
+            self.last_ramp_radians = 0
             return
 
         # Get the relevant ramp start and end points
-        x0 = ramp_collider.p1.x  # base start x
-        y0 = ramp_collider.p1.y  # base start y
-        x1 = ramp_collider.p3.x  # top of ramp x
-        y1 = ramp_collider.p3.y  # top of ramp y
+        x0 = ramp_collider[0].x  # base start x
+        y0 = ramp_collider[0].y  # base start y
+        x1 = ramp_collider[1].x  # top of ramp x
+        y1 = ramp_collider[1].y  # top of ramp y
+
+        # Remember an angle for momentum when leaving the ramp
+        next_rad = math.atan2(x1 - x0, y1 - y0)
+
+        # keep momentum when sliding over the peak of a two-sided ramp
+        if self.last_ramp_radians < 0 < next_rad:
+            self.add_ramp_momentum()
+            return
+
+        self.last_ramp_radians = next_rad
+
 
         # Calculate horizontal progress (progress ratio) across the ramp
-        x = self.rect.pos.x + self.rect.w / 2  # Player center x
-        ramp_width = x1 - x0 if x1 != x0 else 1  # avoid div by zero
+        x = self.shape.pos.x + self.shape.w / 2  # Player center x
+        ramp_width = x1 - x0 if x1 != x0 else 0.001  # avoid div by zero
         progress = (x - x0) / ramp_width
         progress = max(0, min(1, progress))  # Clamp to [0,1]
 
@@ -360,10 +399,9 @@ class Player(Entity):
         y_on_ramp = (1 - progress) * y0 + progress * y1
 
         # Set player's feet to ramp surface (assume rect.h = player height)
-        self.rect.pos.y = y_on_ramp - self.rect.h
+        self.shape.pos.y = y_on_ramp - self.shape.h
 
-        # Remember an angle for momentum when leaving the ramp
-        self.last_ramp_radians = math.atan2(x1 - x0, y1 - y0)
+
 
         self.vel.y = 0
 
@@ -373,7 +411,7 @@ class Player(Entity):
         for item in self.level.items:
             if item.picked_up:
                 continue
-            if item.pos.x - 10 <= self.pos.x + self.rect.w / 2 <= item.pos.x + 10 and item.pos.y - 10 <= self.pos.y + self.rect.h / 2 <= item.pos.y + 10:
+            if item.pos.x - 10 <= self.pos.x + self.shape.w / 2 <= item.pos.x + 10 and item.pos.y - 10 <= self.pos.y + self.shape.h / 2 <= item.pos.y + 10:
                 sounds.pickup.play()
                 self.active_weapon = item.item_type
                 if item.item_type == 'rocket':
@@ -386,23 +424,23 @@ class Player(Entity):
                 self.animation.set_active_weapon()#
 
     def walljump_collisions(self):
-        wall_collider = self.rect.check_collisions(self.level.wall_colliders)
+        wall_collider = self.shape.check_collisions(self.level.wall_colliders)
 
         return wall_collider is not None
 
     def plasma_climb_collisions(self):
-        wall_collider = self.rect.check_center_collisions(self.level.wall_colliders)
+        wall_collider = self.shape.check_center_collisions(self.level.wall_colliders)
 
         return wall_collider is not None
 
     def check_can_uncrouch(self):
-        stand_rect = copy.copy(self.rect)
-        stand_rect.pos = copy.copy(self.rect.pos)
-        stand_rect.pos.y -= (config.PLAYER_HEIGHT - self.rect.h)
+        stand_rect = copy.copy(self.shape)
+        stand_rect.pos = copy.copy(self.shape.pos)
+        stand_rect.pos.y -= (config.PLAYER_HEIGHT - self.shape.h)
         stand_rect.h = config.PLAYER_HEIGHT
         for collider in self.level.static_colliders:
-            if abs(self.pos.x - collider.pos.x) < 100 or collider.rect.w >= 100:
-                if stand_rect.overlaps(collider.rect):
+            if abs(self.pos.x - collider.pos.x) < 100 or collider.shape.w >= 100:
+                if stand_rect.overlaps(collider.shape):
                     return False
 
         return True
@@ -425,8 +463,14 @@ class Player(Entity):
         print("jump vel", self.vel.y)
 
         # add additional momentum when jumping from a ramp
-        if self.last_ramp_radians > 0:
-            self.vel.y -= 0.125 * (self.vel.x * math.sin(self.last_ramp_radians) + self.vel.x * math.cos(self.last_ramp_radians))
+        #if self.last_ramp_radians > 0:
+        #    self.vel.y -= 0.125 * (self.vel.x * math.sin(self.last_ramp_radians) + self.vel.x * math.cos(self.last_ramp_radians))
+        #    self.last_ramp_radians = 0
+
+        if self.last_ramp_radians != 0:
+            y_offset = abs(math.cos(self.last_ramp_radians) * (self.vel.x + 0.1) * 100)
+            print("ramp y offset", y_offset)
+            self.pos.y -= y_offset  # Apply the offset
             self.last_ramp_radians = 0
 
         self.vel.x += boost
@@ -553,7 +597,7 @@ class Player(Entity):
         def on_enter(self, owner_object):
             owner_object.animation.reset_anim()
             distance = owner_object.add_rocket_velocity()
-            owner_object.level.decals.append(Decal(sprites.DECAL_ROCKET, 500, owner_object.pos.x, owner_object.pos.y + distance + owner_object.rect.h / 2 + 10))
+            owner_object.level.decals.append(Decal(sprites.DECAL_ROCKET, 500, owner_object.pos.x, owner_object.pos.y + distance + owner_object.shape.h / 2 + 10))
 
 
         def update(self, owner_object):
@@ -566,6 +610,12 @@ class Player(Entity):
                 return Player.Fall_State()
             elif event == 'walljump':
                 return Player.Walljump_State()
+            elif event == 'move':
+                return Player.Move_State()
+            elif event == 'idle':
+                return Player.Idle_State()
+            elif event == 'decel':
+                return Player.Decel_State()
             return self
 
         def on_enter(self, owner_object):
@@ -697,7 +747,7 @@ class Player(Entity):
             #print(__class__, pygame.time.get_ticks())
 
             owner_object.pos.y += (config.PLAYER_HEIGHT - config.PLAYER_CROUCH_HEIGHT)
-            owner_object.rect.h = config.PLAYER_CROUCH_HEIGHT
+            owner_object.shape.h = config.PLAYER_CROUCH_HEIGHT
             owner_object.crouching = True
 
         def update(self, owner_object):
@@ -707,7 +757,10 @@ class Player(Entity):
                     owner_object.vel.x = 0.1
                     owner_object.lifted_right = False
                 if owner_object.last_ramp_radians > 0:
-                    config.FRICTION = config.RAMPSLIDE_FRICTION
+                    # For ramps, friction should be above 1 to create acceleration based on steepness
+                    # The steeper the ramp, the higher the value (more acceleration)
+                    ramp_steepness = math.cos(owner_object.last_ramp_radians)
+                    config.FRICTION = 1.0 + ramp_steepness * 0.1 # Ensures friction is always > 1
                 else:
                     config.FRICTION = config.SLIDE_FRICTION
             else:
@@ -716,7 +769,7 @@ class Player(Entity):
         def on_exit(self, owner_object):
             owner_object.pos.y -= (config.PLAYER_HEIGHT - config.PLAYER_CROUCH_HEIGHT)
             owner_object.start_height = owner_object.pos.y
-            owner_object.rect.h = config.PLAYER_HEIGHT
+            owner_object.shape.h = config.PLAYER_HEIGHT
             owner_object.crouching = False
 
 

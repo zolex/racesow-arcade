@@ -13,7 +13,8 @@ class Game():
         self.camera = Camera(Vector2(), config.SCREEN_WIDTH, config.SCREEN_HEIGHT)
         self.level = level.Level(self.surface, self.camera)
         self.player = player.Player(self.surface, self.camera)
-        self.level.load('egypt', self.player)
+        self.level.load('asd', self.player)
+        self.camera.set_start_pos_y(self.level.player_start.y)
         self.player.set_level(self.level)
 
 
