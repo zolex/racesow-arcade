@@ -200,20 +200,29 @@ class Player(Entity):
                         sounds.plasma.play()
                         self.plasma_ammo -= 1
                         if (self.pressed_down or self.pressed_left or self.pressed_up or self.pressed_right) and self.plasma_climb_collisions():
+                            if self.pressed_left:
+                                decal_offset = 3
+                            elif self.pressed_right:
+                                decal_offset = 14
+                            else:
+                                decal_offset = 7
                             self.action_states.on_event('plasma')
-                            self.level.decals.append(Decal(Decal.DECAL_PLASMA, 1000, self.pos.x + 25, self.pos.y + 5))
+                            self.level.decals.append(Decal(Decal.DECAL_PLASMA, 1000, self.pos.x + decal_offset, self.pos.y + 5))
                             if self.pressed_down:
                                 if self.pressed_left or self.pressed_right:
-                                    self.vel.y -= 0.08
+                                    self.vel.y -= 0.085
                                 else:
                                     self.vel.y -= 0.1
+                                # add some extra velocity if climbing very slow
+                                if self.vel.y > -0.15:
+                                    self.vel.y -= 0.015
                             elif self.pressed_up:
                                 self.vel.y += 0.02
 
                             if self.pressed_left:
-                                self.vel.x += 0.05
+                                self.vel.x += 0.04
                             elif self.pressed_right:
-                                self.vel.x -= 0.05
+                                self.vel.x -= 0.04
                         else:
                             self.level.decals.append(Decal(Decal.PROJECTILE_PLASMA, 10000, self.pos.x + 30, self.pos.y + 5, 1 + self.vel.x))
 
@@ -300,9 +309,10 @@ class Player(Entity):
 
         # Now call the movement and acceleration functions
         accelerate(self, self.acceleration, config.GRAVITY, config.MAX_OVERAL_VEL)
-        self.move()
 
-    def move(self):
+        self.move_player()
+
+    def move_player(self):
         if self.vel.x != 0:
             self.move_single_axis(self.vel.x, 0)
         if self.vel.y != 0:
@@ -325,10 +335,10 @@ class Player(Entity):
             if self.pressed_right and not self.pressed_down:
                 self.action_states.on_event('move')
 
-            if self.vel.x > 0 and not self.pressed_right and not self.pressed_down:
+            if self.vel.x > 0 and not self.pressed_right and not self.pressed_down and not self.current_action_state == 'Idle_State':
                 self.action_states.on_event('decel')
 
-            if abs(self.vel.x) < 0.02 and self.current_action_state != 'Move_State':
+            if abs(self.vel.x) < 0.02 and self.current_action_state != 'Move_State' and not self.pressed_down:
                 self.vel.x = 0
                 self.action_states.on_event('idle')
 
@@ -483,6 +493,7 @@ class Player(Entity):
         diff = max(10, self.jump_diff, ground_diff)
         boost = round(1.75 / diff, 3)
 
+        # enhance jump boost when not running
         if not self.pressed_right:
             boost *= 1.33
 
@@ -494,6 +505,7 @@ class Player(Entity):
 
         self.vel.y = config.JUMP_VELOCITY
 
+        # Fix to allow jumping while colliding with a ramp
         if self.last_ramp_radians != 0:
             y_offset = abs(math.cos(self.last_ramp_radians) * (self.vel.x + 0.1) * 100)
             self.pos.y -= y_offset  # Apply the offset
