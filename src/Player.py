@@ -59,6 +59,7 @@ class Player(Entity):
         player = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'player.png'))
         new_size = (player.get_width() * P_SCALE, player.get_height() * P_SCALE)
         self.sprite = pygame.transform.smoothscale(player, new_size).convert_alpha()
+        self.height = player.get_height() * P_SCALE
 
     def set_level(self, level):
         self.level = level
@@ -266,37 +267,31 @@ class Player(Entity):
                 return 1 - self.vel.x / 1280
             else:
                 return 1 - self.vel.x / 4096
-        elif self.current_action_state == 'Jump_State':
-            return 1
-        elif self.current_action_state == 'Fall_State':
-            return 1
-        elif self.current_action_state == 'Walljump_State':
-            return 1
-        elif self.current_action_state == 'Rocket_State':
-            return 1
-        elif self.current_action_state == 'Plasma_State':
-            return 1
         elif self.current_action_state == 'Decel_State':
             return 0.995
         elif self.current_action_state == 'Crouch_State':
+            # sliding
             if self.pressed_right:
+                # For down-ramps, friction should be above 1 to create acceleration based on steepness
                 if self.last_ramp_radians > 0:
-                    # For down ramps, friction should be above 1 to create acceleration based on steepness
                     # The steeper the ramp, the higher the value (more acceleration)
                     ramp_steepness = math.cos(self.last_ramp_radians)
                     return 1.0 + ramp_steepness * 0.0045  # Ensures friction is always > 1
+                # For up-ramps, friction should be below 1 to create decelaration based on steepness
                 elif self.last_ramp_radians < 0:
-                    # For up ramps, friction should be below 1 to create decelaration based on steepness
-                    # The steeper the ramp, the higher the value (more acceleration)
+                    # The steeper the ramp, the higher the value (more deceleration)
                     ramp_steepness = math.cos(self.last_ramp_radians)
-                    return 1.0 - ramp_steepness * 0.00225  # Ensures friction is always < 1
+                    return 1.0 - ramp_steepness * 0.00125  # Ensures friction is always < 1
+                # slide on flat ground friction
                 else:
-                    return 0.9998
+                    return 0.9997
+            # normal crouch friction
             else:
                 return 0.998
 
+        # no friction for all other states like moving, falling, etc.
         else:
-            return 0.99
+            return 1
 
     def movement(self):
         # pow() ensures friction to be applied independent of framerate
@@ -344,6 +339,10 @@ class Player(Entity):
 
         elif self.crouching and self.vel.x < 0.02:
             self.vel.x = 0
+
+        # allow braking
+        elif self.pressed_left and not self.pressed_right:
+            self.vel.x -= 0.01
 
         if self.current_action_state != 'Crouch_State' and self.pressed_down:
             self.action_states.on_event('crouch')
@@ -577,6 +576,8 @@ class Player(Entity):
                 return Player.Rocket_State()
             elif event == 'plasma':
                 return Player.Plasma_State()
+            elif event == 'ramp':
+                return Player.Move_State()
             return self
 
         def on_enter(self, owner_object):

@@ -80,12 +80,18 @@ class Camera(Rectangle):
         
         # Calculate the player's position relative to the camera view
         player_rel_y = player.pos.y - self.pos.y
-        
+
+        # when falling, lower the bottom threshold to see where we land
+        bottom_sub = 0
+        ground = player.get_distance_to_collider_below()
+        if ground is None or ground > config.SCREEN_HEIGHT * 0.35:
+            bottom_sub = player.vel.y
+
         # Define thresholds - player can move freely within these bounds
         top_threshold = config.SCREEN_HEIGHT * 0.25    # 25% from the top
-        bottom_threshold = config.SCREEN_HEIGHT * 0.6  # 60% from the top
-        
-        # Only move camera if player goes beyond thresholds
+        bottom_threshold = config.SCREEN_HEIGHT * (0.6 - bottom_sub)  # 60% from the top
+
+        # Only move camera if player goes beyond thresholds or has no y movement
         if player_rel_y < top_threshold:
             # Player is too high - move camera up
             target_y = player.pos.y - top_threshold
@@ -96,4 +102,3 @@ class Camera(Rectangle):
             target_y = player.pos.y - bottom_threshold
             diff_y = target_y - self.pos.y
             self.pos.y += diff_y * 0.1
-        # If player is between thresholds, camera doesn't move vertically
