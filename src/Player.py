@@ -1,25 +1,30 @@
-import copy, math, pygame, random
+import copy, math, pygame, random, os
 
-from pygame.time import get_ticks
-
-from src.animation import Animation
-from src.basetypes import Vector2, Entity, State_Machine, State, Decal, Camera, Rectangle
+from src.Animation import Animation
+from src.Entity import Entity
+from src.Rectangle import Rectangle
+from src.StateMachine import StateMachine
+from src.State import State
+from src.Camera import Camera
+from src.Vector2 import Vector2
 from src.utils import accelerate
-from src import level, sounds, sprites, config
+from src.Decal import Decal
+from src import sounds, config
 
 class Player(Entity):
     def __init__(self, surface: pygame.surface.Surface, camera: Camera):
-        super(Player, self).__init__(Vector2(0, 0), Rectangle(Vector2(0, 0), config.PLAYER_WIDTH, config.PLAYER_HEIGHT))
+        super(Player, self).__init__(Vector2(0, 0), Rectangle(Vector2(0, 0), WIDTH, HEIGHT))
+        self.last_boost = 0
+        self.acceleration = 0
         self.camera = camera
         self.surface = surface
         self.level = None
-
         self.ground_touch_time = 0
         self.last_walljump = 0
         self.last_ramp_radians = -1
         self.animation = Animation(self)
-        self.action_states = State_Machine(self.Idle_State(), self)
-        self.player_states = State_Machine(self.Default_Player(), self)
+        self.action_states = StateMachine(self.Idle_State(), self)
+        self.player_states = StateMachine(self.Default_Player(), self)
         self.last_velocity = 0
         self.pressed_up = False
         self.pressed_left = False
@@ -51,7 +56,9 @@ class Player(Entity):
 
         self.is_plasma_climbing = False
 
-        sprites.player_set = sprites.player_set.convert_alpha()
+        player = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'player.png'))
+        new_size = (player.get_width() * P_SCALE, player.get_height() * P_SCALE)
+        self.sprite = pygame.transform.smoothscale(player, new_size).convert_alpha()
 
     def set_level(self, level):
         self.level = level
@@ -76,14 +83,13 @@ class Player(Entity):
         )
 
         # 1. Crop the current sprite frame
-        sprite_surface = sprites.player_set.subsurface(self.animation.current_sprite).copy()
+        sprite_surface = self.sprite.subsurface(self.animation.current_sprite).copy()
 
         # 2. Rotate the sprite
         rotated_sprite = pygame.transform.rotate(sprite_surface, self.last_ramp_radians * -10)
 
         # 3. Center the rotated sprite on the position
-        rect = rotated_sprite.get_rect(center=(view_pos_sprite.x + sprite_surface.get_width() // 2,
-                                               view_pos_sprite.y + sprite_surface.get_height() // 2))
+        rect = rotated_sprite.get_rect(center=(view_pos_sprite.x + sprite_surface.get_width() // 2, view_pos_sprite.y + sprite_surface.get_height() // 2))
 
         # 4. Blit the rotated sprite
         self.surface.blit(rotated_sprite, rect.topleft)
@@ -176,7 +182,7 @@ class Player(Entity):
                         else:
                             sounds.rocket_launch.play()
                             channel = sounds.rocket_fly.play(loops=-1)
-                            self.level.decals.append(Decal(sprites.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 1, 1, -0.00075, channel))
+                            self.level.decals.append(Decal(Decal.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 1, 1, -0.00075, channel))
 
 
             elif self.active_weapon == 'plasma':
@@ -189,7 +195,7 @@ class Player(Entity):
                         self.plasma_ammo -= 1
                         if (self.pressed_down or self.pressed_left or self.pressed_up or self.pressed_right) and self.plasma_climb_collisions():
                             self.action_states.on_event('plasma')
-                            self.level.decals.append(Decal(sprites.DECAL_PLASMA, 1000, self.pos.x + 25, self.pos.y + 5))
+                            self.level.decals.append(Decal(Decal.DECAL_PLASMA, 1000, self.pos.x + 25, self.pos.y + 5))
                             if self.pressed_down:
                                 if self.pressed_left or self.pressed_right:
                                     self.vel.y -= 0.08
@@ -203,7 +209,7 @@ class Player(Entity):
                             elif self.pressed_right:
                                 self.vel.x -= 0.05
                         else:
-                            self.level.decals.append(Decal(sprites.PROJECTILE_PLASMA, 10000, self.pos.x + 30, self.pos.y + 5, 1 + self.vel.x))
+                            self.level.decals.append(Decal(Decal.PROJECTILE_PLASMA, 10000, self.pos.x + 30, self.pos.y + 5, 1 + self.vel.x))
 
         else:
             if self.current_action_state == 'Plasma_State':
@@ -230,11 +236,8 @@ class Player(Entity):
         for collider in self.level.ramp_colliders:
             tri = collider.shape
             if tri.p1.x <= player_centerx <= tri.p2.x:
-                print("above ramp")
                 t = (player_centerx - tri.p1.x) / (tri.p3.x - tri.p1.x)
                 y_on_edge = tri.p1.y + t * (tri.p3.y - tri.p1.y)
-                print(y_on_edge)
-                print(player_bottom)
                 if y_on_edge >= player_bottom:
                     distance = y_on_edge - player_bottom
                     if min_distance is None or distance < min_distance:
@@ -256,7 +259,8 @@ class Player(Entity):
             if not self.pressed_left and not self.pressed_right and not self.pressed_up and not self.pressed_down and self.current_action_state == 'Plasma_State':
                 self.action_states.on_event('fall')
 
-        accelerate(self, config.ACCELERATION, 0, config.MAX_OVERAL_VEL)
+
+        accelerate(self, self.acceleration, 0, config.MAX_OVERAL_VEL)
         self.move()
 
     def move(self):
@@ -352,9 +356,6 @@ class Player(Entity):
         max_launch_vel = config.MAX_FALL_VEL * coefficient
         self.vel.y = max(-max_launch_vel, min(self.vel.y, max_launch_vel))
 
-        # Debug info
-        print("ramp momentum", momentum, "steepness boost", steepness_boost, "final y-vel", self.vel.y)
-
         # Set the player state to falling
         self.action_states.on_event('fall')
 
@@ -436,8 +437,8 @@ class Player(Entity):
     def check_can_uncrouch(self):
         stand_rect = copy.copy(self.shape)
         stand_rect.pos = copy.copy(self.shape.pos)
-        stand_rect.pos.y -= (config.PLAYER_HEIGHT - self.shape.h)
-        stand_rect.h = config.PLAYER_HEIGHT
+        stand_rect.pos.y -= (HEIGHT - self.shape.h)
+        stand_rect.h = HEIGHT
         for collider in self.level.static_colliders:
             if abs(self.pos.x - collider.pos.x) < 100 or collider.shape.w >= 100:
                 if stand_rect.overlaps(collider.shape):
@@ -453,23 +454,16 @@ class Player(Entity):
         if not self.pressed_right:
             boost *= 1.33
 
-        config.ACCELERATION = 0
-        config.LAST_BOOST = round(boost * 1000)
+        self.acceleration = 0
+        self.last_boost = round(boost * 1000)
 
         if self.vel.x < 0.2:
             self.vel.x = 0.15
 
         self.vel.y = config.JUMP_VELOCITY
-        print("jump vel", self.vel.y)
-
-        # add additional momentum when jumping from a ramp
-        #if self.last_ramp_radians > 0:
-        #    self.vel.y -= 0.125 * (self.vel.x * math.sin(self.last_ramp_radians) + self.vel.x * math.cos(self.last_ramp_radians))
-        #    self.last_ramp_radians = 0
 
         if self.last_ramp_radians != 0:
             y_offset = abs(math.cos(self.last_ramp_radians) * (self.vel.x + 0.1) * 100)
-            print("ramp y offset", y_offset)
             self.pos.y -= y_offset  # Apply the offset
             self.last_ramp_radians = 0
 
@@ -477,7 +471,6 @@ class Player(Entity):
 
     def add_rocket_velocity(self):
         distance = self.get_distance_to_collider_below()
-        print("rocket distance", distance)
         if distance is not None:
             if distance < 1 and not self.pressed_jump:
                 vel = 0.4
@@ -504,7 +497,6 @@ class Player(Entity):
                 self.last_ramp_radians = 0
 
             self.vel.y -= vel
-            print("rocket vel", vel)
 
         return distance
 
@@ -558,7 +550,7 @@ class Player(Entity):
 
         def update(self, owner_object):
             if owner_object.pressed_right and owner_object.vel.x < 0.1:
-                config.ACCELERATION = 0.0005
+                owner_object.acceleration = 0.0005
 
     class Walljump_State(State):
         def on_event(self, event):
@@ -597,7 +589,7 @@ class Player(Entity):
         def on_enter(self, owner_object):
             owner_object.animation.reset_anim()
             distance = owner_object.add_rocket_velocity()
-            owner_object.level.decals.append(Decal(sprites.DECAL_ROCKET, 500, owner_object.pos.x, owner_object.pos.y + distance + owner_object.shape.h / 2 + 10))
+            owner_object.level.decals.append(Decal(Decal.DECAL_ROCKET, 500, owner_object.pos.x, owner_object.pos.y + distance + owner_object.shape.h / 2 + 10))
 
 
         def update(self, owner_object):
@@ -649,7 +641,7 @@ class Player(Entity):
 
         def update(self, owner_object):
             if owner_object.pressed_right and owner_object.vel.x < 0.1:
-                config.ACCELERATION = 0.0005
+                owner_object.acceleration = 0.0005
 
     class Move_State(State):
         """State when moving on the ground and not breaking or decelerating"""
@@ -684,9 +676,9 @@ class Player(Entity):
                 config.FRICTION = 1 - owner_object.vel.x / 142
 
             if owner_object.vel.x < config.MAX_RUN_VEL:
-                config.ACCELERATION = config.PLAYER_ACCELERATION
+                owner_object.acceleration = config.PLAYER_ACCELERATION
             else:
-               config.ACCELERATION = 0
+               owner_object.acceleration = 0
 
     class Decel_State(State):
         """State when moving when there is no longer any input"""
@@ -709,8 +701,7 @@ class Player(Entity):
 
         def on_enter(self, owner_object):
             #print(__class__, pygame.time.get_ticks())
-
-            config.ACCELERATION = 0
+            owner_object.acceleration = 0
             config.FRICTION = config.DECEL_FRICTION
 
     class Default_Player(State):
@@ -746,12 +737,13 @@ class Player(Entity):
         def on_enter(self, owner_object):
             #print(__class__, pygame.time.get_ticks())
 
-            owner_object.pos.y += (config.PLAYER_HEIGHT - config.PLAYER_CROUCH_HEIGHT)
-            owner_object.shape.h = config.PLAYER_CROUCH_HEIGHT
+            owner_object.pos.y += (HEIGHT - CROUCH_HEIGHT)
+            owner_object.shape.h = CROUCH_HEIGHT
             owner_object.crouching = True
 
         def update(self, owner_object):
-            config.ACCELERATION = 0
+            owner_object.acceleration = 0
+
             if owner_object.pressed_right:
                 if owner_object.vel.x == 0 and owner_object.lifted_right:
                     owner_object.vel.x = 0.1
@@ -767,9 +759,9 @@ class Player(Entity):
                 config.FRICTION = config.CROUCH_FRICTION
 
         def on_exit(self, owner_object):
-            owner_object.pos.y -= (config.PLAYER_HEIGHT - config.PLAYER_CROUCH_HEIGHT)
+            owner_object.pos.y -= (HEIGHT - CROUCH_HEIGHT)
             owner_object.start_height = owner_object.pos.y
-            owner_object.shape.h = config.PLAYER_HEIGHT
+            owner_object.shape.h = HEIGHT
             owner_object.crouching = False
 
 
@@ -784,7 +776,7 @@ class Player(Entity):
         def on_enter(self, owner_object):
             #print(__class__, pygame.time.get_ticks())
 
-            owner_object.animation.current_sprite = sprites.DEAD_PLAYER
+            owner_object.animation.current_sprite = DEAD_PLAYER
             owner_object.vel.y = config.DEATH_VEL_Y
             owner_object.vel.x = 0
             owner_object.freeze_movement = True
@@ -799,9 +791,97 @@ class Player(Entity):
                 owner_object.pos += owner_object.vel * config.delta_time
 
 
-            
-            
+WIDTH=32
+HEIGHT=42
+CROUCH_HEIGHT=32
 
+P_SCALE    = 0.5
+P_WIDTH    = 128
+P_HEIGHT   = 128
+P_WIDTH_S  = P_WIDTH  * P_SCALE
+P_HEIGHT_S = P_HEIGHT * P_SCALE
 
+DEAD_PLAYER   = (0    * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
+IDLE          = (128  * P_SCALE, 256  * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
+IDLE_PLASMA   = (128  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
+IDLE_ROCKET   = (128  * P_SCALE, 1024 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
+CROUCH        = (0    * P_SCALE, 256  * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
+CROUCH_PLASMA = (0    * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
+CROUCH_ROCKET = (0    * P_SCALE, 1024 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
+SLIDE         = (0    * P_SCALE, 1280 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
+SLIDE_PLASMA  = (256  * P_SCALE, 1280 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
+SLIDE_ROCKET  = (128  * P_SCALE, 1280 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
+PLASMA_CLIMB  = (640  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
 
-        
+RUN = [
+   (0    * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (128  * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (256  * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (384  * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (512  * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (640  * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (0    * P_SCALE, 128  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (128  * P_SCALE, 128  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (256  * P_SCALE, 128  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (384  * P_SCALE, 128  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (512  * P_SCALE, 128  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (640  * P_SCALE, 128  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+]
+
+RUN_PLASMA = [
+   (0    * P_SCALE, 384  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (128  * P_SCALE, 384  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (256  * P_SCALE, 384  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (384  * P_SCALE, 384  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (512  * P_SCALE, 384  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (640  * P_SCALE, 384  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (0    * P_SCALE, 512  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (128  * P_SCALE, 512  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (256  * P_SCALE, 512  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (384  * P_SCALE, 512  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (512  * P_SCALE, 512  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (640  * P_SCALE, 512  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+]
+
+RUN_ROCKET = [
+   (0    * P_SCALE, 768  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (128  * P_SCALE, 768  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (256  * P_SCALE, 768  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (384  * P_SCALE, 768  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (512  * P_SCALE, 768  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (640  * P_SCALE, 768  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (0    * P_SCALE, 896  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (128  * P_SCALE, 896  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (256  * P_SCALE, 896  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (384  * P_SCALE, 896  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (512  * P_SCALE, 896  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (640  * P_SCALE, 896  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+]
+
+WALLJUMP = [
+   (256  * P_SCALE, 256  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (384  * P_SCALE, 256  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (512  * P_SCALE, 256  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+]
+
+WALLJUMP_PLASMA = [
+   (256  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (384  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (512  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+]
+
+WALLJUMP_ROCKET = [
+   (256  * P_SCALE, 1024 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (384  * P_SCALE, 1024 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (512  * P_SCALE, 1024 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+]
+
+SHOOT_PLASMA = [
+   (640  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+]
+
+SHOOT_ROCKET = [
+   (0    * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (128  * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (384  * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+]

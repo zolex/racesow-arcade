@@ -1,5 +1,6 @@
-from src import game, config
 import pygame, os
+from src.Game import Game
+from src import config
 
 if __name__ == '__main__':
     display_options = pygame.SCALED
@@ -10,6 +11,6 @@ if __name__ == '__main__':
     screen = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT), display_options)
     config.clock = pygame.time.Clock()
 
-    game.Game(screen).game_loop()
+    Game(screen).game_loop()
     
     pygame.quit()

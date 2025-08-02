@@ -1,14 +1,21 @@
 import os.path
-from os import path
 import pygame, yaml, random
 
-from src.basetypes import Vector2, Triangle, Rectangle, Collider, Item, Decal, Camera, Texture
-from src import sprites, config, sounds
-from src.player import Player
+from src.Vector2 import Vector2
+from src.Triangle import Triangle
+from src.Rectangle import Rectangle
+from src.Collider import Collider
+from src.Item import Item
+from src.Decal import Decal
+from src.Camera import Camera
+from src.Texture import Texture
+from src.Player import Player
+from src import config, sounds
 
 class Level:
     def __init__(self, surface: pygame.surface, camera: Camera):
 
+        self.map_folder = None
         self.map_name: str|None = None
         self.surface: pygame.surface = surface
         self.camera: Camera = camera
@@ -28,6 +35,7 @@ class Level:
         self.ramp_colliders = []
         self.wall_colliders = []
         self.dynamic_colliders = []
+        self.decoration = []
         self.decals = []
         self.items = []
         self.last_decal_velocity: int = 0
@@ -49,9 +57,9 @@ class Level:
 
 
 
-        self.map_folder = path.join(sprites.assets_folder, 'maps', self.map_name)
+        self.map_folder = os.path.join(config.assets_folder, 'maps', self.map_name)
 
-        map_file = path.join(self.map_folder, 'map.yaml')
+        map_file = os.path.join(self.map_folder, 'map.yaml')
         with open(map_file, 'r') as file:
             data = yaml.safe_load(file)
 
@@ -76,6 +84,8 @@ class Level:
                     self.static_colliders.append(collider)
                 elif rect['wall_type'] == 'wall':
                     self.wall_colliders.append(collider)
+                elif rect['wall_type'] == 'deco':
+                    self.decoration.append(collider)
 
         triangles = data.get('triangles', None)
         if triangles is not None:
@@ -103,7 +113,7 @@ class Level:
 
         sky = data.get('sky', None)
         if sky is not None:
-            sky_path = path.join(self.map_folder, sky)
+            sky_path = os.path.join(self.map_folder, sky)
             if os.path.isfile(sky_path):
                 self.sky = pygame.image.load(sky_path).convert()
                 width = config.SCREEN_WIDTH
@@ -112,7 +122,7 @@ class Level:
 
         overlay1 = data.get('overlay1', None)
         if overlay1 is not None:
-            overlay1_path = path.join(self.map_folder, overlay1)
+            overlay1_path = os.path.join(self.map_folder, overlay1)
             if os.path.isfile(overlay1_path):
                 self.overlay1 = pygame.image.load(overlay1_path).convert_alpha()
                 self.overlay1_width = config.SCREEN_WIDTH
@@ -131,18 +141,18 @@ class Level:
                 if self.decals[i].sound is not None:
                     distance = abs(player.pos.x - self.decals[i].x)
                     self.decals[i].sound.set_volume(1 - (distance / 1000))
-                if self.decals[i].sprite == sprites.PROJECTILE_PLASMA or self.decals[i].sprite == sprites.PROJECTILE_ROCKET:
+                if self.decals[i].sprite == Decal.PROJECTILE_PLASMA or self.decals[i].sprite == Decal.PROJECTILE_ROCKET:
                     collider = self.decals[i].check_collisions(self.static_colliders + self.ramp_colliders)
                     if collider is not None:
-                        if self.decals[i].sprite == sprites.PROJECTILE_ROCKET:
+                        if self.decals[i].sprite == Decal.PROJECTILE_ROCKET:
                             x = self.decals[i].x
                             y = self.decals[i].y
                             del self.decals[i]
-                            self.decals.append(Decal(sprites.DECAL_ROCKET, 500, x, y))
+                            self.decals.append(Decal(Decal.DECAL_ROCKET, 500, x, y))
                             distance = abs(player.pos.x - x)
                             sounds.rocket.set_volume(1 - (distance / 1000))
                             sounds.rocket.play()
-                        if self.decals[i].sprite == sprites.PROJECTILE_PLASMA:
+                        if self.decals[i].sprite == Decal.PROJECTILE_PLASMA:
                             self.decals[i].x += random.randrange(-5, 5)
                             self.decals[i].y += random.randrange(-5, 5)
                             self.decals[i].vel_x = 0
@@ -150,15 +160,13 @@ class Level:
                             self.decals[i].duration = 300
 
                     # player hit by rocket from behind
-                    elif self.decals[i].vel_x > self.player.vel.x and self.decals[i].sprite == sprites.PROJECTILE_ROCKET:
+                    elif self.decals[i].vel_x > self.player.vel.x and self.decals[i].sprite == Decal.PROJECTILE_ROCKET:
                         collider = self.decals[i].check_collisions([self.player])
                         if collider is not None:
                             x = self.decals[i].x
                             y = self.decals[i].y
                             del self.decals[i]
-                            self.decals.append(Decal(sprites.DECAL_ROCKET, 500, x, y))
-                            distance = abs(player.pos.x - x)
-                            print(distance)
+                            self.decals.append(Decal(Decal.DECAL_ROCKET, 500, x, y))
                             sounds.rocket.set_volume(1)
                             sounds.rocket.play()
                             self.player.vel.x += 0.5
@@ -205,7 +213,7 @@ class Level:
 
     def draw_rects(self):
         #num = 0
-        for collider in self.static_colliders + self.wall_colliders:
+        for collider in self.static_colliders + self.wall_colliders + self.decoration:
             if self.camera.contains_rect(collider.shape):
         #        num += 1
                 self.draw_rect(collider)
@@ -229,7 +237,7 @@ class Level:
             view_pos = self.camera.to_view_space(item.pos)
             if self.camera.contains_point(item.pos):
         #        num += 1
-                self.surface.blit(sprites.item_set, (view_pos.x, view_pos.y), item.sprite)
+                self.surface.blit(Decal.sprite, (view_pos.x, view_pos.y), item.sprite)
 
         #print("num ITEMS rendered", num)
 
@@ -237,6 +245,6 @@ class Level:
         #num = 0
         for decal in self.decals:
             view_pos = self.camera.to_view_space(Vector2(decal.x, decal.y))
-            self.surface.blit(sprites.item_set, (view_pos.x, view_pos.y), decal.sprite)
+            self.surface.blit(Decal.sprite, (view_pos.x, view_pos.y), decal.sprite)
 
         #print("num DECALS rendered", num)

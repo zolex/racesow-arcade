@@ -1,8 +1,12 @@
 import random
 
 import pygame, math
-from src import level, sounds, sprites, config, player
-from src.basetypes import Camera, Vector2, Rectangle, Digit_System, Decal
+from src.Level import Level
+from src.Player import Player
+from src.Decal import Decal
+from src import sounds, config
+from src.Camera import Camera
+from src.Vector2 import Vector2
 from src.utils import color_gradient
 
 
@@ -11,13 +15,13 @@ class Game():
     def __init__(self, surface):
         self.surface = surface
         self.camera = Camera(Vector2(), config.SCREEN_WIDTH, config.SCREEN_HEIGHT)
-        self.level = level.Level(self.surface, self.camera)
-        self.player = player.Player(self.surface, self.camera)
+        self.level = Level(self.surface, self.camera)
+        self.player = Player(self.surface, self.camera)
         self.level.load('asd', self.player)
         self.camera.set_start_pos_y(self.level.player_start.y)
         self.player.set_level(self.level)
-
-
+        self.last_velocity = 0
+        self.font = pygame.font.Font(None, 16)
 
         pygame.joystick.init()
         if pygame.joystick.get_count():
@@ -27,18 +31,6 @@ class Game():
         pygame.mixer.music.load(sounds.main_theme)
         pygame.mixer.music.play()
 
-        self.font = pygame.font.Font(None, 16)
-
-        self.quit_state = None
-        self.tick = pygame.USEREVENT
-        self.time = Digit_System(Vector2(10, 10), 3, 0)
-        #self.fps = Digit_System(Vector2(80, 10), 5, 0)
-        #self.ups = Digit_System(Vector2(150, 10), 4, 0, 0, 1750)
-        #self.acc = Digit_System(Vector2(230, 10), 3, 0, 0, 200)
-        #self.timer = 0 # timer for counting up the race time
-        pygame.time.set_timer(self.tick, 1000)
-
-        self.last_velocity = 0
 
     def draw(self):
         """Draw all GameObjects and sprites that are currently on screen"""
@@ -55,9 +47,8 @@ class Game():
         fps_text = self.font.render(f"FPS: {fpss}", True, (255, 255, 255))
         self.surface.blit(fps_text, (10, 10))
 
-        acc = f"{config.LAST_BOOST}".rjust(4, "0")
-        acc_text = self.font.render(f"ACC: {acc}", True,
-                                    color_gradient(config.LAST_BOOST, 0, 200))
+        acc = f"{self.player.last_boost}".rjust(4, "0")
+        acc_text = self.font.render(f"ACC: {acc}", True, color_gradient(self.player.last_boost, 0, 200))
         self.surface.blit(acc_text, (120, 10))
 
         ups = f"{round(self.player.vel.x * 1000)}".rjust(5, "0")
@@ -65,12 +56,12 @@ class Game():
         self.surface.blit(fps_text, (220, 10))
 
         if self.player.has_plasma:
-            self.surface.blit(sprites.item_set, (config.SCREEN_WIDTH - 45, config.SCREEN_HEIGHT - 20), sprites.ITEM_PLASMA)
+            self.surface.blit(Decal.sprite, (config.SCREEN_WIDTH - 45, config.SCREEN_HEIGHT - 20), Decal.ITEM_PLASMA)
             fps_text = self.font.render(f"{self.player.plasma_ammo}", True, (255, 255, 255))
             self.surface.blit(fps_text, (config.SCREEN_WIDTH - 20, config.SCREEN_HEIGHT - 15))
 
         if self.player.has_rocket:
-            self.surface.blit(sprites.item_set, (config.SCREEN_WIDTH - 90, config.SCREEN_HEIGHT - 20), sprites.ITEM_ROCKET)
+            self.surface.blit(Decal.sprite, (config.SCREEN_WIDTH - 90, config.SCREEN_HEIGHT - 20), Decal.ITEM_ROCKET)
             fps_text = self.font.render(f"{self.player.rocket_ammo}", True, (255, 255, 255))
             self.surface.blit(fps_text, (config.SCREEN_WIDTH - 60, config.SCREEN_HEIGHT - 15))
 
@@ -81,10 +72,6 @@ class Game():
 
     def handle_pygame_events(self):
         for event in pygame.event.get():
-            if event.type == pygame.USEREVENT:
-                if event.type == self.tick:
-                    self.time.update_value(self.time.total_value + 1)
-
             if event.type == pygame.JOYAXISMOTION:
                 axis0 = self.joystick.get_axis(0)
                 axis1 = self.joystick.get_axis(1)

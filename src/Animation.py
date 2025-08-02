@@ -1,13 +1,12 @@
-import pygame
+from src import config
+from src import Player
 
-from src import config, sprites
-
-class Animation():
+class Animation:
     """Contains specific animation variables and functions for this class"""
 
     def __init__(self, player):
         self.player = player
-        self.current_sprite = sprites.PLAYER_IDLE
+        self.current_sprite = Player.IDLE
         self.end_frame = 11
         self.player_size = 'Default_Player'
         self.anim_frame = 0
@@ -28,25 +27,25 @@ class Animation():
         self.select_no_weapon()
 
     def select_no_weapon(self):
-        self.active_run_anim = sprites.PLAYER_RUN
-        self.active_walljump_anim = sprites.PLAYER_WALLJUMP
-        self.active_crouch_anim = sprites.PLAYER_CROUCH
-        self.active_slide_anim = sprites.PLAYER_SLIDE
-        self.active_idle_anim = sprites.PLAYER_IDLE
+        self.active_run_anim = Player.RUN
+        self.active_walljump_anim = Player.WALLJUMP
+        self.active_crouch_anim = Player.CROUCH
+        self.active_slide_anim = Player.SLIDE
+        self.active_idle_anim = Player.IDLE
 
     def select_plasma(self):
-        self.active_run_anim = sprites.PLAYER_RUN_PLASMA
-        self.active_walljump_anim = sprites.PLAYER_WALLJUMP_PLASMA
-        self.active_crouch_anim = sprites.PLAYER_CROUCH_PLASMA
-        self.active_slide_anim = sprites.PLAYER_SLIDE_PLASMA
-        self.active_idle_anim = sprites.PLAYER_IDLE_PLASMA
+        self.active_run_anim = Player.RUN_PLASMA
+        self.active_walljump_anim = Player.WALLJUMP_PLASMA
+        self.active_crouch_anim = Player.CROUCH_PLASMA
+        self.active_slide_anim = Player.SLIDE_PLASMA
+        self.active_idle_anim = Player.IDLE_PLASMA
 
     def select_rocket(self):
-        self.active_run_anim = sprites.PLAYER_RUN_ROCKET
-        self.active_walljump_anim = sprites.PLAYER_WALLJUMP_ROCKET
-        self.active_crouch_anim = sprites.PLAYER_CROUCH_ROCKET
-        self.active_slide_anim = sprites.PLAYER_SLIDE_ROCKET
-        self.active_idle_anim = sprites.PLAYER_IDLE_ROCKET
+        self.active_run_anim = Player.RUN_ROCKET
+        self.active_walljump_anim = Player.WALLJUMP_ROCKET
+        self.active_crouch_anim = Player.CROUCH_ROCKET
+        self.active_slide_anim = Player.SLIDE_ROCKET
+        self.active_idle_anim = Player.IDLE_ROCKET
 
     def set_active_weapon(self):
         if self.player.active_weapon == 'plasma':
@@ -127,13 +126,13 @@ class Animation():
 
     def rocket_anim(self):
         frame_time = 150
-        if self.anim_frame > len(sprites.PLAYER_SHOOT_ROCKET) - 1:
+        if self.anim_frame > len(Player.SHOOT_ROCKET) - 1:
             self.anim_frame = 0
-        self.current_sprite = sprites.PLAYER_SHOOT_ROCKET[self.anim_frame]
+        self.current_sprite = Player.SHOOT_ROCKET[self.anim_frame]
         self.anim_timer += config.delta_time
         if self.anim_timer > frame_time:
             self.anim_timer = 0
             self.anim_frame += 1
 
     def plasma_anim(self):
-        self.current_sprite = sprites.PLAYER_SHOOT_PLASMA[0]
+        self.current_sprite = Player.SHOOT_PLASMA[0]

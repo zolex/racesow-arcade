@@ -1,5 +1,5 @@
 from src import config
-from src.basetypes import Vector2
+from src.Vector2 import Vector2
 
 def clamp(x, a, b):
     """Clamps value x between a and b"""

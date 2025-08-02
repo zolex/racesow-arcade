@@ -1,4 +1,6 @@
-import pygame as pg
+import os
+
+assets_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets')
 
 #Shared variables
 screen = None
@@ -31,18 +33,11 @@ PINK = (255, 0, 255, 255)
 BACKGROUND_COLOR = (107, 140, 255)
 
 #Window settings
-SCREEN_WIDTH = 400
+SCREEN_WIDTH = 320
 SCREEN_HEIGHT = 240
 CAPTION = 'Racesow Arcade'
 
-#Start positions
-PLAYER_WIDTH=32
-PLAYER_HEIGHT=42
-PLAYER_CROUCH_HEIGHT=32
-
 #Physics values
-LAST_BOOST = 0
-ACCELERATION = 0
 PLAYER_ACCELERATION = 0.00015
 MAX_RUN_VEL = 0.75
 MAX_OVERAL_VEL = 2
