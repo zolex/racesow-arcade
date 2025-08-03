@@ -8,7 +8,7 @@ from src.State import State
 from src.Camera import Camera
 from src.Vector2 import Vector2
 from src.utils import accelerate
-from src.Decal import Decal
+from src.Projectile import Projectile
 from src import sounds, config
 
 class Player(Entity):
@@ -187,9 +187,10 @@ class Player(Entity):
                         sounds.rocket_launch.play()
                         channel = sounds.rocket_fly.play(loops=-1)
                         if self.pressed_down:
-                            self.level.decals.append(Decal(Decal.PROJECTILE_ROCKET_DOWN, 1337000, self.pos.x + 25, self.pos.y + 8, self.vel.x, 0.7, 0.1, -0.001, channel))
+                            self.action_states.on_event('rocket')
+                            self.level.projectiles.append(Projectile(Projectile.PROJECTILE_ROCKET_DOWN, 1337000, self.pos.x + 15, self.pos.y + 8, self.vel.x, 1, 0.75, -0.0003, channel))
                         else:
-                            self.level.decals.append(Decal(Decal.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 1, 0,1, -0.00075, channel))
+                            self.level.projectiles.append(Projectile(Projectile.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 1, 0, 1.1, -0.00075, channel))
 
 
             elif self.active_weapon == 'plasma':
@@ -208,10 +209,10 @@ class Player(Entity):
                             else:
                                 decal_offset = 7
                             self.action_states.on_event('plasma')
-                            self.level.decals.append(Decal(Decal.DECAL_PLASMA, 1000, self.pos.x + decal_offset, self.pos.y + 5))
+                            self.level.projectiles.append(Projectile(Projectile.DECAL_PLASMA, 1000, self.pos.x + decal_offset, self.pos.y + 5))
                             if self.pressed_down:
                                 if self.pressed_left or self.pressed_right:
-                                    self.vel.y -= 0.085
+                                    self.vel.y -= 0.08
                                 else:
                                     self.vel.y -= 0.1
                                 # add some extra velocity if climbing very slow
@@ -225,7 +226,7 @@ class Player(Entity):
                             elif self.pressed_right:
                                 self.vel.x -= 0.04
                         else:
-                            self.level.decals.append(Decal(Decal.PROJECTILE_PLASMA, 10000, self.pos.x + 30, self.pos.y + 5, 1 + self.vel.x))
+                            self.level.projectiles.append(Projectile(Projectile.PROJECTILE_PLASMA, 10000, self.pos.x + 30, self.pos.y + 5, 1 + self.vel.x))
 
         else:
             if self.current_action_state == 'Plasma_State':
@@ -337,7 +338,8 @@ class Player(Entity):
                 self.vel.x = 0
                 self.action_states.on_event('idle')
 
-        elif self.crouching and self.vel.x < 0.02:
+
+        if self.crouching and self.vel.x < 0.03:
             self.vel.x = 0
 
         # allow braking
@@ -513,22 +515,18 @@ class Player(Entity):
         self.vel.x += boost
 
     def add_rocket_velocity(self, distance, angle_rad):
-        print("add rocket velocity", distance, angle_rad)
         if distance is not None:
+            #if distance > 150:
+            #    return
 
             vel_magnitude = 1 / (1 + 0.04 * distance)
 
-            print("vel_magnitude", vel_magnitude)
-
             # Calculate x and y components of velocity
-            vel_x = -0.5 * vel_magnitude * math.cos(angle_rad)
+            vel_x =  vel_magnitude * math.cos(angle_rad)
             vel_y = vel_magnitude * math.sin(angle_rad)
 
-            print("vel", vel_x, vel_y)
-            
-            # Invert y component because game coordinates have y increasing downward
-            #vel_y = -vel_y
-            
+            #print("distance", distance, "vel_mag", vel_magnitude, "vel_x", vel_x, "vel_y", vel_y)
+
             # add additional momentum when jumping from a ramp
             #if self.last_ramp_radians > 0:
             #    ramp_boost = 0.225 * (self.vel.x * math.sin(self.last_ramp_radians) + self.vel.x * math.cos(self.last_ramp_radians))
@@ -538,6 +536,8 @@ class Player(Entity):
             # Apply velocity components
             self.vel.x += vel_x
             self.vel.y += vel_y
+
+            self.action_states.on_event('decel')
 
     class Idle_State(State):
         """State when on the ground and not moving"""
@@ -629,14 +629,7 @@ class Player(Entity):
 
         def on_enter(self, owner_object):
             print(__class__, pygame.time.get_ticks())
-            #owner_object.animation.reset_anim()
-            #owner_object.add_rocket_velocity()
-            #owner_object.level.decals.append(Decal(Decal.DECAL_ROCKET, 500, owner_object.pos.x, owner_object.pos.y + owner_object.distance_to_ground + owner_object.shape.h / 2 + 10))
-
-
-        def update(self, owner_object):
-            if owner_object.last_rocket_time + 350 > pygame.time.get_ticks():
-                owner_object.action_states.on_event('jump')
+            owner_object.animation.reset_anim()
 
     class Plasma_State(State):
         def on_event(self, event):
@@ -683,6 +676,7 @@ class Player(Entity):
             #    owner_object.vel.x = 0.02
 
         def update(self, owner_object):
+            owner_object.acceleration = 0
             if owner_object.pressed_right and owner_object.vel.x < 0.1:
                 owner_object.acceleration = 0.0005
 
@@ -904,4 +898,6 @@ SHOOT_ROCKET = [
    (0    * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
    (128  * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
    (384  * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (128  * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (0    * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
 ]

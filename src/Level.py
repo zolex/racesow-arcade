@@ -6,7 +6,7 @@ from src.Triangle import Triangle
 from src.Rectangle import Rectangle
 from src.Collider import Collider
 from src.Item import Item
-from src.Decal import Decal
+from src.Projectile import Projectile
 from src.Camera import Camera
 from src.Texture import Texture
 from src.Player import Player
@@ -36,7 +36,7 @@ class Level:
         self.wall_colliders = []
         self.dynamic_colliders = []
         self.decoration = []
-        self.decals = []
+        self.projectiles = []
         self.items = []
         self.last_decal_velocity: int = 0
         self.player_start: Vector2 = Vector2(70, 70)
@@ -51,7 +51,7 @@ class Level:
         self.ramp_colliders = []
         self.wall_colliders = []
         self.dynamic_colliders = []
-        self.decals = []
+        self.projectiles = []
         self.items = []
         self.last_decal_velocity = 0
 
@@ -129,56 +129,13 @@ class Level:
                 height = int(self.overlay1_width * self.overlay1.get_height() / self.overlay1.get_width())
                 self.overlay1 = pygame.transform.scale(self.overlay1, (self.overlay1_width, height))
 
-    def update_decals(self, player: Player):
-        for i in range(len(self.decals) - 1, -1, -1):
-            if self.decals[i].start_time + self.decals[i].duration < pygame.time.get_ticks():
-                del self.decals[i]
-            elif self.decals[i].vel_x > 0 or self.decals[i].vel_y > 0:
-                self.decals[i].x += self.decals[i].vel_x * config.delta_time
-                self.decals[i].y += self.decals[i].vel_y * config.delta_time
-                self.last_decal_velocity += config.delta_time
-                if self.last_decal_velocity > 1000 and (self.decals[i].vel_x > self.decals[i].target_vel):
-                    self.decals[i].vel_x += self.decals[i].acc
-                if self.decals[i].sound is not None:
-                    distance = abs(player.pos.x - self.decals[i].x)
-                    self.decals[i].sound.set_volume(1 - (distance / 1000))
-                if self.decals[i].sprite == Decal.PROJECTILE_PLASMA or self.decals[i].sprite == Decal.PROJECTILE_ROCKET or self.decals[i].sprite == Decal.PROJECTILE_ROCKET_DOWN:
-                    collider = self.decals[i].check_collisions(self.static_colliders + self.ramp_colliders)
-                    if collider is not None:
-                        if self.decals[i].sprite == Decal.PROJECTILE_ROCKET or self.decals[i].sprite == Decal.PROJECTILE_ROCKET_DOWN:
-                            print("rocket collision with static")
-                            x = self.decals[i].x
-                            y = self.decals[i].y
-                            del self.decals[i]
-                            self.decals.append(Decal(Decal.DECAL_ROCKET, 500, x, y))
-
-                            dx = player.pos.x - x
-                            dy = player.pos.y - y
-                            distance = math.sqrt(dx ** 2 + dy ** 2)
-                            angle_rad = math.atan2(dy, dx)
-                            #sounds.rocket.set_volume(1 - (distance / 1000))
-                            sounds.rocket.play()
-                            player.add_rocket_velocity(distance, angle_rad)
-                        if self.decals[i].sprite == Decal.PROJECTILE_PLASMA:
-                            self.decals[i].x += random.randrange(-5, 5)
-                            self.decals[i].y += random.randrange(-5, 5)
-                            self.decals[i].vel_x = 0
-                            self.decals[i].start_time = pygame.time.get_ticks()
-                            self.decals[i].duration = 300
-
-                    # player hit by rocket from behind
-                    #elif self.decals[i].vel_x > self.player.vel.x and self.decals[i].sprite == Decal.PROJECTILE_ROCKET:
-                    #    collider = self.decals[i].check_collisions([self.player])
-                    #    if collider is not None:
-                    #        print("rocket collision with PLAYER")
-                    #        x = self.decals[i].x
-                    #        y = self.decals[i].y
-                    #        del self.decals[i]
-                    #        self.decals.append(Decal(Decal.DECAL_ROCKET, 500, x, y))
-                    #        sounds.rocket.set_volume(1)
-                    #        sounds.rocket.play()
-                    #        self.player.vel.x += 0.5
-                    #        self.player.vel.y -= 0.5
+    def update_projectiles(self, player: Player):
+        for i in range(len(self.projectiles) - 1, -1, -1):
+            projectile = self.projectiles[i].update(player, self.static_colliders + self.ramp_colliders)
+            if projectile:
+                del self.projectiles[i]
+                if isinstance(projectile, Projectile):
+                    self.projectiles.append(projectile)
 
     def draw(self):
         self.surface.fill(config.BACKGROUND_COLOR)
@@ -245,14 +202,14 @@ class Level:
             view_pos = self.camera.to_view_space(item.pos)
             if self.camera.contains_point(item.pos):
         #        num += 1
-                self.surface.blit(Decal.sprite, (view_pos.x, view_pos.y), item.sprite)
+                self.surface.blit(Projectile.sprite, (view_pos.x, view_pos.y), item.sprite)
 
         #print("num ITEMS rendered", num)
 
     def draw_decals(self):
         #num = 0
-        for decal in self.decals:
+        for decal in self.projectiles:
             view_pos = self.camera.to_view_space(Vector2(decal.x, decal.y))
-            self.surface.blit(Decal.sprite, (view_pos.x, view_pos.y), decal.sprite)
+            self.surface.blit(Projectile.sprite, (view_pos.x, view_pos.y), decal.sprite)
 
         #print("num DECALS rendered", num)

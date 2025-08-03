@@ -125,9 +125,9 @@ class Animation:
             self.anim_frame += 1
 
     def rocket_anim(self):
-        frame_time = 150
+        frame_time = 50
         if self.anim_frame > len(Player.SHOOT_ROCKET) - 1:
-            self.anim_frame = 0
+            return
         self.current_sprite = Player.SHOOT_ROCKET[self.anim_frame]
         self.anim_timer += config.delta_time
         if self.anim_timer > frame_time:

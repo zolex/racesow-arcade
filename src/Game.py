@@ -3,7 +3,7 @@ import random
 import pygame, math
 from src.Level import Level
 from src.Player import Player
-from src.Decal import Decal
+from src.Projectile import Projectile
 from src import sounds, config
 from src.Camera import Camera
 from src.Vector2 import Vector2
@@ -56,18 +56,18 @@ class Game():
         self.surface.blit(fps_text, (220, 10))
 
         if self.player.has_plasma:
-            self.surface.blit(Decal.sprite, (config.SCREEN_WIDTH - 45, config.SCREEN_HEIGHT - 20), Decal.ITEM_PLASMA)
+            self.surface.blit(Projectile.sprite, (config.SCREEN_WIDTH - 45, config.SCREEN_HEIGHT - 20), Projectile.ITEM_PLASMA)
             fps_text = self.font.render(f"{self.player.plasma_ammo}", True, (255, 255, 255))
             self.surface.blit(fps_text, (config.SCREEN_WIDTH - 20, config.SCREEN_HEIGHT - 15))
 
         if self.player.has_rocket:
-            self.surface.blit(Decal.sprite, (config.SCREEN_WIDTH - 90, config.SCREEN_HEIGHT - 20), Decal.ITEM_ROCKET)
+            self.surface.blit(Projectile.sprite, (config.SCREEN_WIDTH - 90, config.SCREEN_HEIGHT - 20), Projectile.ITEM_ROCKET)
             fps_text = self.font.render(f"{self.player.rocket_ammo}", True, (255, 255, 255))
             self.surface.blit(fps_text, (config.SCREEN_WIDTH - 60, config.SCREEN_HEIGHT - 15))
 
     def update(self):
         self.player.update()
-        self.level.update_decals(self.player)
+        self.level.update_projectiles(self.player)
         self.camera.update(self.player)
 
     def handle_pygame_events(self):
