@@ -7,6 +7,8 @@ class Camera(Rectangle):
     def __init__(self, pos, w, h):
         super(Camera, self).__init__(pos, w, h)
         self.start_pos_y = pos.y
+        self.smoothing_factor = 0.05  # Smoothing factor for camera movement
+        self.forward_factor = 0.15 # the faster the player, the closer he will be to the right side of the screen
 
     def contains_rect(self, other):
         """Checks if camera horizontally overlaps with a rectangle (partial or full containment)"""
@@ -75,16 +77,18 @@ class Camera(Rectangle):
 
     def update(self, player):
         """Update position of camera based on player velocity and position"""
-        # Update x position as before
-        self.pos.x = player.pos.x - 30 - (player.vel.x * 50)
+        # Calculate target x position based on player position and velocity
+        target_x = player.pos.x - 30
+        # Apply smoothing to horizontal movement
+        diff_x = target_x - self.pos.x
+        self.pos.x += diff_x * self.forward_factor
         
         # Calculate the player's position relative to the camera view
         player_rel_y = player.pos.y - self.pos.y
 
         # when falling, lower the bottom threshold to see where we land
         bottom_sub = 0
-        ground = player.get_distance_to_collider_below()
-        if ground is None or ground > config.SCREEN_HEIGHT * 0.35:
+        if player.distance_to_ground is None or player.distance_to_ground > config.SCREEN_HEIGHT * 0.35:
             bottom_sub = player.vel.y
 
         # Define thresholds - player can move freely within these bounds
@@ -96,9 +100,9 @@ class Camera(Rectangle):
             # Player is too high - move camera up
             target_y = player.pos.y - top_threshold
             diff_y = target_y - self.pos.y
-            self.pos.y += diff_y * 0.1
+            self.pos.y += diff_y * self.smoothing_factor
         elif player_rel_y > bottom_threshold:
             # Player is too low - move camera down
             target_y = player.pos.y - bottom_threshold
             diff_y = target_y - self.pos.y
-            self.pos.y += diff_y * 0.1
+            self.pos.y += diff_y * self.smoothing_factor

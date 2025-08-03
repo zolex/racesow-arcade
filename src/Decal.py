@@ -18,14 +18,16 @@ class Decal(Vector2):
     ITEM_ROCKET = (0 * I_SCALE, 0 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
     DECAL_ROCKET = (0 * I_SCALE, 128 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
     PROJECTILE_ROCKET = (0 * I_SCALE, 256 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
+    PROJECTILE_ROCKET_DOWN = (128 * I_SCALE, 256 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
 
     ITEM_PLASMA = (128 * I_SCALE, 0 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
     DECAL_PLASMA = (128 * I_SCALE, 128 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
     PROJECTILE_PLASMA = (128 * I_SCALE, 128 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
 
-    def __init__(self, sprite, duration, x, y, vel_x = 0, target_vel = 0, acc = 0, sound = None):
+    def __init__(self, sprite, duration, x, y, vel_x = 0, vel_y = 0, target_vel = 0, acc = 0, sound = None):
         super(Decal, self).__init__(x, y)
         self.vel_x = vel_x
+        self.vel_y = vel_y
         self.target_vel = target_vel
         self.acc = acc
         self.sprite = sprite

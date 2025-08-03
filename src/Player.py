@@ -14,6 +14,7 @@ from src import sounds, config
 class Player(Entity):
     def __init__(self, surface: pygame.surface.Surface, camera: Camera):
         super(Player, self).__init__(Vector2(0, 0), Rectangle(Vector2(0, 0), WIDTH, HEIGHT))
+        self.distance_to_ground = 0
         self.last_boost = 0
         self.acceleration = 0
         self.camera = camera
@@ -154,6 +155,7 @@ class Player(Entity):
         self.handle_inputs()
 
         self.can_uncrouch = self.crouching and self.check_can_uncrouch()
+        self.distance_to_ground = self.get_distance_to_collider_below()
 
         # Handle state transitions
         if self.vel.y > 0 and self.current_action_state != 'Plasma_State':
@@ -182,14 +184,12 @@ class Player(Entity):
                         sounds.weapon_empty.play()
                     else:
                         self.rocket_ammo -= 1
+                        sounds.rocket_launch.play()
+                        channel = sounds.rocket_fly.play(loops=-1)
                         if self.pressed_down:
-                            sounds.rocket_launch.play()
-                            sounds.rocket.play()
-                            self.action_states.on_event('rocket')
+                            self.level.decals.append(Decal(Decal.PROJECTILE_ROCKET_DOWN, 1337000, self.pos.x + 25, self.pos.y + 8, self.vel.x, 0.7, 0.1, -0.001, channel))
                         else:
-                            sounds.rocket_launch.play()
-                            channel = sounds.rocket_fly.play(loops=-1)
-                            self.level.decals.append(Decal(Decal.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 1, 1, -0.00075, channel))
+                            self.level.decals.append(Decal(Decal.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 1, 0,1, -0.00075, channel))
 
 
             elif self.active_weapon == 'plasma':
@@ -512,36 +512,32 @@ class Player(Entity):
 
         self.vel.x += boost
 
-    def add_rocket_velocity(self):
-        distance = self.get_distance_to_collider_below()
+    def add_rocket_velocity(self, distance, angle_rad):
+        print("add rocket velocity", distance, angle_rad)
         if distance is not None:
-            if distance < 1 and not self.pressed_jump:
-                vel = 0.4
-            elif distance <= 5:
-                vel = 0.32
-            elif distance < 10:
-                vel = 0.256
-            elif distance < 20:
-                vel = 0.223
-            elif distance < 30:
-                vel = 0.2
-            elif distance < 40:
-                vel = 0.175
-            elif distance < 50:
-                vel = 0.15
-            elif distance < 60:
-                vel = 0.125
-            else:
-                vel = 0
 
+            vel_magnitude = 1 / (1 + 0.04 * distance)
+
+            print("vel_magnitude", vel_magnitude)
+
+            # Calculate x and y components of velocity
+            vel_x = -0.5 * vel_magnitude * math.cos(angle_rad)
+            vel_y = vel_magnitude * math.sin(angle_rad)
+
+            print("vel", vel_x, vel_y)
+            
+            # Invert y component because game coordinates have y increasing downward
+            #vel_y = -vel_y
+            
             # add additional momentum when jumping from a ramp
-            if self.last_ramp_radians > 0:
-                vel += 0.225 * (self.vel.x * math.sin(self.last_ramp_radians) + self.vel.x * math.cos(self.last_ramp_radians))
-                self.last_ramp_radians = 0
-
-            self.vel.y -= vel
-
-        return distance
+            #if self.last_ramp_radians > 0:
+            #    ramp_boost = 0.225 * (self.vel.x * math.sin(self.last_ramp_radians) + self.vel.x * math.cos(self.last_ramp_radians))
+            #    vel_y -= ramp_boost
+            #    self.last_ramp_radians = 0
+            
+            # Apply velocity components
+            self.vel.x += vel_x
+            self.vel.y += vel_y
 
     class Idle_State(State):
         """State when on the ground and not moving"""
@@ -633,9 +629,9 @@ class Player(Entity):
 
         def on_enter(self, owner_object):
             print(__class__, pygame.time.get_ticks())
-            owner_object.animation.reset_anim()
-            distance = owner_object.add_rocket_velocity()
-            owner_object.level.decals.append(Decal(Decal.DECAL_ROCKET, 500, owner_object.pos.x, owner_object.pos.y + distance + owner_object.shape.h / 2 + 10))
+            #owner_object.animation.reset_anim()
+            #owner_object.add_rocket_velocity()
+            #owner_object.level.decals.append(Decal(Decal.DECAL_ROCKET, 500, owner_object.pos.x, owner_object.pos.y + owner_object.distance_to_ground + owner_object.shape.h / 2 + 10))
 
 
         def update(self, owner_object):
