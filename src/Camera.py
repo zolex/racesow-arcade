@@ -7,7 +7,19 @@ class Camera(Rectangle):
     def __init__(self, pos, w, h):
         super(Camera, self).__init__(pos, w, h)
         self.start_pos_y = pos.y
-        self.smoothing_factor = 0.05  # Smoothing factor for camera movement
+
+        # Smoothing factor for camera movement
+        # TODO: find a smoothing technique that works for every resolution
+        if config.SCREEN_HEIGHT == 240:
+            self.smoothing_factor = 0.05
+            self.offset_left = 30
+        elif config.SCREEN_HEIGHT == 320:
+            self.smoothing_factor = 0.035
+            self.offset_left = 60
+        else:
+            self.smoothing_factor = 0.025
+
+
         self.forward_factor = 0.15 # the faster the player, the closer he will be to the right side of the screen
 
     def contains_rect(self, other):
@@ -78,7 +90,7 @@ class Camera(Rectangle):
     def update(self, player):
         """Update position of camera based on player velocity and position"""
         # Calculate target x position based on player position and velocity
-        target_x = player.pos.x - 30
+        target_x = player.pos.x - self.offset_left - config.CAMERA_FOLLOW_X
         # Apply smoothing to horizontal movement
         diff_x = target_x - self.pos.x
         self.pos.x += diff_x * self.forward_factor
