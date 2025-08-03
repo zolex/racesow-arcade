@@ -341,7 +341,7 @@ class Player(Entity):
             self.vel.x = 0
 
         # allow braking
-        elif self.pressed_left and not self.pressed_right:
+        elif self.pressed_left and not self.pressed_right and not self.current_action_state == 'Plasma_State':
             self.vel.x -= 0.01
 
         if self.current_action_state != 'Crouch_State' and self.pressed_down:
