@@ -8,16 +8,8 @@ class Camera(Rectangle):
         super(Camera, self).__init__(pos, w, h)
         self.start_pos_y = pos.y
 
-        # Smoothing factor for camera movement
-        # TODO: find a smoothing technique that works for every resolution
-        if config.SCREEN_HEIGHT == 240:
-            self.smoothing_factor = 0.05
-            self.offset_left = 30
-        elif config.SCREEN_HEIGHT == 320:
-            self.smoothing_factor = 0.035
-            self.offset_left = 60
-        else:
-            self.smoothing_factor = 0.025
+        self.smoothing_factor = config.CAMERA_SMOOTHING_FACTOR
+        self.offset_left = config.CAMERA_OFFSET_LEFT
 
 
         self.forward_factor = 0.15 # the faster the player, the closer he will be to the right side of the screen

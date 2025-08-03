@@ -1,14 +1,12 @@
+from src.SimpleRect import SimpleRect
 from src.Texture import Texture
 from src.Vector2 import Vector2
 import pygame
-import math
 
-class Rectangle():
+class Rectangle(SimpleRect):
     """Rectangle class for collider rectangles"""
     def __init__(self, pos = Vector2(), w = 0, h = 0, texture: Texture|None=None):
-        self.pos = pos
-        self.w = w
-        self.h = h
+        super().__init__(pos, w, h)
         self.surface = None
 
         # pre-render surface if there is a texture
@@ -77,10 +75,10 @@ class Rectangle():
                 if self.overlaps(collider.shape):
                     return collider
 
-    def check_center_collisions(self, collider_list):
+    def check_center_collisions(self, collider_list, less_x = 0, less_y = 0):
         """Check collision of the center of this rect and another rectangle"""
         for collider in collider_list:
-            if collider.pos.x <= self.pos.x + self.w // 2 <= collider.pos.x + collider.shape.w and collider.pos.y <= self.pos.y + self.h // 2 <= collider.pos.y + collider.shape.h:
+            if collider.pos.x + less_x <= self.pos.x + self.w // 2 <= collider.pos.x - less_x + collider.shape.w and collider.pos.y + less_y <= self.pos.y + self.h // 2 <= collider.pos.y - less_y + collider.shape.h:
                 return collider
 
     def check_entity_collisions(self, entity_list):

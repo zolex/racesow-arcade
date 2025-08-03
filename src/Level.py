@@ -1,6 +1,8 @@
 import os.path, math
 import pygame, yaml, random
 
+from src.JumpPad import JumpPad
+from src.Portal import Portal
 from src.Vector2 import Vector2
 from src.Triangle import Triangle
 from src.Rectangle import Rectangle
@@ -41,6 +43,9 @@ class Level:
         self.last_decal_velocity: int = 0
         self.player_start: Vector2 = Vector2(70, 70)
 
+        self.portals = []
+        self.jump_pads = []
+
 
     def load(self, map_name: str, player: Player):
 
@@ -55,8 +60,6 @@ class Level:
         self.items = []
         self.last_decal_velocity = 0
 
-
-
         self.map_folder = os.path.join(config.assets_folder, 'maps', self.map_name)
 
         map_file = os.path.join(self.map_folder, 'map.yaml')
@@ -70,7 +73,17 @@ class Level:
         items = data.get('items', None)
         if items is not None:
             for item in items:
-                self.items.append(Item(item['type'], Vector2(item['x'], item['y'] + 12), item['ammo']))
+                self.items.append(Item(item['type'], Vector2(item['x'], item['y'] + 12), item['ammo'], item['stay']))
+
+        portals = data.get('portals', None)
+        if portals is not None:
+            for portal in portals:
+                self.portals.append(Portal(Vector2(portal['entry_x'], portal['entry_y']), Vector2(portal['exit_x'], portal['exit_y'])))
+
+        jump_pads = data.get('jump_pads', None)
+        if jump_pads is not None:
+            for jump_pad in jump_pads:
+                self.jump_pads.append(JumpPad(Vector2(jump_pad['x'], jump_pad['y']), Vector2(jump_pad['vel_x'], jump_pad['vel_y'])))
 
         rectangles = data.get('rectangles', None)
         if rectangles is not None:
@@ -129,7 +142,7 @@ class Level:
                 height = int(self.overlay1_width * self.overlay1.get_height() / self.overlay1.get_width())
                 self.overlay1 = pygame.transform.scale(self.overlay1, (self.overlay1_width, height))
 
-    def update_projectiles(self, player: Player):
+    def update(self, player: Player):
         for i in range(len(self.projectiles) - 1, -1, -1):
             projectile = self.projectiles[i].update(player, self.static_colliders + self.ramp_colliders)
             if projectile:
@@ -141,11 +154,20 @@ class Level:
         self.surface.fill(config.BACKGROUND_COLOR)
         self.draw_sky()
         self.draw_overlay1()
-
         self.draw_rects()
         self.draw_triangles()
+        self.draw_portals()
+        self.draw_jump_pads()
         self.draw_items()
         self.draw_decals()
+
+    def draw_portals(self):
+        for portal in self.portals:
+            portal.draw(self.surface, self.camera)
+
+    def draw_jump_pads(self):
+        for jump_pad in self.jump_pads:
+            jump_pad.draw(self.surface, self.camera)
 
     def draw_rect(self, collider: Collider):
         view_pos = self.camera.to_view_space(collider.shape.pos)

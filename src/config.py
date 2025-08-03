@@ -33,8 +33,15 @@ PINK = (255, 0, 255, 255)
 BACKGROUND_COLOR = (107, 140, 255)
 
 #Window settings
-SCREEN_WIDTH = 320
-SCREEN_HEIGHT = 240
+RESOLUTIONS={
+    1: (320, 240, 0.05, 30),
+    2: (640, 320, 0.035, 60),
+    3: (640, 480, 0.035, 60),
+}
+
+res = os.getenv('RESOLUTION', 2)
+SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SMOOTHING_FACTOR, CAMERA_OFFSET_LEFT = RESOLUTIONS.get(int(res), 1)
+
 CAPTION = 'Racesow Arcade'
 
 #Physics values
@@ -52,12 +59,7 @@ JUMP_VELOCITY = -0.325
 WALLJUMP_VELOCITY = -0.22
 DEATH_VEL_Y = -0.35
 
-#End of level settings
-MAXIMUM_CAMERA_SCROLL = 999999999999999
-LEVEL_END_X = 999999999999999
-
-#Distance from left side of the screen, when camera starts following
-CAMERA_FOLLOW_X = 150
+CAMERA_FOLLOW_X = 40
 
 #Sets timer value so animations start instantly instead of counting up first
 INITIAL_TIMER_VALUE = 1000

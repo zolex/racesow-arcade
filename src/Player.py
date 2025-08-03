@@ -188,7 +188,7 @@ class Player(Entity):
                         channel = sounds.rocket_fly.play(loops=-1)
                         if self.pressed_down:
                             self.action_states.on_event('rocket')
-                            self.level.projectiles.append(Projectile(Projectile.PROJECTILE_ROCKET_DOWN, 1337000, self.pos.x + 15, self.pos.y + 8, self.vel.x, 1, 0.75, -0.0003, channel))
+                            self.level.projectiles.append(Projectile(Projectile.PROJECTILE_ROCKET_DOWN, 1337000, self.pos.x + 15, self.pos.y + 8, self.vel.x, self.vel.y + 1 , 0.7, -0.0015, channel))
                         else:
                             self.level.projectiles.append(Projectile(Projectile.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 1, 0, 1.1, -0.00075, channel))
 
@@ -321,6 +321,7 @@ class Player(Entity):
         self.collider_collisions(dx, dy)
         self.ramp_collisions()
         self.item_collisions()
+        self.portal_collisions()
 
     def state_events(self):
         if any(self.current_action_state == state for state in ['Move_State', 'Decel_State', 'Idle_State', 'Crouch_State']):
@@ -454,18 +455,32 @@ class Player(Entity):
     def item_collisions(self):
         for item in self.level.items:
             if item.picked_up:
+                if item.stay and item.respawn_at is not None and pygame.time.get_ticks() > item.respawn_at:
+                    item.picked_up = False
+                    item.respawn_at = None
                 continue
             if item.pos.x - 10 <= self.pos.x + self.shape.w / 2 <= item.pos.x + 10 and item.pos.y - 10 <= self.pos.y + self.shape.h / 2 <= item.pos.y + 10:
                 sounds.pickup.play()
                 self.active_weapon = item.item_type
                 if item.item_type == 'rocket':
                     self.has_rocket = True
-                    self.rocket_ammo = item.ammo
+                    self.rocket_ammo += item.ammo
                 elif item.item_type == 'plasma':
                     self.has_plasma = True
-                    self.plasma_ammo = item.ammo
+                    self.plasma_ammo += item.ammo
                 item.picked_up = True
+                if item.stay:
+                    item.respawn_at = pygame.time.get_ticks() + 3000
                 self.animation.set_active_weapon()#
+
+    def portal_collisions(self):
+        portal = self.shape.check_center_collisions(self.level.portals, 20, 10)
+        if portal is not None:
+            portal.teleport(self)
+
+        jump_pad = self.shape.check_center_collisions(self.level.jump_pads, 24, -30)
+        if jump_pad is not None:
+            jump_pad.jump(self)
 
     def walljump_collisions(self):
         wall_collider = self.shape.check_collisions(self.level.wall_colliders)
