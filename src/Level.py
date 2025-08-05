@@ -23,19 +23,15 @@ class Level:
         self.camera: Camera = camera
 
         self.player: Player|None = None
-        self.background: pygame.image = None
-        self.background_width: int|None = None
-        self.background_height: int = config.SCREEN_HEIGHT
         self.sky: pygame.image = None
-        self.overlay1: pygame.image = None
-        self.overlay1_width: int|None = None
-        self.overlay1_offset: int = 0
-        self.overlay2: pygame.image = None
-        self.overlay2_offset: int = 0
+        self.overlay: pygame.image = None
+        self.overlay_width: int | None = None
+        self.overlay_offset: int = 0
 
         self.static_colliders =  []
         self.ramp_colliders = []
         self.wall_colliders = []
+        self.death_colliders = []
         self.dynamic_colliders = []
         self.decoration = []
         self.projectiles = []
@@ -55,6 +51,7 @@ class Level:
         self.static_colliders = []
         self.ramp_colliders = []
         self.wall_colliders = []
+        self.death_colliders = []
         self.dynamic_colliders = []
         self.projectiles = []
         self.items = []
@@ -99,6 +96,8 @@ class Level:
                     self.wall_colliders.append(collider)
                 elif rect['wall_type'] == 'deco':
                     self.decoration.append(collider)
+                elif rect['wall_type'] == 'death':
+                    self.death_colliders.append(collider)
 
         triangles = data.get('triangles', None)
         if triangles is not None:
@@ -133,14 +132,19 @@ class Level:
                 height = int(width * self.sky.get_height() / self.sky.get_width())
                 self.sky = pygame.transform.scale(self.sky, (width, height))
 
-        overlay1 = data.get('overlay1', None)
-        if overlay1 is not None:
-            overlay1_path = os.path.join(self.map_folder, overlay1)
+        overlay = data.get('overlay', None)
+        if overlay is not None:
+            overlay1_path = os.path.join(self.map_folder, overlay)
             if os.path.isfile(overlay1_path):
-                self.overlay1 = pygame.image.load(overlay1_path).convert_alpha()
-                self.overlay1_width = config.SCREEN_WIDTH
-                height = int(self.overlay1_width * self.overlay1.get_height() / self.overlay1.get_width())
-                self.overlay1 = pygame.transform.scale(self.overlay1, (self.overlay1_width, height))
+                self.overlay = pygame.image.load(overlay1_path).convert_alpha()
+                self.overlay_width = config.SCREEN_WIDTH
+                height = int(self.overlay_width * self.overlay.get_height() / self.overlay.get_width())
+                self.overlay = pygame.transform.scale(self.overlay, (self.overlay_width, height))
+
+    def reset(self):
+        self.projectiles = []
+        for item in self.items:
+            item.picked_up = False
 
     def update(self, player: Player):
         for i in range(len(self.projectiles) - 1, -1, -1):
@@ -153,7 +157,7 @@ class Level:
     def draw(self):
         self.surface.fill(config.BACKGROUND_COLOR)
         self.draw_sky()
-        self.draw_overlay1()
+        self.draw_overlay()
         self.draw_rects()
         self.draw_triangles()
         self.draw_portals()
@@ -190,17 +194,17 @@ class Level:
         if self.sky is not None:
             self.surface.blit(self.sky, (0, 0))
 
-    def draw_overlay1(self):
-        if self.overlay1 is not None:
-            offset = -10 / self.background_width * self.camera.pos.x
-            x = offset * self.overlay1_width + self.overlay1_offset
-            if x < -self.overlay1_width:
-                self.overlay1_offset += self.overlay1_width * 2
-            self.surface.blit(self.overlay1, (x, -self.camera.pos.y * 0.5))
+    def draw_overlay(self):
+        if self.overlay is not None:
+            offset = -1.05 / self.overlay_width * self.camera.pos.x
+            x = config.SCREEN_WIDTH + offset * self.overlay_width + self.overlay_offset
+            if x < -self.overlay_width:
+                self.overlay_offset += self.overlay_width * 2
+            self.surface.blit(self.overlay, (x, config.SCREEN_HEIGHT / 2.5 - self.camera.pos.y * 1.2))
 
     def draw_rects(self):
         #num = 0
-        for collider in self.static_colliders + self.wall_colliders + self.decoration:
+        for collider in self.static_colliders + self.wall_colliders + self.decoration + self.death_colliders:
             if self.camera.contains_rect(collider.shape):
         #        num += 1
                 self.draw_rect(collider)
@@ -219,19 +223,12 @@ class Level:
     def draw_items(self):
         #num = 0
         for item in self.items:
-            if item.picked_up:
-                continue
-            view_pos = self.camera.to_view_space(item.pos)
-            if self.camera.contains_point(item.pos):
-        #        num += 1
-                self.surface.blit(Projectile.sprite, (view_pos.x, view_pos.y), item.sprite)
+            item.draw(self.surface, self.camera)
 
         #print("num ITEMS rendered", num)
 
     def draw_decals(self):
         #num = 0
         for decal in self.projectiles:
-            view_pos = self.camera.to_view_space(Vector2(decal.x, decal.y))
-            self.surface.blit(Projectile.sprite, (view_pos.x, view_pos.y), decal.sprite)
-
+            decal.draw(self.surface, self.camera)
         #print("num DECALS rendered", num)

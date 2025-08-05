@@ -105,14 +105,20 @@ class Animation:
         self.end_frame = 5 if current_frame < 5 or current_frame == 11 else 11
 
     def jump_anim(self):
+        if self.player.active_weapon == 'rocket' and self.player.pressed_down :
+            self.current_sprite = Player.SHOOT_ROCKET[2]
+            return
+
+
         frame_time = 50
         self.anim_timer += config.delta_time
         self.current_sprite = self.active_run_anim[self.anim_frame]
         if self.anim_timer > frame_time and self.anim_frame != self.end_frame:
             self.anim_timer = 0
-            self.anim_frame += 1
-            if self.anim_frame > len(self.active_run_anim) - 1:
+            if self.anim_frame == len(self.active_run_anim) - 1:
                 self.anim_frame = 0
+            else:
+                self.anim_frame += 1
 
     def walljump_anim(self):
         frame_time = 50

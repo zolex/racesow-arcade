@@ -20,7 +20,6 @@ class Player(Entity):
         self.camera = camera
         self.surface = surface
         self.level = None
-        self.ground_touch_time = 0
         self.last_walljump = 0
         self.last_ramp_radians = -1
         self.animation = Animation(self)
@@ -31,7 +30,6 @@ class Player(Entity):
         self.pressed_left = False
         self.pressed_right = False
         self.lifted_right = False
-        self.jump_pressed_at = None
         self.pressed_jump = False
         self.crouching = False
         self.pressed_down = False
@@ -43,6 +41,14 @@ class Player(Entity):
         self.jump_diff = float("inf")
 
         self.start_height = 0
+
+        self.jump_pressed_at = None
+        self.jump_action_distance = 0
+        self.jumped_early = None
+        self.jumped_late = None
+        self.ground_touch_time = 0
+        self.ground_touch_pos = Vector2(0,0)
+
 
         self.has_rocket = False
         self.rocket_ammo = 0
@@ -61,6 +67,46 @@ class Player(Entity):
         new_size = (player.get_width() * P_SCALE, player.get_height() * P_SCALE)
         self.sprite = pygame.transform.smoothscale(player, new_size).convert_alpha()
         self.height = player.get_height() * P_SCALE
+
+    def reset(self):
+        self.distance_to_ground = 0
+        self.last_boost = 0
+        self.acceleration = 0
+        self.ground_touch_time = 0
+        self.last_walljump = 0
+        self.last_ramp_radians = -1
+        self.last_velocity = 0
+        self.pressed_up = False
+        self.pressed_left = False
+        self.pressed_right = False
+        self.lifted_right = False
+        self.jump_pressed_at = None
+        self.pressed_jump = False
+        self.crouching = False
+        self.pressed_down = False
+        self.freeze_movement = False
+        self.freeze_input = False
+        self.can_uncrouch = False
+        self.flip_sprites = False
+        self.shooting = False
+        self.jump_diff = float("inf")
+        self.start_height = 0
+        self.has_rocket = False
+        self.rocket_ammo = 0
+        self.last_rocket_time = 0
+        self.has_plasma = False
+        self.plasma_ammo = 0
+        self.last_plasma_time = 0
+        self.active_weapon = None
+        self.last_weapon_switch = 0
+        self.is_plasma_climbing = False
+
+        self.shape.pos = Vector2(0, 180)
+        self.vel = Vector2(0, 0)
+        self.action_states = StateMachine(self.Fall_State(), self)
+        self.player_states = StateMachine(self.Default_Player(), self)
+
+        print("player reset")
 
     def set_level(self, level):
         self.level = level
@@ -142,6 +188,7 @@ class Player(Entity):
         if (config.keys[pygame.K_SPACE] or config.INPUT_BUTTONS[0]) and not self.pressed_jump:
             if self.jump_pressed_at is None:
                 self.jump_pressed_at = pygame.time.get_ticks()
+                self.jump_action_distance = self.get_distance_to_collider_below()
             self.pressed_jump = True
 
 
@@ -165,7 +212,7 @@ class Player(Entity):
 
         if self.pressed_jump and (not self.crouching or self.can_uncrouch):
             self.jump_diff = pygame.time.get_ticks() - self.jump_pressed_at
-            if self.jump_diff < 300:
+            if self.jump_diff < 333:
                 self.action_states.on_event('jump')
 
         if not self.freeze_movement:
@@ -187,7 +234,7 @@ class Player(Entity):
                         sounds.rocket_launch.play()
                         channel = sounds.rocket_fly.play(loops=-1)
                         if self.pressed_down:
-                            self.action_states.on_event('rocket')
+                            #self.action_states.on_event('rocket')
                             self.level.projectiles.append(Projectile(Projectile.PROJECTILE_ROCKET_DOWN, 1337000, self.pos.x + 15, self.pos.y + 8, self.vel.x, self.vel.y + 1 , 0.7, -0.0015, channel))
                         else:
                             self.level.projectiles.append(Projectile(Projectile.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8, self.vel.x + 1, 0, 1.1, -0.00075, channel))
@@ -322,6 +369,7 @@ class Player(Entity):
         self.ramp_collisions()
         self.item_collisions()
         self.portal_collisions()
+        self.death_collisions()
 
     def state_events(self):
         if any(self.current_action_state == state for state in ['Move_State', 'Decel_State', 'Idle_State', 'Crouch_State']):
@@ -372,6 +420,7 @@ class Player(Entity):
         elif dy > 0:
             if self.current_action_state == 'Fall_State':
                 self.ground_touch_time = pygame.time.get_ticks()
+                self.ground_touch_pos = Vector2(self.pos.x, self.pos.y)
                 self.action_states.on_event('decel')
             self.pos.y = other_collider.pos.y - self.shape.h
             self.vel.y = 0
@@ -473,6 +522,11 @@ class Player(Entity):
                     item.respawn_at = pygame.time.get_ticks() + 3000
                 self.animation.set_active_weapon()#
 
+    def death_collisions(self):
+        death = self.shape.check_collisions(self.level.death_colliders)
+        if death is not None:
+            self.player_states.on_event('dead')
+
     def portal_collisions(self):
         portal = self.shape.check_center_collisions(self.level.portals, 20, 10)
         if portal is not None:
@@ -512,6 +566,53 @@ class Player(Entity):
         # enhance jump boost when not running
         if not self.pressed_right:
             boost *= 1.33
+
+        self.acceleration = 0
+        self.last_boost = round(boost * 1000)
+
+        if self.vel.x < 0.2:
+            self.vel.x = 0.15
+
+        self.vel.y = config.JUMP_VELOCITY
+
+        # Fix to allow jumping while colliding with a ramp
+        if self.last_ramp_radians != 0:
+            y_offset = abs(math.cos(self.last_ramp_radians) * (self.vel.x + 0.1) * 100)
+            self.pos.y -= y_offset  # Apply the offset
+            self.last_ramp_radians = 0
+
+        self.vel.x += boost
+
+    def add_jump_velocity_alt(self):
+
+        #ground_diff = pygame.time.get_ticks() - self.ground_touch_time
+        early_distance = self.jump_action_distance
+        late_distance = 0 if early_distance > 0 or self.ground_touch_pos is None else math.sqrt((self.pos.x - self.ground_touch_pos.x) ** 2 + (self.pos.y - self.ground_touch_pos.y) ** 2)
+
+        print(f'late: {late_distance}, early: {early_distance}')
+
+        self.ground_touch_pos = None
+        self.jump_action_distance = 0
+        if early_distance == 0 and late_distance == 0:
+            return
+
+        min_boost = 0.01
+        max_boost = 1
+        max_distance = 32
+        curve = 3
+
+        boost = max(0.0, min_boost + (max_boost - min_boost) * max(0.0, 1 - (late_distance + early_distance) / max_distance) ** curve) / 5
+
+        if early_distance > 0:
+            self.jumped_early = early_distance
+            self.jumped_late = None
+        elif late_distance > 0:
+            self.jumped_early = None
+            self.jumped_late = late_distance
+
+        # enhance jump boost when not running
+        if not self.pressed_right:
+            boost *= 1.337
 
         self.acceleration = 0
         self.last_boost = round(boost * 1000)
@@ -602,7 +703,7 @@ class Player(Entity):
             else:
                 sounds.jump2.play()
 
-            owner_object.add_jump_velocity()
+            owner_object.add_jump_velocity_alt()
 
         def update(self, owner_object):
             if owner_object.pressed_right and owner_object.vel.x < 0.1:
@@ -800,24 +901,27 @@ class Player(Entity):
             self.death_timer = 0
 
         def on_event(self, event):
-            return self
+            if event == 'idle':
+                return Player.Idle_State()
+            else:
+                return self
 
         def on_enter(self, owner_object):
             print(__class__, pygame.time.get_ticks())
-
-            owner_object.animation.current_sprite = DEAD_PLAYER
-            owner_object.vel.y = config.DEATH_VEL_Y
-            owner_object.vel.x = 0
-            owner_object.freeze_movement = True
+            #owner_object.freeze_movement = True
             owner_object.freeze_input = True
             pygame.mixer.music.stop()
             sounds.death.play()
 
         def update(self, owner_object):
             self.death_timer += config.delta_time
-            if self.death_timer > 20 * config.delta_time:
-                accelerate(owner_object, 0, config.GRAVITY)
-                owner_object.pos += owner_object.vel * config.delta_time
+            owner_object.vel.x = 0
+            owner_object.vel.y = 0.1
+            if self.death_timer > 300 * config.delta_time:
+                self.death_timer = float("-inf")
+                owner_object.level.reset()
+                owner_object.reset()
+                owner_object.action_states.on_event('idle')
 
 
 WIDTH=32
@@ -912,7 +1016,5 @@ SHOOT_PLASMA = [
 SHOOT_ROCKET = [
    (0    * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
    (128  * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (384  * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (128  * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (0    * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
+   (256  * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
 ]

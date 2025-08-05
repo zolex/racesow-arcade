@@ -11,12 +11,9 @@ class Projectile(Vector2):
     I_HEIGHT = 128
     I_WIDTH_S = I_WIDTH * I_SCALE
     I_HEIGHT_S = I_HEIGHT * I_SCALE
-    items = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'items.png'))
-    new_size = (items.get_width() * I_SCALE, items.get_height() * I_SCALE)
-    sprite = pygame.transform.smoothscale(items, new_size)
 
     ITEM_ROCKET = (0 * I_SCALE, 0 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
-    DECAL_ROCKET = (0 * I_SCALE, 128 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
+    DECAL_ROCKET = 0x1f
     PROJECTILE_ROCKET = (0 * I_SCALE, 256 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
     PROJECTILE_ROCKET_DOWN = (128 * I_SCALE, 256 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
 
@@ -34,6 +31,18 @@ class Projectile(Vector2):
         self.duration = duration
         self.start_time = pygame.time.get_ticks()
         self.sound = sound
+        self.decal_rocket = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'rocket_hit.png')).convert_alpha()
+
+        items = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'items.png')).convert_alpha()
+        new_size = (items.get_width() * self.I_SCALE, items.get_height() * self.I_SCALE)
+        self.pixmap = pygame.transform.smoothscale(items, new_size)
+
+    def draw(self, surface, camera):
+        view_pos = camera.to_view_space(Vector2(self.x, self.y))
+        if self.sprite == Projectile.DECAL_ROCKET:
+            surface.blit(self.decal_rocket, (view_pos.x - self.decal_rocket.get_width() / 2, view_pos.y - self.decal_rocket.get_height() / 2))
+        else:
+            surface.blit(self.pixmap, (view_pos.x, view_pos.y), self.sprite)
 
     def point_in_triangle(self, pt, t):
         def sign(p1, p2, p3):

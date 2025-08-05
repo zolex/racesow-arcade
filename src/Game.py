@@ -7,6 +7,7 @@ from src.Projectile import Projectile
 from src import sounds, config
 from src.Camera import Camera
 from src.Vector2 import Vector2
+from src.Item import Item
 from src.utils import color_gradient
 
 
@@ -22,6 +23,7 @@ class Game():
         self.player.set_level(self.level)
         self.last_velocity = 0
         self.font = pygame.font.Font(None, 16)
+        self.font_small = pygame.font.Font(None, 14)
 
         pygame.joystick.init()
         if pygame.joystick.get_count():
@@ -51,17 +53,26 @@ class Game():
         acc_text = self.font.render(f"ACC: {acc}", True, color_gradient(self.player.last_boost, 0, 200))
         self.surface.blit(acc_text, (120, 10))
 
+        if self.player.jumped_early is not None:
+            early = f"{round(self.player.jumped_early, 4)}".rjust(4, "0")
+            early_text = self.font_small.render(f"early: {early}", True, (255, 255, 255))
+            self.surface.blit(early_text, (120, 30))
+        elif self.player.jumped_late is not None:
+            late = f"{round(self.player.jumped_late, 4)}".rjust(4, "0")
+            late_text = self.font_small.render(f"late: {late}", True, (255, 255, 255))
+            self.surface.blit(late_text, (120, 30))
+
         ups = f"{round(self.player.vel.x * 1000)}".rjust(5, "0")
         fps_text = self.font.render(f"UPS: {ups}", True, color_gradient(self.player.vel.x, 0, config.MAX_OVERAL_VEL))
         self.surface.blit(fps_text, (220, 10))
 
         if self.player.has_plasma:
-            self.surface.blit(Projectile.sprite, (config.SCREEN_WIDTH - 45, config.SCREEN_HEIGHT - 20), Projectile.ITEM_PLASMA)
+            self.surface.blit(Item.item_plasma, (config.SCREEN_WIDTH - 45, config.SCREEN_HEIGHT - 20))
             fps_text = self.font.render(f"{self.player.plasma_ammo}", True, (255, 255, 255))
             self.surface.blit(fps_text, (config.SCREEN_WIDTH - 20, config.SCREEN_HEIGHT - 15))
 
         if self.player.has_rocket:
-            self.surface.blit(Projectile.sprite, (config.SCREEN_WIDTH - 90, config.SCREEN_HEIGHT - 20), Projectile.ITEM_ROCKET)
+            self.surface.blit(Item.item_rocket, (config.SCREEN_WIDTH - 90, config.SCREEN_HEIGHT - 20))
             fps_text = self.font.render(f"{self.player.rocket_ammo}", True, (255, 255, 255))
             self.surface.blit(fps_text, (config.SCREEN_WIDTH - 60, config.SCREEN_HEIGHT - 15))
 
