@@ -283,31 +283,64 @@ class Player(Entity):
         self.animation.animate()
 
     def get_distance_to_collider_below(self):
-        player_bottom = self.shape.pos.y + self.shape.h
-        player_centerx = self.shape.pos.x + self.shape.w / 2
+        """
+        Returns the vertical distance to the closest line of all static_colliders and ramp_colliders
+        that are directly below the player.
 
-        min_distance = None  # None means no collider found below
+        Returns:
+            float: The vertical distance to the closest collider below the player.
+                  Returns float('inf') if no collider is found below the player.
+        """
+        player_x = self.shape.pos.x + self.shape.w / 2  # Player center x-coordinate
+        player_bottom_y = self.shape.pos.y + self.shape.h  # Player bottom y-coordinate
 
-        # Check static (rectangle) colliders
+        min_distance = float('inf')
+
+        # Check static colliders
         for collider in self.level.static_colliders:
-            if collider.shape.pos.x <= player_centerx <= collider.shape.pos.x + collider.shape.w:
-                if collider.shape.pos.y >= player_bottom:
-                    distance = collider.shape.pos.y - player_bottom
-                    if min_distance is None or distance < min_distance:
-                        min_distance = distance
+            # Only check colliders that are horizontally aligned with the player
+            if collider.pos.x <= player_x <= collider.pos.x + collider.shape.w:
+                # Only check colliders that are below the player
+                if collider.pos.y > player_bottom_y:
+                    distance = collider.pos.y - player_bottom_y
+                    min_distance = min(min_distance, distance)
 
-        # Check ramp (triangle) colliders
+        # Check ramp colliders
         for collider in self.level.ramp_colliders:
-            tri = collider.shape
-            if tri.p1.x <= player_centerx <= tri.p2.x:
-                t = (player_centerx - tri.p1.x) / (tri.p3.x - tri.p1.x)
-                y_on_edge = tri.p1.y + t * (tri.p3.y - tri.p1.y)
-                if y_on_edge >= player_bottom:
-                    distance = y_on_edge - player_bottom
-                    if min_distance is None or distance < min_distance:
-                        min_distance = distance
+            triangle = collider.shape
+            vertices = [triangle.p1, triangle.p2, triangle.p3]
 
-        return min_distance
+            # Find the horizontal range of the triangle
+            min_x = min(v.x for v in vertices)
+            max_x = max(v.x for v in vertices)
+
+            # Only check triangles that are horizontally aligned with the player
+            if min_x <= player_x <= max_x:
+                # Find the y-coordinate on the triangle at the player's x-coordinate
+                # We need to find the line segment that contains player_x
+                for i in range(3):
+                    p1 = vertices[i]
+                    p2 = vertices[(i + 1) % 3]
+
+                    # Check if player_x is between p1.x and p2.x
+                    if (p1.x <= player_x <= p2.x) or (p2.x <= player_x <= p1.x):
+                        # Calculate the y-coordinate on the line at player_x
+                        if p1.x == p2.x:  # Vertical line
+                            continue
+
+                        # Linear interpolation to find y
+                        t = (player_x - p1.x) / (p2.x - p1.x)
+                        y = p1.y + t * (p2.y - p1.y)
+
+                        # Only consider if the point is below the player
+                        if y > player_bottom_y:
+                            distance = y - player_bottom_y
+                            min_distance = min(min_distance, distance)
+
+        if min_distance == float('inf'):
+            return 0
+        else:
+            return min_distance
 
     def get_friction(self):
         if self.current_action_state == 'Move_State':
@@ -586,33 +619,33 @@ class Player(Entity):
     def add_jump_velocity_alt(self):
 
         #ground_diff = pygame.time.get_ticks() - self.ground_touch_time
-        early_distance = self.jump_action_distance
-        late_distance = 0 if early_distance > 0 or self.ground_touch_pos is None else math.sqrt((self.pos.x - self.ground_touch_pos.x) ** 2 + (self.pos.y - self.ground_touch_pos.y) ** 2)
+        early_distance = 0 if self.jump_action_distance is None else self.jump_action_distance
+        late_distance = 0 if (early_distance is not None and early_distance > 0) or self.ground_touch_pos is None else math.sqrt((self.pos.x - self.ground_touch_pos.x) ** 2 + (self.pos.y - self.ground_touch_pos.y) ** 2)
 
         print(f'late: {late_distance}, early: {early_distance}')
 
         self.ground_touch_pos = None
         self.jump_action_distance = 0
-        if early_distance == 0 and late_distance == 0:
-            return
 
-        min_boost = 0.01
-        max_boost = 1
-        max_distance = 32
-        curve = 3
+        boost = 0
+        if early_distance + late_distance != 0:
+            min_boost = 0.01
+            max_boost = 1
+            max_distance = 32
+            curve = 3
 
-        boost = max(0.0, min_boost + (max_boost - min_boost) * max(0.0, 1 - (late_distance + early_distance) / max_distance) ** curve) / 5
+            boost = max(0.0, min_boost + (max_boost - min_boost) * max(0.0, 1 - (late_distance + early_distance) / max_distance) ** curve) / 5
 
-        if early_distance > 0:
-            self.jumped_early = early_distance
-            self.jumped_late = None
-        elif late_distance > 0:
-            self.jumped_early = None
-            self.jumped_late = late_distance
+            if early_distance > 0:
+                self.jumped_early = early_distance
+                self.jumped_late = None
+            elif late_distance > 0:
+                self.jumped_early = None
+                self.jumped_late = late_distance
 
-        # enhance jump boost when not running
-        if not self.pressed_right:
-            boost *= 1.337
+            # enhance jump boost when not running
+            if not self.pressed_right:
+                boost *= 1.337
 
         self.acceleration = 0
         self.last_boost = round(boost * 1000)
@@ -620,15 +653,20 @@ class Player(Entity):
         if self.vel.x < 0.2:
             self.vel.x = 0.15
 
-        self.vel.y = config.JUMP_VELOCITY
+        y_boost = config.JUMP_VELOCITY
 
         # Fix to allow jumping while colliding with a ramp
         if self.last_ramp_radians != 0:
-            y_offset = abs(math.cos(self.last_ramp_radians) * (self.vel.x + 0.1) * 100)
+            cos = math.cos(self.last_ramp_radians)
+            #sin = math.sin(self.last_ramp_radians)
+            #print(f'cos: {cos}, sin: {sin}')
+            y_offset = abs(cos * (self.vel.x + 0.1) * 75)
             self.pos.y -= y_offset  # Apply the offset
             self.last_ramp_radians = 0
 
+
         self.vel.x += boost
+        self.vel.y += y_boost
 
     def add_rocket_velocity(self, distance, angle_rad):
         if distance is not None:

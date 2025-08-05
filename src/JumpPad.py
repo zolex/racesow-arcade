@@ -16,7 +16,7 @@ class JumpPad(GameObject):
         super().__init__(SimpleRect(pos, self.WIDTH, self.HEIGHT))
         self.jumped_at = float("-inf")
         self.vel = vel
-        self.pos.x += self.shape.w // 2 + 25
+        self.pos.x += self.shape.w // 2 + 32
         self.pos.y += self.shape.h
         sprite = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'jumppad.png')).convert_alpha()
         new_size = (sprite.get_width() / 2, sprite.get_height() / 2)
