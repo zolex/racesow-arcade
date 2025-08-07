@@ -133,15 +133,18 @@ class Player(Entity):
         # 1. Crop the current sprite frame
         sprite_surface = self.sprite.subsurface(self.animation.current_sprite).copy()
 
-        # 2. Rotate the sprite
-        rotation = self.last_ramp_radians * -10
-        rotated_sprite = pygame.transform.rotate(sprite_surface, rotation)
+        if self.last_ramp_radians == 0:
+            self.surface.blit(sprite_surface, (view_pos_sprite.x, view_pos_sprite.y))
+        else:
+            # 2. Rotate the sprite
+            rotation = self.last_ramp_radians * -10
+            rotated_sprite = pygame.transform.rotate(sprite_surface, rotation)
 
-        # 3. Center the rotated sprite on the position
-        rect = rotated_sprite.get_rect(center=(view_pos_sprite.x + sprite_surface.get_width() // 2, view_pos_sprite.y + sprite_surface.get_height() // 2))
+            # 3. Center the rotated sprite on the position
+            rect = rotated_sprite.get_rect(center=(view_pos_sprite.x + sprite_surface.get_width() // 2, view_pos_sprite.y + sprite_surface.get_height() // 2))
 
-        # 4. Blit the rotated sprite
-        self.surface.blit(rotated_sprite, rect.topleft)
+            # 4. Blit the rotated sprite
+            self.surface.blit(rotated_sprite, rect.topleft)
 
     def handle_inputs(self):
         if self.freeze_input:
