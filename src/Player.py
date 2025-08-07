@@ -737,10 +737,9 @@ class Player(Entity):
 
     def add_rocket_velocity(self, distance, angle_rad):
         if distance is not None:
-            #if distance > 150:
-            #    return
 
-            vel_magnitude = 1 / (1 + 0.04 * distance)
+            print(f'distance: {distance}, angle: {angle_rad}')
+            vel_magnitude = 1 / (1 + 0.013 * distance ** 1.33)
 
             # Calculate x and y components of velocity
             vel_x =  vel_magnitude * math.cos(angle_rad)
