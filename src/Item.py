@@ -22,6 +22,8 @@ class Item:
         self.anim_timer = 0
         self.anim_dir = 1
 
+        self.bbox = (self.pos.x, self.pos.y, self.pos.x + 16, self.pos.y + 16)
+
         Item.item_rocket = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'item_rocket.png')).convert_alpha()
         Item.item_plasma = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'item_plasma.png')).convert_alpha()
 

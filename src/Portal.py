@@ -51,6 +51,8 @@ class Portal(GameObject):
         self.sound = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'teleport.mp3'))
         self.sound.set_volume(1)
 
+        self.bbox = (min(self.pos.x, self.exit.x), min(self.pos.y, self.exit.y), max(self.pos.x, self.exit.x), max(self.pos.y, self.exit.y))
+
     def animate(self):
         self.anim_timer += config.delta_time
         if self.anim_timer > self.FRAME_TIME:

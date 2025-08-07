@@ -1,3 +1,4 @@
+from src.Camera import Camera
 from src.Texture import Texture
 import pygame
 import math
@@ -13,6 +14,21 @@ class Triangle():
         self.p3 = p3
         self.surface = None
         self.surface_pos = None
+
+        tri_min_x = float("inf")
+        tri_max_x = float("-inf")
+        tri_min_y = float("inf")
+        tri_max_y = float("-inf")
+        for point in [p1, p2, p3]:
+            if point.x < tri_min_x:
+                tri_min_x = point.x
+            if point.x > tri_max_x:
+                tri_max_x = point.x
+            if point.y < tri_min_y:
+                tri_min_y = point.y
+            if point.y > tri_max_y:
+                tri_max_y = point.y
+        self.bbox = (tri_min_x, tri_min_y, tri_max_x, tri_max_y)
 
         # pre-render surface if there is a texture
         if texture is not None:
@@ -98,6 +114,16 @@ class Triangle():
 
             # Use the mask to show only the triangle
             self.surface.blit(triangle_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+    def draw(self, target_surface: pygame.Surface, camera: Camera):
+        if self.surface is not None:
+            target_surface.blit(self.surface, (self.surface_pos.x - camera.pos.x, self.surface_pos.y - camera.pos.y))
+        else:
+            pygame.draw.polygon(target_surface, (160, 0, 44, 128), [
+                (self.p1.x - camera.pos.x, self.p1.y - camera.pos.y),
+                (self.p2.x - camera.pos.x, self.p2.y - camera.pos.y),
+                (self.p3.x - camera.pos.x, self.p3.y - camera.pos.y)
+            ])
 
     def overlaps(self, rect):
         """Returns True if the triangle overlaps with the rectangle."""

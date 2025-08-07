@@ -78,8 +78,8 @@ class Game():
 
     def update(self):
         self.player.update()
-        self.level.update(self.player)
         self.camera.update(self.player)
+        self.level.update(self.player)
 
     def handle_pygame_events(self):
         for event in pygame.event.get():

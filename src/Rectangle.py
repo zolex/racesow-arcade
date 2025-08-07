@@ -1,3 +1,4 @@
+from src.Camera import Camera
 from src.SimpleRect import SimpleRect
 from src.Texture import Texture
 from src.Vector2 import Vector2
@@ -8,6 +9,8 @@ class Rectangle(SimpleRect):
     def __init__(self, pos = Vector2(), w = 0, h = 0, texture: Texture|None=None):
         super().__init__(pos, w, h)
         self.surface = None
+
+        self.bbox = (self.pos.x, self.pos.y, self.pos.x + self.w, self.pos.y + self.h)
 
         # pre-render surface if there is a texture
         if texture is not None:
@@ -59,6 +62,13 @@ class Rectangle(SimpleRect):
                     if (final_x < self.w and final_x + texture.rotated_width > 0 and 
                         final_y < self.h and final_y + texture.rotated_height > 0):
                         self.surface.blit(texture.surface, (final_x, final_y))
+
+    def draw(self, target_surface: pygame.Surface, camera: Camera):
+        view_pos = camera.to_view_space(self.pos)
+        if self.surface is not None:
+            target_surface.blit(self.surface, (view_pos.x, view_pos.y))
+        else:
+            pygame.draw.rect(target_surface, (0, 0, 0, 128), (view_pos.x, view_pos.y, self.w, self.h))
 
 
     def overlaps(self, other):

@@ -341,10 +341,12 @@ class Player(Entity):
                             distance = y - player_bottom_y
                             min_distance = min(min_distance, distance)
 
-        if min_distance == float('inf'):
-            return 0
-        else:
-            return min_distance
+        #if min_distance == float('inf'):
+        #    return 0
+        #else:
+        #    return min_distance
+
+        return min_distance
 
     def get_ramp_friction(self, up, down):
         # For down-ramps, friction should be above 1 to create acceleration based on steepness
@@ -624,7 +626,7 @@ class Player(Entity):
         if portal is not None:
             portal.teleport(self)
 
-        jump_pad = self.shape.check_center_collisions(self.level.jump_pads, 24, -30)
+        jump_pad = self.shape.check_center_collisions(self.level.jump_pads, 10, -20)
         if jump_pad is not None:
             jump_pad.jump(self)
 

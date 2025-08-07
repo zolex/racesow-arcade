@@ -1,16 +1,15 @@
-from src.Rectangle import Rectangle
 from src import config
+from src.SimpleRect import SimpleRect
 from src.Vector2 import Vector2
 
 
-class Camera(Rectangle):
+class Camera(SimpleRect):
     def __init__(self, pos, w, h):
         super(Camera, self).__init__(pos, w, h)
         self.start_pos_y = pos.y
 
         self.smoothing_factor = config.CAMERA_SMOOTHING_FACTOR
         self.offset_left = config.CAMERA_OFFSET_LEFT
-
 
         self.forward_factor = 0.15 # the faster the player, the closer he will be to the right side of the screen
 

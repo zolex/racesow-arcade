@@ -1,5 +1,5 @@
-import os.path, math
-import pygame, yaml, random
+import os.path, pygame, yaml
+from pyqtree import Index as QuadTree
 
 from src.JumpPad import JumpPad
 from src.Portal import Portal
@@ -42,6 +42,8 @@ class Level:
         self.portals = []
         self.jump_pads = []
 
+        self.tree: QuadTree|None = None
+        self.filtered_objects = []
 
     def load(self, map_name: str, player: Player):
 
@@ -67,29 +69,52 @@ class Level:
         if spawnpoint is not None:
             self.player_start = Vector2(spawnpoint['x'], spawnpoint['y'])
 
+        min_x = float("inf")
+        max_x = float("-inf")
+        min_y = float("inf")
+        max_y = float("-inf")
+
         items = data.get('items', None)
         if items is not None:
             for item in items:
+                min_x = min(item['x'], min_x)
+                max_x = max(item['x'], max_x)
+                min_y = min(item['y'], min_y)
+                max_y = max(item['y'], max_y)
                 self.items.append(Item(item['type'], Vector2(item['x'], item['y'] + 12), item['ammo'], item['stay']))
 
         portals = data.get('portals', None)
         if portals is not None:
             for portal in portals:
+                min_x = min(portal['entry_x'], portal['exit_x'], min_x)
+                max_x = max(portal['entry_x'], portal['entry_x'], max_x)
+                min_y = min(portal['entry_y'], portal['entry_y'], min_y)
+                max_y = max(portal['entry_y'], portal['entry_y'], max_y)
                 self.portals.append(Portal(Vector2(portal['entry_x'], portal['entry_y']), Vector2(portal['exit_x'], portal['exit_y'])))
 
         jump_pads = data.get('jump_pads', None)
         if jump_pads is not None:
             for jump_pad in jump_pads:
+                min_x = min(jump_pad['x'], min_x)
+                max_x = max(jump_pad['x'], max_x)
+                min_y = min(jump_pad['y'], min_y)
+                max_y = max(jump_pad['y'], max_y)
                 self.jump_pads.append(JumpPad(Vector2(jump_pad['x'], jump_pad['y']), Vector2(jump_pad['vel_x'], jump_pad['vel_y'])))
 
         rectangles = data.get('rectangles', None)
         if rectangles is not None:
             for rect in rectangles:
+
+                min_x = min(rect['x'], min_x)
+                max_x = max(rect['x'] + rect['w'], max_x)
+                min_y = min(rect['y'], min_y)
+                max_y = max(rect['y'] + rect['h'], max_y)
+
                 texture = None
                 texture_path = rect.get('texture', None)
                 if texture_path is not None:
                     texture = Texture(os.path.join(self.map_folder, rect['texture']), rect.get('texture_scale', 1), rect.get('texture_offset_x', 0), rect.get('texture_offset_y', 0), rect.get('texture_rotation', 0))
-                collider = Collider(Rectangle(Vector2(rect['x'], rect['y']), int(rect['w']), int(rect['h']), texture))
+                collider = Collider(Rectangle(Vector2(rect['x'], rect['y']), int(rect['w']), int(rect['h']), texture), rect['wall_type'])
                 if rect['wall_type'] == 'static':
                     self.static_colliders.append(collider)
                 elif rect['wall_type'] == 'wall':
@@ -107,9 +132,41 @@ class Level:
                 if texture_path is not None:
                     texture = Texture(os.path.join(self.map_folder, triangle['texture']), triangle.get('texture_scale', 1), triangle.get('texture_offset_x', 0), triangle.get('texture_offset_y', 0), triangle.get('texture_rotation', 0))
                 points = triangle.get('points', None)
-                collider = Collider(Triangle(Vector2(points[0]['x'], points[0]['y']), Vector2(points[1]['x'], points[1]['y']), Vector2(points[2]['x'], points[2]['y']), texture))
+                for p in points:
+                    min_x = min(p['x'], min_x)
+                    max_x = max(p['x'], max_x)
+                    min_y = min(p['y'], min_y)
+                    max_y = max(p['y'], max_y)
+                collider = Collider(Triangle(Vector2(points[0]['x'], points[0]['y']), Vector2(points[1]['x'], points[1]['y']), Vector2(points[2]['x'], points[2]['y']), texture), 'ramp')
                 if triangle['wall_type'] == 'ramp':
                     self.ramp_colliders.append(collider)
+
+        ####################################
+        ### store everything in quadtree ###
+        ####################################
+
+        print("min_x:", min_x, "max_x:", max_x, "min_y:", min_y, "max_y:", max_y)
+        self.tree = QuadTree(bbox=(min_x, min_y, max_x, max_y))
+
+        for item in self.items:
+            self.tree.insert(item, item.bbox)
+        self.items = []
+
+        for portal in self.portals:
+            self.tree.insert(portal,portal.bbox)
+        self.portals = []
+
+        for jump_pad in self.jump_pads:
+            self.tree.insert(jump_pad, jump_pad.bbox)
+        self.jump_pads = []
+
+        for collider in self.static_colliders + self.wall_colliders + self.decoration + self.death_colliders:
+            self.tree.insert(collider, collider.shape.bbox)
+        self.static_colliders = self.wall_colliders = self.decoration = self.death_colliders = []
+
+        for collider in self.ramp_colliders:
+            self.tree.insert(collider, collider.shape.bbox)
+        self.ramp_colliders = []
 
         #for item in data.get('player_items', []):
         #    if item['type'] == 'plasma':
@@ -141,12 +198,50 @@ class Level:
                 height = int(self.overlay_width * self.overlay.get_height() / self.overlay.get_width())
                 self.overlay = pygame.transform.scale(self.overlay, (self.overlay_width, height))
 
+    #def draw_tree(self, surface: pygame.surface):
+    #    all_bbox = self.tree.get_all_bbox()
+    #    for bbox in all_bbox:
+    #        rect_to_draw = (bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1])
+    #        pygame.draw.rect(surface, (255, 0, 0), rect_to_draw, 1)
+
     def reset(self):
         self.projectiles = []
         for item in self.items:
             item.picked_up = False
 
     def update(self, player: Player):
+
+        # filter objects from quadtree in each frame
+        self.static_colliders = []
+        self.wall_colliders = []
+        self.ramp_colliders = []
+        self.death_colliders = []
+        self.decoration = []
+        self.items = []
+        self.portals = []
+        self.jump_pads = []
+
+        boundary = (self.camera.pos.x, self.camera.pos.y, self.camera.pos.x + self.camera.w, self.camera.pos.y + self.camera.h)
+        self.filtered_objects = self.tree.intersect(boundary)
+        for object in self.filtered_objects:
+            if isinstance(object, Collider):
+                if object.type == 'static':
+                    self.static_colliders.append(object)
+                elif object.type == 'wall':
+                    self.wall_colliders.append(object)
+                elif object.type == 'ramp':
+                    self.ramp_colliders.append(object)
+                elif object.type == 'death':
+                    self.death_colliders.append(object)
+                elif object.type == 'deco':
+                    self.decoration.append(object)
+            elif isinstance(object, Item):
+                self.items.append(object)
+            elif isinstance(object, Portal):
+                self.portals.append(object)
+            elif isinstance(object, JumpPad):
+                self.jump_pads.append(object)
+
         for i in range(len(self.projectiles) - 1, -1, -1):
             projectile = self.projectiles[i].update(player, self.static_colliders + self.ramp_colliders)
             if projectile:
@@ -158,37 +253,22 @@ class Level:
         self.surface.fill(config.BACKGROUND_COLOR)
         self.draw_sky()
         self.draw_overlay()
-        self.draw_rects()
-        self.draw_triangles()
-        self.draw_portals()
-        self.draw_jump_pads()
-        self.draw_items()
-        self.draw_decals()
 
-    def draw_portals(self):
+        for collider in self.static_colliders + self.wall_colliders + self.ramp_colliders + self.death_colliders + self.decoration:
+            collider.shape.draw(self.surface, self.camera)
+
+        for item in self.items:
+            item.draw(self.surface, self.camera)
+
         for portal in self.portals:
             portal.draw(self.surface, self.camera)
 
-    def draw_jump_pads(self):
         for jump_pad in self.jump_pads:
             jump_pad.draw(self.surface, self.camera)
 
-    def draw_rect(self, collider: Collider):
-        view_pos = self.camera.to_view_space(collider.shape.pos)
-        if collider.shape.surface is not None:
-            self.surface.blit(collider.shape.surface, (view_pos.x, view_pos.y))
-        else:
-            pygame.draw.rect(self.surface, (0, 0, 0, 128), (view_pos.x, view_pos.y, collider.shape.w, collider.shape.h))
+        print("num objects", len(self.filtered_objects))
 
-    def draw_triangle(self, collider: Collider):
-        if collider.shape.surface is not None:
-            self.surface.blit(collider.shape.surface, (collider.shape.surface_pos.x - self.camera.pos.x, collider.shape.surface_pos.y - self.camera.pos.y))
-        else:
-            pygame.draw.polygon(self.surface, (160, 0, 44, 128), [
-                (collider.shape.p1.x - self.camera.pos.x, collider.shape.p1.y - self.camera.pos.y),
-                (collider.shape.p2.x - self.camera.pos.x, collider.shape.p2.y - self.camera.pos.y),
-                (collider.shape.p3.x - self.camera.pos.x, collider.shape.p3.y - self.camera.pos.y)
-            ])
+        self.draw_decals()
 
     def draw_sky(self):
         if self.sky is not None:
@@ -202,33 +282,6 @@ class Level:
                 self.overlay_offset += self.overlay_width * 2
             self.surface.blit(self.overlay, (x, config.SCREEN_HEIGHT / 2.5 - self.camera.pos.y * 1.2))
 
-    def draw_rects(self):
-        #num = 0
-        for collider in self.static_colliders + self.wall_colliders + self.decoration + self.death_colliders:
-            if self.camera.contains_rect(collider.shape):
-        #        num += 1
-                self.draw_rect(collider)
-
-        #print("num rects rendered", num)
-
-    def draw_triangles(self):
-        #num = 0
-        for collider in self.ramp_colliders:
-            if self.camera.contains_triangle(collider.shape):
-        #        num += 1
-                self.draw_triangle(collider)
-
-        #print("num tris rendered", num)
-
-    def draw_items(self):
-        #num = 0
-        for item in self.items:
-            item.draw(self.surface, self.camera)
-
-        #print("num ITEMS rendered", num)
-
     def draw_decals(self):
-        #num = 0
         for decal in self.projectiles:
             decal.draw(self.surface, self.camera)
-        #print("num DECALS rendered", num)
