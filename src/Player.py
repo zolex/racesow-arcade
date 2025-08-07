@@ -637,6 +637,16 @@ class Player(Entity):
         if death is not None:
             self.player_states.on_event('dead')
 
+        if self.level.timer == 0 and self.level.start_line is not None:
+            start_line = self.shape.check_collisions([self.level.start_line])
+            if start_line is not None:
+                self.level.start_timer()
+
+        if self.level.timer != 0 and self.level.finish_line is not None:
+            finish_line = self.shape.check_collisions([self.level.finish_line])
+            if finish_line is not None:
+                self.level.stop_timer()
+
     def walljump_collisions(self):
         wall_collider = self.shape.check_collisions(self.level.wall_colliders)
 
@@ -810,8 +820,8 @@ class Player(Entity):
             owner_object.add_jump_velocity_alt()
 
         def update(self, owner_object):
-            if owner_object.pressed_right and owner_object.vel.x < 0.1:
-                owner_object.acceleration = 0.0005
+            if owner_object.pressed_right and owner_object.vel.x < 0.05:
+                owner_object.acceleration = 0.0001
 
     class Walljump_State(State):
         def on_event(self, event):

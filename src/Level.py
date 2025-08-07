@@ -1,8 +1,10 @@
 import os.path, pygame, yaml
 from pyqtree import Index as QuadTree
 
+from src.FinishLine import FinishLine
 from src.JumpPad import JumpPad
 from src.Portal import Portal
+from src.StartLine import StartLine
 from src.Vector2 import Vector2
 from src.Triangle import Triangle
 from src.Rectangle import Rectangle
@@ -45,6 +47,12 @@ class Level:
         self.tree: QuadTree|None = None
         self.filtered_objects = []
 
+        self.start_line: StartLine|None = None
+        self.finish_line: FinishLine | None = None
+        self.timer: int = 0
+        self.timer_start = None
+        self.timer_stop = None
+
     def load(self, map_name: str, player: Player):
 
         self.player = player
@@ -68,6 +76,14 @@ class Level:
         spawnpoint = data.get('player_spawnpoint', None)
         if spawnpoint is not None:
             self.player_start = Vector2(spawnpoint['x'], spawnpoint['y'])
+
+        start_line = data.get('start_line', None)
+        if start_line is not None:
+            self.start_line = StartLine(Vector2(start_line['x'], start_line['y']))
+
+        finish_line = data.get('finish_line', None)
+        if finish_line is not None:
+            self.finish_line = StartLine(Vector2(finish_line['x'], finish_line['y']))
 
         min_x = float("inf")
         max_x = float("-inf")
@@ -209,7 +225,16 @@ class Level:
         for item in self.items:
             item.picked_up = False
 
+    def start_timer(self):
+        self.timer_start = pygame.time.get_ticks()
+
+    def stop_timer(self):
+        self.timer_stop = pygame.time.get_ticks()
+
     def update(self, player: Player):
+
+        if self.timer_start is not None and self.timer_stop is None:
+            self.timer = pygame.time.get_ticks() - self.timer_start
 
         # filter objects from quadtree in each frame
         self.static_colliders = []
@@ -266,9 +291,16 @@ class Level:
         for jump_pad in self.jump_pads:
             jump_pad.draw(self.surface, self.camera)
 
+        self.start_line.draw_back(self.surface, self.camera)
+        self.finish_line.draw_back(self.surface, self.camera)
+
         #print("num objects", len(self.filtered_objects))
 
         self.draw_decals()
+
+    def draw_front(self):
+        self.start_line.draw_front(self.surface, self.camera)
+        self.finish_line.draw_front(self.surface, self.camera)
 
     def draw_sky(self):
         if self.sky is not None:

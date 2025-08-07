@@ -38,6 +38,7 @@ class Game():
         """Draw all GameObjects and sprites that are currently on screen"""
         self.level.draw()
         self.player.draw()
+        self.level.draw_front()
         self.draw_hud()
 
     def draw_hud(self):
@@ -51,20 +52,23 @@ class Game():
 
         acc = f"{self.player.last_boost}".rjust(4, "0")
         acc_text = self.font.render(f"ACC: {acc}", True, color_gradient(self.player.last_boost, 0, 200))
-        self.surface.blit(acc_text, (120, 10))
+        self.surface.blit(acc_text, (80, 10))
 
         if self.player.jumped_early is not None:
             early = f"{round(self.player.jumped_early, 4)}".rjust(4, "0")
             early_text = self.font_small.render(f"early: {early}", True, (255, 255, 255))
-            self.surface.blit(early_text, (120, 30))
+            self.surface.blit(early_text, (80, 30))
         elif self.player.jumped_late is not None:
             late = f"{round(self.player.jumped_late, 4)}".rjust(4, "0")
             late_text = self.font_small.render(f"late: {late}", True, (255, 255, 255))
-            self.surface.blit(late_text, (120, 30))
+            self.surface.blit(late_text, (80, 30))
 
         ups = f"{round(self.player.vel.x * 1000)}".rjust(5, "0")
         fps_text = self.font.render(f"UPS: {ups}", True, color_gradient(self.player.vel.x, 0, config.MAX_OVERAL_VEL))
-        self.surface.blit(fps_text, (220, 10))
+        self.surface.blit(fps_text, (160, 10))
+
+        time_text = self.font.render(f"Time: {self.level.timer / 1000}", True, (255, 255, 255))
+        self.surface.blit(time_text, (240, 10))
 
         if self.player.has_plasma:
             self.surface.blit(Item.item_plasma, (config.SCREEN_WIDTH - 45, config.SCREEN_HEIGHT - 20))
