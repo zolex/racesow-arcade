@@ -342,37 +342,83 @@ class Player(Entity):
         else:
             return min_distance
 
+    def get_ramp_friction(self, up, down):
+        # For down-ramps, friction should be above 1 to create acceleration based on steepness
+        if self.last_ramp_radians > 0:
+            # The steeper the ramp, the higher the value (more acceleration)
+            ramp_steepness = math.cos(self.last_ramp_radians)
+            return 1.0 + ramp_steepness * up
+        # For up-ramps, friction should be below 1 to create decelaration based on steepness
+        elif self.last_ramp_radians < 0:
+            # The steeper the ramp, the higher the value (more deceleration)
+            ramp_steepness = math.cos(self.last_ramp_radians)
+            return 1.0 - ramp_steepness * down
+        else:
+            return None
+
+    def get_friction_factor(self, velocity, angle_rad, base_friction_factor=0.95, velocity_scaling=0.005, gravity_effect=0.001):
+        """
+        Calculates a dynamic friction factor based on velocity and surface angle.
+
+        Args:
+            velocity (float or int): The current velocity.
+            angle_rad (float): The angle of the surface in radians.
+                               Positive for upwards incline (slowing down).
+                               Negative for downwards incline (speeding up).
+            base_friction_factor (float, optional): The base friction value to use.
+                                                    Defaults to 0.95.
+            velocity_scaling (float, optional): A small constant to control how
+                                                quickly friction increases with speed.
+                                                Defaults to 0.005.
+            gravity_effect (float, optional): A constant to scale the effect of the
+                                              surface angle on the friction factor.
+                                              Defaults to 0.001.
+
+        Returns:
+            float: The dynamically calculated friction factor.
+        """
+        velocity = abs(velocity)
+
+        # Calculate the base friction effect, which increases with velocity.
+        friction_difference = (1 - base_friction_factor) * (velocity * velocity_scaling)
+
+        # Calculate the effect of the angle.
+        # We use sin(angle_rad) because the component of gravity parallel to
+        # the surface is proportional to the sine of the angle.
+        # A positive angle (upwards) will result in a positive sin(angle),
+        # which subtracts from the friction factor, causing more deceleration.
+        # A negative angle (downwards) will result in a negative sin(angle),
+        # which adds to the friction factor, causing more acceleration.
+        angle_effect = math.sin(-angle_rad) * gravity_effect * velocity
+
+        # Combine the effects. The angle effect is subtracted because
+        # we want an upwards incline (positive angle) to reduce the friction factor,
+        # causing a greater deceleration (new_velocity = velocity * friction_factor).
+        dynamic_friction = 1 - friction_difference - angle_effect
+
+        # Ensure the friction factor doesn't go below a reasonable value.
+        return max(0, dynamic_friction)
+
     def get_friction(self):
+        base_friction_factor = None
         if self.current_action_state == 'Move_State':
-            if self.vel.x > 1:
-                return 1 - self.vel.x / 1280
-            else:
-                return 1 - self.vel.x / 4096
-        elif self.current_action_state == 'Decel_State':
-            return 0.995
+            return self.get_friction_factor(self.vel.x, self.last_ramp_radians, 0.95)
+
         elif self.current_action_state == 'Crouch_State':
-            # sliding
             if self.pressed_right:
-                # For down-ramps, friction should be above 1 to create acceleration based on steepness
-                if self.last_ramp_radians > 0:
-                    # The steeper the ramp, the higher the value (more acceleration)
-                    ramp_steepness = math.cos(self.last_ramp_radians)
-                    return 1.0 + ramp_steepness * 0.0045  # Ensures friction is always > 1
-                # For up-ramps, friction should be below 1 to create decelaration based on steepness
-                elif self.last_ramp_radians < 0:
-                    # The steeper the ramp, the higher the value (more deceleration)
-                    ramp_steepness = math.cos(self.last_ramp_radians)
-                    return 1.0 - ramp_steepness * 0.00125  # Ensures friction is always < 1
-                # slide on flat ground friction
-                else:
-                    return 0.9997
-            # normal crouch friction
+                return self.get_friction_factor(self.vel.x, self.last_ramp_radians, 0.975)
             else:
                 return 0.998
 
-        # no friction for all other states like moving, falling, etc.
-        else:
-            return 1
+        if base_friction_factor is not None:
+            return self.get_friction_factor(self.vel.x, self.last_ramp_radians, base_friction_factor)
+
+        # fixed deceleration friction
+        if self.current_action_state == 'Decel_State':
+            return 0.995
+
+        # no friction for all other states like jump, fall, etc.
+        return 1
 
     def movement(self):
         # pow() ensures friction to be applied independent of framerate
@@ -401,8 +447,7 @@ class Player(Entity):
         self.collider_collisions(dx, dy)
         self.ramp_collisions()
         self.item_collisions()
-        self.portal_collisions()
-        self.death_collisions()
+        self.functional_collisions()
 
     def state_events(self):
         if any(self.current_action_state == state for state in ['Move_State', 'Decel_State', 'Idle_State', 'Crouch_State']):
@@ -555,12 +600,7 @@ class Player(Entity):
                     item.respawn_at = pygame.time.get_ticks() + 3000
                 self.animation.set_active_weapon()#
 
-    def death_collisions(self):
-        death = self.shape.check_collisions(self.level.death_colliders)
-        if death is not None:
-            self.player_states.on_event('dead')
-
-    def portal_collisions(self):
+    def functional_collisions(self):
         portal = self.shape.check_center_collisions(self.level.portals, 20, 10)
         if portal is not None:
             portal.teleport(self)
@@ -568,6 +608,10 @@ class Player(Entity):
         jump_pad = self.shape.check_center_collisions(self.level.jump_pads, 24, -30)
         if jump_pad is not None:
             jump_pad.jump(self)
+
+        death = self.shape.check_collisions(self.level.death_colliders)
+        if death is not None:
+            self.player_states.on_event('dead')
 
     def walljump_collisions(self):
         wall_collider = self.shape.check_collisions(self.level.wall_colliders)
