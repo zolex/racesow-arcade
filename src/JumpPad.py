@@ -32,6 +32,7 @@ class JumpPad(GameObject):
 
     def jump(self, player):
         if self.jumped_at + 1000 < pygame.time.get_ticks():
+            player.action_states.on_event('jump')
             self.jumped_at = pygame.time.get_ticks()
             self.sound.play()
             player.vel.x += self.vel.x
