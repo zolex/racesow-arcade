@@ -126,7 +126,7 @@ class Player(Entity):
         view_pos_sprite = self.camera.to_view_space(
             Vector2(
                 self.shape.pos.x - 16,
-                self.shape.pos.y - (31 if self.crouching else 21)
+                self.shape.pos.y - (32 if self.crouching else 21)
             )
         )
 
