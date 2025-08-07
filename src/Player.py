@@ -134,7 +134,8 @@ class Player(Entity):
         sprite_surface = self.sprite.subsurface(self.animation.current_sprite).copy()
 
         # 2. Rotate the sprite
-        rotated_sprite = pygame.transform.rotate(sprite_surface, self.last_ramp_radians * -10)
+        rotation = self.last_ramp_radians * -10
+        rotated_sprite = pygame.transform.rotate(sprite_surface, rotation)
 
         # 3. Center the rotated sprite on the position
         rect = rotated_sprite.get_rect(center=(view_pos_sprite.x + sprite_surface.get_width() // 2, view_pos_sprite.y + sprite_surface.get_height() // 2))
@@ -477,6 +478,12 @@ class Player(Entity):
             self.action_states.on_event('crouch')
 
     def collider_collisions(self, dx, dy):
+
+        # when currently colliding with a ramp, ignore static (rect) colliders
+        # fixes weird warping, when running from a static collider onto a down-ramp
+        if self.last_ramp_radians != 0:
+            return
+
         other_collider = self.shape.check_collisions(self.level.static_colliders)
 
         if other_collider is None:
@@ -507,7 +514,14 @@ class Player(Entity):
             self.pos.y = other_collider.pos.y + other_collider.shape.h
             self.vel.y = config.BOUNCE_VEL
 
-    def add_ramp_momentum(self):
+    def launch_from_ramp(self):
+
+        print("launch from ramp")
+
+        # no launch for down-ramps
+        if self.last_ramp_radians > 0:
+            return
+
         # Calculate the component of velocity parallel to the ramp
         # Note: ramp_radians is the angle from horizontal, so we need to adjust
         parallel_velocity = self.vel.x * math.cos(self.last_ramp_radians) - self.vel.y * math.sin(self.last_ramp_radians)
@@ -541,26 +555,27 @@ class Player(Entity):
         if ramp_collider is None:
             # launch when leaving a ramp
             if self.last_ramp_radians < 0:
-                self.add_ramp_momentum()
+                self.launch_from_ramp()
 
             # no ramp collision
             self.last_ramp_radians = 0
             return
 
         # Get the relevant ramp start and end points
-        x0 = ramp_collider[0].x  # base start x
-        y0 = ramp_collider[0].y  # base start y
-        x1 = ramp_collider[1].x  # top of ramp x
-        y1 = ramp_collider[1].y  # top of ramp y
+        x0 = ramp_collider[0].x  # start x
+        y0 = ramp_collider[0].y  # start y
+        x1 = ramp_collider[1].x  # end x
+        y1 = ramp_collider[1].y  # end y
 
-        # Remember an angle for momentum when leaving the ramp
+        # calculate the current ramp angle in radians
         next_rad = math.atan2(x1 - x0, y1 - y0)
 
         # launch when sliding over the peak of a two-sided ramp
         if self.last_ramp_radians < 0 < next_rad:
-            self.add_ramp_momentum()
+            self.launch_from_ramp()
             return
 
+        # Remember for launching when leaving the ramp
         self.last_ramp_radians = next_rad
 
         # Calculate horizontal progress (progress ratio) across the ramp
@@ -601,6 +616,7 @@ class Player(Entity):
                 self.animation.set_active_weapon()#
 
     def functional_collisions(self):
+
         portal = self.shape.check_center_collisions(self.level.portals, 20, 10)
         if portal is not None:
             portal.teleport(self)
@@ -755,7 +771,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             return
 
     class Jump_State(State):
@@ -775,7 +791,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
 
             owner_object.last_walljump = 0
             owner_object.animation.begin_jump()
@@ -804,7 +820,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
 
             if random.choice([True, False]):
                 sounds.walljump1.play()
@@ -826,7 +842,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             owner_object.animation.reset_anim()
 
     class Plasma_State(State):
@@ -844,7 +860,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             owner_object.animation.reset_anim()
 
     class Fall_State(State):
@@ -867,7 +883,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             owner_object.last_ramp_radians = 0
             # allows moving forward when stuck in front of a wall
             #if owner_object.vel.x == 0:
@@ -898,7 +914,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             return
 
         def update(self, owner_object):
@@ -924,7 +940,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             owner_object.acceleration = 0
 
     class Default_Player(State):
@@ -937,7 +953,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             return
 
     class Crouch_State(State):
@@ -958,7 +974,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
 
             owner_object.pos.y += (HEIGHT - CROUCH_HEIGHT)
             owner_object.shape.h = CROUCH_HEIGHT
@@ -989,7 +1005,7 @@ class Player(Entity):
                 return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             #owner_object.freeze_movement = True
             owner_object.freeze_input = True
             pygame.mixer.music.stop()

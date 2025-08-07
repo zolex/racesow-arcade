@@ -122,6 +122,9 @@ class Rectangle(SimpleRect):
 
             # Check if the rectangle intersects with either of these sides
             for side in top_sides:
+                # ignore vertical sides
+                if side[0].x == side[1].x:
+                    continue
                 if self.line_intersects_rectangle(side[0], side[1]):
                     return side
 
