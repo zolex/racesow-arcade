@@ -63,12 +63,12 @@ class Rectangle(SimpleRect):
                         final_y < self.h and final_y + texture.rotated_height > 0):
                         self.surface.blit(texture.surface, (final_x, final_y))
 
-    def draw(self, target_surface: pygame.Surface, camera: Camera):
+    def draw(self, target_surface: pygame.Surface, camera: Camera, outline=None):
         view_pos = camera.to_view_space(self.pos)
         if self.surface is not None:
             target_surface.blit(self.surface, (view_pos.x, view_pos.y))
         else:
-            pygame.draw.rect(target_surface, (0, 0, 0, 128), (view_pos.x, view_pos.y, self.w, self.h))
+            pygame.draw.rect(target_surface, (0, 0, 0, 128), (view_pos.x, view_pos.y, self.w, self.h), outline)
 
 
     def overlaps(self, other):

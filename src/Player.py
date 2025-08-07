@@ -146,6 +146,9 @@ class Player(Entity):
             # 4. Blit the rotated sprite
             self.surface.blit(rotated_sprite, rect.topleft)
 
+        # debug draw rect around player
+        #self.shape.draw(self.surface, self.camera, 1)
+
     def handle_inputs(self):
         if self.freeze_input:
             return
@@ -650,15 +653,14 @@ class Player(Entity):
         stand_rect.pos.y -= (HEIGHT - self.shape.h)
         stand_rect.h = HEIGHT
         for collider in self.level.static_colliders:
-            if abs(self.pos.x - collider.pos.x) < 100 or collider.shape.w >= 100:
-                if stand_rect.overlaps(collider.shape):
-                    return False
+            if collider.shape.overlaps(stand_rect):
+                return False
 
         return True
 
     def add_jump_velocity(self):
         ground_diff = pygame.time.get_ticks() - self.ground_touch_time
-        diff = max(10, self.jump_diff, ground_diff)
+        diff = max(10.0, self.jump_diff, ground_diff)
         boost = round(1.75 / diff, 3)
 
         # enhance jump boost when not running
@@ -1029,7 +1031,8 @@ class Player(Entity):
 
 WIDTH=32
 HEIGHT=42
-CROUCH_HEIGHT=32
+CROUCH_OFF=1 # reduce "physical" crouch height from sprite height
+CROUCH_HEIGHT=32 - CROUCH_OFF
 
 P_SCALE    = 0.5
 P_WIDTH    = 128
@@ -1037,17 +1040,17 @@ P_HEIGHT   = 128
 P_WIDTH_S  = P_WIDTH  * P_SCALE
 P_HEIGHT_S = P_HEIGHT * P_SCALE
 
-DEAD_PLAYER   = (0    * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
-IDLE          = (128  * P_SCALE, 256  * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
-IDLE_PLASMA   = (128  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
-IDLE_ROCKET   = (128  * P_SCALE, 1024 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
-CROUCH        = (0    * P_SCALE, 256  * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
-CROUCH_PLASMA = (0    * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
-CROUCH_ROCKET = (0    * P_SCALE, 1024 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
-SLIDE         = (0    * P_SCALE, 1280 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
-SLIDE_PLASMA  = (256  * P_SCALE, 1280 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
-SLIDE_ROCKET  = (128  * P_SCALE, 1280 * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
-PLASMA_CLIMB  = (640  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S)
+DEAD_PLAYER   = (0    * P_SCALE, 0    * P_SCALE,              P_WIDTH_S, P_HEIGHT_S)
+IDLE          = (128  * P_SCALE, 256  * P_SCALE,              P_WIDTH_S, P_HEIGHT_S)
+IDLE_PLASMA   = (128  * P_SCALE, 640  * P_SCALE,              P_WIDTH_S, P_HEIGHT_S)
+IDLE_ROCKET   = (128  * P_SCALE, 1024 * P_SCALE,              P_WIDTH_S, P_HEIGHT_S)
+CROUCH        = (0    * P_SCALE, 256  * P_SCALE + CROUCH_OFF, P_WIDTH_S, P_HEIGHT_S - CROUCH_OFF)
+CROUCH_PLASMA = (0    * P_SCALE, 640  * P_SCALE + CROUCH_OFF, P_WIDTH_S, P_HEIGHT_S - CROUCH_OFF)
+CROUCH_ROCKET = (0    * P_SCALE, 1024 * P_SCALE + CROUCH_OFF, P_WIDTH_S, P_HEIGHT_S - CROUCH_OFF)
+SLIDE         = (0    * P_SCALE, 1280 * P_SCALE + CROUCH_OFF, P_WIDTH_S, P_HEIGHT_S - CROUCH_OFF)
+SLIDE_PLASMA  = (256  * P_SCALE, 1280 * P_SCALE + CROUCH_OFF, P_WIDTH_S, P_HEIGHT_S - CROUCH_OFF)
+SLIDE_ROCKET  = (128  * P_SCALE, 1280 * P_SCALE + CROUCH_OFF, P_WIDTH_S, P_HEIGHT_S - CROUCH_OFF)
+PLASMA_CLIMB  = (640  * P_SCALE, 640  * P_SCALE,              P_WIDTH_S, P_HEIGHT_S)
 
 RUN = [
    (0    * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),

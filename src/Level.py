@@ -266,7 +266,7 @@ class Level:
         for jump_pad in self.jump_pads:
             jump_pad.draw(self.surface, self.camera)
 
-        print("num objects", len(self.filtered_objects))
+        #print("num objects", len(self.filtered_objects))
 
         self.draw_decals()
 
