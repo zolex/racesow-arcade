@@ -1,3 +1,4 @@
+import os
 import random
 
 import pygame, math
@@ -24,6 +25,9 @@ class Game():
         self.last_velocity = 0
         self.font = pygame.font.Font(None, 16)
         self.font_small = pygame.font.Font(None, 14)
+        self.font_big = pygame.font.Font(None, 20)
+
+        self.hud = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'hud.png')).convert_alpha()
 
         pygame.joystick.init()
         if pygame.joystick.get_count():
@@ -45,30 +49,37 @@ class Game():
 
         #self.time.draw()
 
+        hud_center = config.SCREEN_WIDTH / 2
+        hud_x = hud_center - self.hud.get_width() / 2
+        hud_y = config.SCREEN_HEIGHT - self.hud.get_height() / 2 - 20
+
+        self.surface.blit(self.hud, (hud_x, hud_y))
+
         fps = config.clock.get_fps()
-        fpss = f"{0 if math.isinf(fps) else round(fps)}".rjust(6, "0")
+        fpss = f"{0 if math.isinf(fps) else round(fps)}".rjust(3, "0")
         fps_text = self.font.render(f"FPS: {fpss}", True, (255, 255, 255))
-        self.surface.blit(fps_text, (10, 10))
+        self.surface.blit(fps_text, (hud_center - 240, hud_y + 17))
 
         acc = f"{self.player.last_boost}".rjust(4, "0")
         acc_text = self.font.render(f"ACC: {acc}", True, color_gradient(self.player.last_boost, 0, 200))
-        self.surface.blit(acc_text, (80, 10))
+        self.surface.blit(acc_text, (hud_center - 65, hud_y + 14))
 
-        if self.player.jumped_early is not None:
-            early = f"{round(self.player.jumped_early, 4)}".rjust(4, "0")
-            early_text = self.font_small.render(f"early: {early}", True, (255, 255, 255))
-            self.surface.blit(early_text, (80, 30))
-        elif self.player.jumped_late is not None:
-            late = f"{round(self.player.jumped_late, 4)}".rjust(4, "0")
-            late_text = self.font_small.render(f"late: {late}", True, (255, 255, 255))
-            self.surface.blit(late_text, (80, 30))
+
+        if self.player.jumped_early is not None and self.player.jumped_early != float("inf"):
+            early = f"{round(self.player.jumped_early, 2)}".rjust(4, "0")
+            early_text = self.font_small.render(f"early: {early} ms", True, color_gradient(self.player.jumped_early, 20, 0))
+            self.surface.blit(early_text, (hud_center - 65, hud_y + 24))
+        elif self.player.jumped_late is not None and self.player.jumped_late != float("inf"):
+            late = f"{round(self.player.jumped_late, 2)}".rjust(4, "0")
+            late_text = self.font_small.render(f"late: {late} ms", True, color_gradient(self.player.jumped_late, 20, 0))
+            self.surface.blit(late_text, (hud_center - 65, hud_y + 24))
 
         ups = f"{round(self.player.vel.x * 1000)}".rjust(5, "0")
-        fps_text = self.font.render(f"UPS: {ups}", True, color_gradient(self.player.vel.x, 0, config.MAX_OVERAL_VEL))
-        self.surface.blit(fps_text, (160, 10))
+        fps_text = self.font_big.render(f"UPS: {ups}", True, color_gradient(self.player.vel.x, 0, 2))
+        self.surface.blit(fps_text, (hud_center + 30, hud_y + 15))
 
         time_text = self.font.render(f"Time: {self.level.timer / 1000}", True, (255, 255, 255))
-        self.surface.blit(time_text, (240, 10))
+        self.surface.blit(time_text, (hud_center + 160, hud_y + 16))
 
         if self.player.has_plasma:
             self.surface.blit(Item.item_plasma, (config.SCREEN_WIDTH - 45, config.SCREEN_HEIGHT - 20))

@@ -18,7 +18,7 @@ Racesow in python
 
 `press (SPACE)` to jump and gain or at least maintain speed.
 
-`press right (D)` while jumping will help you to maintain speed when jumping to late, but it also limits your acceleration.
+`press right (D)` while jumping will help you to maintain speed when pressing to late, but it also limits your acceleration.
 
 - **the closer you are to the ground when pressing jump, the faster you will speed up**. 
 - to safely maintain your speed, you can press jump very early and hold it until touching the ground.

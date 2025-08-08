@@ -11,13 +11,30 @@ def accelerate(obj, accel_x, accel_y, limit_x = None):
     if limit_x != None:
         obj.vel.x = clamp(obj.vel.x, 0, limit_x)
 
+
 def color_gradient(value, min_value, max_value):
     """Returns (R, G, B) color from red (min) → yellow (mid) → green (max).
-    value: the value to grade
-    min_value: gradient starts here (red)
-    max_value: gradient ends here (green)
+
+    Args:
+        value: The value to grade.
+        min_value: The gradient's starting point.
+        max_value: The gradient's ending point.
+
+    Returns:
+        A tuple (R, G, B) representing the color.
     """
-    # Clamp value to [min_value, max_value]
+    # Check if the min and max values are inverted.
+    # If so, swap them and remember to invert the final color.
+    inverse_gradient = False
+    if min_value > max_value:
+        min_value, max_value = max_value, min_value
+        inverse_gradient = True
+
+    # Handle the edge case where min_value and max_value are the same
+    if min_value == max_value:
+        return (127, 127, 0)  # Return a neutral yellow if there is no range
+
+    # Clamp value to the new [min_value, max_value] range
     value = max(min_value, min(max_value, value))
     mid = (min_value + max_value) / 2
 
@@ -31,4 +48,9 @@ def color_gradient(value, min_value, max_value):
         r = int(255 * (1 - (value - mid) / (max_value - mid)))
         g = 255
         b = 0
-    return (r, g, b)
+
+    # If the original min and max were inverted, flip the color.
+    if inverse_gradient:
+        return (g, r, b)
+    else:
+        return (r, g, b)

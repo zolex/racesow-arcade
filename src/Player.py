@@ -47,7 +47,7 @@ class Player(Entity):
         self.jumped_early = None
         self.jumped_late = None
         self.ground_touch_time = 0
-        self.ground_touch_pos = Vector2(0,0)
+        self.ground_touch_pos = None
 
 
         self.has_rocket = False
@@ -695,30 +695,29 @@ class Player(Entity):
 
     def add_jump_velocity_alt(self):
 
-        #ground_diff = pygame.time.get_ticks() - self.ground_touch_time
         early_distance = 0 if self.jump_action_distance is None else self.jump_action_distance
-        late_distance = 0 if (early_distance is not None and early_distance > 0) or self.ground_touch_pos is None else math.sqrt((self.pos.x - self.ground_touch_pos.x) ** 2 + (self.pos.y - self.ground_touch_pos.y) ** 2)
+        late_distance = 0 if self.ground_touch_pos is None else math.sqrt((self.pos.x - self.ground_touch_pos.x) ** 2 + (self.pos.y - self.ground_touch_pos.y) ** 2)
 
-        print(f'late: {late_distance}, early: {early_distance}')
+        #print(f'late: {late_distance}, early: {early_distance}')
+
+        if early_distance > 0 and early_distance != float("inf"):
+            self.jumped_early = early_distance
+            self.jumped_late = None
+        elif late_distance > 0 and late_distance != float("inf"):
+            self.jumped_early = None
+            self.jumped_late = late_distance
 
         self.ground_touch_pos = None
         self.jump_action_distance = 0
 
         boost = 0
-        if early_distance + late_distance != 0:
+        if self.jumped_early or self.jumped_late:
             min_boost = 0.01
             max_boost = 1
             max_distance = 32
             curve = 3
 
-            boost = max(0.0, min_boost + (max_boost - min_boost) * max(0.0, 1 - (late_distance + early_distance) / max_distance) ** curve) / 5
-
-            if early_distance > 0:
-                self.jumped_early = early_distance
-                self.jumped_late = None
-            elif late_distance > 0:
-                self.jumped_early = None
-                self.jumped_late = late_distance
+            boost = max(0.0, min_boost + (max_boost - min_boost) * max(0.0, 1 - (self.jumped_early or self.jumped_late) / max_distance) ** curve) / 5
 
             # enhance jump boost when not running
             if not self.pressed_right:
