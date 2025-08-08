@@ -1,48 +1,36 @@
 import pygame, os, math, random
+
+from src.Decal import Decal
 from src.Rectangle import Rectangle
 from src.Triangle import Triangle
 from src.Vector2 import Vector2
 from src import config, sounds
 
+def pre_load_projectiles():
+    for projectile in ['rocket', 'plasma']:
+        sprite = pygame.image.load(os.path.join(config.assets_folder, 'graphics', f'projectile_{projectile}.png')).convert_alpha()
+        Projectile.types[projectile] = pygame.transform.scale(sprite, (sprite.get_width() / 5, sprite.get_height() / 5))
+
 class Projectile(Vector2):
 
-    I_SCALE = 0.15
-    I_WIDTH = 128
-    I_HEIGHT = 128
-    I_WIDTH_S = I_WIDTH * I_SCALE
-    I_HEIGHT_S = I_HEIGHT * I_SCALE
+    types = {}
 
-    ITEM_ROCKET = (0 * I_SCALE, 0 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
-    DECAL_ROCKET = 0x1f
-    PROJECTILE_ROCKET = (0 * I_SCALE, 256 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
-    PROJECTILE_ROCKET_DOWN = (128 * I_SCALE, 256 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
-
-    ITEM_PLASMA = (128 * I_SCALE, 0 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
-    DECAL_PLASMA = (128 * I_SCALE, 128 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
-    PROJECTILE_PLASMA = (128 * I_SCALE, 128 * I_SCALE, I_WIDTH_S, I_HEIGHT_S)
-
-    def __init__(self, sprite, duration, x, y, vel_x = 0, vel_y = 0, target_vel = 0, acc = 0, sound = None):
+    def __init__(self, type: str, duration, x, y, vel_x = 0, vel_y = 0, target_vel = 0, acc = 0, sound = None):
         super(Projectile, self).__init__(x, y)
+        self.type = type
         self.vel_x = vel_x
         self.vel_y = vel_y
         self.target_vel = target_vel
         self.acc = acc
-        self.sprite = sprite
         self.duration = duration
         self.start_time = pygame.time.get_ticks()
         self.sound = sound
-        self.decal_rocket = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'rocket_hit.png')).convert_alpha()
-
-        items = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'items.png')).convert_alpha()
-        new_size = (items.get_width() * self.I_SCALE, items.get_height() * self.I_SCALE)
-        self.pixmap = pygame.transform.smoothscale(items, new_size)
+        self.rotation = -math.degrees(math.atan2(vel_y, vel_x))
+        self.sprite = pygame.transform.rotate(Projectile.types[type], self.rotation)
 
     def draw(self, surface, camera):
         view_pos = camera.to_view_space(Vector2(self.x, self.y))
-        if self.sprite == Projectile.DECAL_ROCKET:
-            surface.blit(self.decal_rocket, (view_pos.x - self.decal_rocket.get_width() / 2, view_pos.y - self.decal_rocket.get_height() / 2))
-        else:
-            surface.blit(self.pixmap, (view_pos.x, view_pos.y), self.sprite)
+        surface.blit(self.sprite, (view_pos.x, view_pos.y))
 
     def point_in_triangle(self, pt, t):
         def sign(p1, p2, p3):
@@ -74,23 +62,18 @@ class Projectile(Vector2):
             if self.sound is not None:
                 distance = self.get_distance(player.pos)
                 self.sound.set_volume(self.volume_for_distance(distance))
-            if self.sprite == Projectile.PROJECTILE_PLASMA or self.sprite == Projectile.PROJECTILE_ROCKET or self.sprite == Projectile.PROJECTILE_ROCKET_DOWN:
-                collider = self.check_collisions(colliders)
-                if collider is not None:
-                    if self.sprite == Projectile.PROJECTILE_ROCKET or self.sprite == Projectile.PROJECTILE_ROCKET_DOWN:
-                        distance = self.get_distance(player.pos)
-                        sounds.rocket.set_volume(self.volume_for_distance(distance))
-                        sounds.rocket.play()
-                        player.add_rocket_velocity(distance, math.atan2(player.pos.y - self.y, player.pos.x - self.x))
-                        return Projectile(Projectile.DECAL_ROCKET, 500, self.x, self.y)
 
-                    if self.sprite == Projectile.PROJECTILE_PLASMA:
-                        self.x += random.randrange(-5, 5)
-                        self.y += random.randrange(-5, 5)
-                        self.vel_x = 0
-                        self.start_time = pygame.time.get_ticks()
-                        self.duration = 300
-                        return False
+            collider = self.check_collisions(colliders)
+            if collider is not None:
+                if self.type == 'rocket':
+                    distance = self.get_distance(player.pos)
+                    sounds.rocket.set_volume(self.volume_for_distance(distance))
+                    sounds.rocket.play()
+                    player.add_rocket_velocity(distance, math.atan2(player.pos.y - self.y, player.pos.x - self.x))
+                    return Decal('rocket', 500, self.x, self.y, center=True, fade_out=True)
+
+                elif self.type == 'plasma':
+                    return Decal('plasma', 1000, self.x + random.randrange(-3, 3), self.y + random.randrange(-3, 3), center=False, fade_out=True)
 
         return False
 

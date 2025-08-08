@@ -1,6 +1,7 @@
 import os.path, pygame, yaml
 from pyqtree import Index as QuadTree
 
+from src.Decal import Decal
 from src.FinishLine import FinishLine
 from src.JumpPad import JumpPad
 from src.Portal import Portal
@@ -36,7 +37,8 @@ class Level:
         self.death_colliders = []
         self.dynamic_colliders = []
         self.decoration = []
-        self.projectiles = []
+        self.projectiles: list[Projectile] = []
+        self.decals: list[Decal] = []
         self.items = []
         self.last_decal_velocity: int = 0
         self.player_start: Vector2 = Vector2(70, 70)
@@ -268,11 +270,16 @@ class Level:
                 self.jump_pads.append(object)
 
         for i in range(len(self.projectiles) - 1, -1, -1):
-            projectile = self.projectiles[i].update(player, self.static_colliders + self.ramp_colliders)
-            if projectile:
+            # projectile can produce a decal (e.g. on hit with wall)
+            decal = self.projectiles[i].update(player, self.static_colliders + self.ramp_colliders)
+            if decal:
                 del self.projectiles[i]
-                if isinstance(projectile, Projectile):
-                    self.projectiles.append(projectile)
+                if isinstance(decal, Decal):
+                    self.decals.append(decal)
+
+        for i in range(len(self.decals) - 1, -1, -1):
+            if self.decals[i].is_expired():
+                del self.decals[i]
 
     def draw(self):
         self.surface.fill(config.BACKGROUND_COLOR)
@@ -299,6 +306,7 @@ class Level:
         #print("num objects", len(self.filtered_objects))
 
         self.draw_decals()
+        self.draw_projectiles()
 
     def draw_front(self):
         if self.start_line:
@@ -318,6 +326,10 @@ class Level:
                 self.overlay_offset += self.overlay_width * 2
             self.surface.blit(self.overlay, (x, config.SCREEN_HEIGHT / 2.5 - self.camera.pos.y * 1.2))
 
+    def draw_projectiles(self):
+        for projectiles in self.projectiles:
+            projectiles.draw(self.surface, self.camera)
+
     def draw_decals(self):
-        for decal in self.projectiles:
+        for decal in self.decals:
             decal.draw(self.surface, self.camera)

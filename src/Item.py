@@ -2,17 +2,17 @@ import os, pygame
 from src.Vector2 import Vector2
 from src import config
 
+def pre_load_items():
+    for item in ['rocket', 'plasma']:
+        Item.types[item] = pygame.image.load(os.path.join(config.assets_folder, 'graphics', f'item_{item}.png')).convert_alpha()
+
 class Item:
 
-    ROCKET = 'rocket'
-    PLASMA = 'plasma'
-
-    item_rocket = None
-    item_plasma = None
+    types = {}
 
     """Item class for items that can be picked up"""
-    def __init__(self, item_type: str, pos: Vector2, ammo: int = 0, stay: bool = False):
-        self.item_type: str = item_type
+    def __init__(self, type: str, pos: Vector2, ammo: int = 0, stay: bool = False):
+        self.type = type
         self.pos: Vector2 = pos
         self.ammo: int = ammo
         self.picked_up: bool = False
@@ -22,10 +22,10 @@ class Item:
         self.anim_timer = 0
         self.anim_dir = 1
 
-        self.bbox = (self.pos.x, self.pos.y, self.pos.x + 16, self.pos.y + 16)
+        print(type)
+        self.sprite = Item.types[type]
 
-        Item.item_rocket = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'item_rocket.png')).convert_alpha()
-        Item.item_plasma = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'item_plasma.png')).convert_alpha()
+        self.bbox = (self.pos.x, self.pos.y, self.pos.x + 16, self.pos.y + 16)
 
     def draw(self, surface, camera):
         if self.picked_up:
@@ -46,7 +46,4 @@ class Item:
             self.anim_frame += self.anim_dir
 
         view_pos = camera.to_view_space(Vector2(self.pos.x, self.pos.y))
-        if self.item_type == self.ROCKET:
-            surface.blit(Item.item_rocket, (view_pos.x, view_pos.y - self.anim_frame))
-        elif self.item_type == self.PLASMA:
-            surface.blit(Item.item_plasma, (view_pos.x, view_pos.y))
+        surface.blit(self.sprite, (view_pos.x, view_pos.y - self.anim_frame))

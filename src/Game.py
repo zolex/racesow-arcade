@@ -1,20 +1,25 @@
-import os
-import random
-
-import pygame, math
+import os, pygame, math
 from src.Level import Level
 from src.Player import Player
-from src.Projectile import Projectile
 from src import sounds, config
 from src.Camera import Camera
 from src.Vector2 import Vector2
 from src.Item import Item
 from src.utils import color_gradient
 
+from src.Decal import pre_load_decals
+from src.Item import pre_load_items
+from src.Projectile import pre_load_projectiles
+
 
 class Game():
     """Contains main loop and handles the game"""
     def __init__(self, surface):
+
+        pre_load_decals()
+        pre_load_items()
+        pre_load_projectiles()
+
         self.surface = surface
         self.camera = Camera(Vector2(), config.SCREEN_WIDTH, config.SCREEN_HEIGHT)
         self.level = Level(self.surface, self.camera)
@@ -83,12 +88,12 @@ class Game():
         self.surface.blit(time_text, (hud_center + 160, hud_y + 16))
 
         if self.player.has_plasma:
-            self.surface.blit(Item.item_plasma, (config.SCREEN_WIDTH - 45, config.SCREEN_HEIGHT - 20))
+            self.surface.blit(Item.types['plasma'], (config.SCREEN_WIDTH - 45, config.SCREEN_HEIGHT - 20))
             fps_text = self.font.render(f"{self.player.plasma_ammo}", True, (255, 255, 255))
             self.surface.blit(fps_text, (config.SCREEN_WIDTH - 20, config.SCREEN_HEIGHT - 15))
 
         if self.player.has_rocket:
-            self.surface.blit(Item.item_rocket, (config.SCREEN_WIDTH - 90, config.SCREEN_HEIGHT - 20))
+            self.surface.blit(Item.types['rocket'], (config.SCREEN_WIDTH - 90, config.SCREEN_HEIGHT - 20))
             fps_text = self.font.render(f"{self.player.rocket_ammo}", True, (255, 255, 255))
             self.surface.blit(fps_text, (config.SCREEN_WIDTH - 60, config.SCREEN_HEIGHT - 15))
 

@@ -1,6 +1,7 @@
 import copy, math, pygame, random, os
 
 from src.Animation import Animation
+from src.Decal import Decal
 from src.Entity import Entity
 from src.Rectangle import Rectangle
 from src.StateMachine import StateMachine
@@ -254,13 +255,9 @@ class Player(Entity):
                 sounds.rocket_launch.play()
                 channel = sounds.rocket_fly.play(loops=-1)
                 if self.pressed_down:
-                    self.level.projectiles.append(
-                        Projectile(Projectile.PROJECTILE_ROCKET_DOWN, 1337000, self.pos.x + 15, self.pos.y + 8,
-                                   self.vel.x, self.vel.y + 1, 0.7, -0.0015, channel))
+                    self.level.projectiles.append(Projectile('rocket', 1337000, self.pos.x + 9, self.pos.y + 10, self.vel.x, self.vel.y + 1, 0.7, -0.0015, channel))
                 else:
-                    self.level.projectiles.append(
-                        Projectile(Projectile.PROJECTILE_ROCKET, 1337000, self.pos.x + 40, self.pos.y + 8,
-                                   self.vel.x + 1, 0, 1.1, -0.00075, channel))
+                    self.level.projectiles.append(Projectile('rocket', 1337000, self.pos.x + 30, self.pos.y + 5, self.vel.x + 1, 0, 1.1, -0.00075, channel))
 
     def shoot_plasma(self):
         ticks = pygame.time.get_ticks()
@@ -279,7 +276,7 @@ class Player(Entity):
                     else:
                         decal_offset = 7
                     self.action_states.on_event('plasma')
-                    self.level.projectiles.append(Projectile(Projectile.DECAL_PLASMA, 1000, self.pos.x + decal_offset, self.pos.y + 5))
+                    self.level.decals.append(Decal('plasma', 1000, self.pos.x + decal_offset, self.pos.y + 5, center=True, fade_out=True))
                     if self.pressed_down:
                         if self.pressed_left or self.pressed_right:
                             self.vel.y -= 0.08
@@ -296,7 +293,7 @@ class Player(Entity):
                     elif self.pressed_right:
                         self.vel.x -= 0.04
                 else:
-                    self.level.projectiles.append(Projectile(Projectile.PROJECTILE_PLASMA, 10000, self.pos.x + 30, self.pos.y + 5, 1 + self.vel.x))
+                    self.level.projectiles.append(Projectile('plasma', 10000, self.pos.x + 30, self.pos.y + 2, 1 + self.vel.x))
 
     def get_distance_to_collider_below(self):
         """
@@ -311,7 +308,6 @@ class Player(Entity):
         player_bottom_y = self.shape.pos.y + self.shape.h  # Player bottom y-coordinate
 
         min_distance = float('inf')
-        t = "none"
 
         # Check static colliders
         for collider in self.level.static_colliders:
@@ -621,11 +617,11 @@ class Player(Entity):
                 continue
             if item.pos.x - 10 <= self.pos.x + self.shape.w / 2 <= item.pos.x + 10 and item.pos.y - 10 <= self.pos.y + self.shape.h / 2 <= item.pos.y + 10:
                 sounds.pickup.play()
-                self.active_weapon = item.item_type
-                if item.item_type == 'rocket':
+                self.active_weapon = item.type
+                if item.type == 'rocket':
                     self.has_rocket = True
                     self.rocket_ammo += item.ammo
-                elif item.item_type == 'plasma':
+                elif item.type == 'plasma':
                     self.has_plasma = True
                     self.plasma_ammo += item.ammo
                 item.picked_up = True
