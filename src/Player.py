@@ -22,7 +22,7 @@ class Player(Entity):
         self.surface = surface
         self.level = None
         self.last_walljump = 0
-        self.last_ramp_radians = -1
+        self.last_ramp_radians = 0
         self.animation = Animation(self)
         self.action_states = StateMachine(self.Idle_State(), self)
         self.player_states = StateMachine(self.Default_Player(), self)
@@ -73,7 +73,7 @@ class Player(Entity):
         self.last_boost = 0
         self.acceleration = 0
         self.last_walljump = 0
-        self.last_ramp_radians = -1
+        self.last_ramp_radians = 0
         self.last_velocity = 0
         self.pressed_up = False
         self.pressed_left = False
@@ -136,8 +136,7 @@ class Player(Entity):
             self.surface.blit(sprite_surface, (view_pos_sprite.x, view_pos_sprite.y))
         else:
             # 2. Rotate the sprite
-            rotation = self.last_ramp_radians * -10
-            rotated_sprite = pygame.transform.rotate(sprite_surface, rotation)
+            rotated_sprite = pygame.transform.rotate(sprite_surface, math.degrees(self.last_ramp_radians))
 
             # 3. Center the rotated sprite on the position
             rect = rotated_sprite.get_rect(center=(view_pos_sprite.x + sprite_surface.get_width() // 2, view_pos_sprite.y + sprite_surface.get_height() // 2))
@@ -369,7 +368,7 @@ class Player(Entity):
         else:
             return None
 
-    def get_friction_factor(self, velocity, angle_rad, base_friction_factor=0.95, velocity_scaling=0.005, gravity_effect=0.001):
+    def get_friction_factor(self, velocity, angle_rad, gravity_effect, base_factor, velocity_scaling):
         """
         Calculates a dynamic friction factor based on velocity and surface angle.
 
@@ -378,8 +377,7 @@ class Player(Entity):
             angle_rad (float): The angle of the surface in radians.
                                Positive for upwards incline (slowing down).
                                Negative for downwards incline (speeding up).
-            base_friction_factor (float, optional): The base friction value to use.
-                                                    Defaults to 0.95.
+            base_factor (float, optional): The base friction value to use.
             velocity_scaling (float, optional): A small constant to control how
                                                 quickly friction increases with speed.
                                                 Defaults to 0.005.
@@ -393,7 +391,7 @@ class Player(Entity):
         velocity = abs(velocity)
 
         # Calculate the base friction effect, which increases with velocity.
-        friction_difference = (1 - base_friction_factor) * (velocity * velocity_scaling)
+        friction_difference = (1 - base_factor) * (velocity * velocity_scaling)
 
         # Calculate the effect of the angle.
         # We use sin(angle_rad) because the component of gravity parallel to
@@ -402,7 +400,7 @@ class Player(Entity):
         # which subtracts from the friction factor, causing more deceleration.
         # A negative angle (downwards) will result in a negative sin(angle),
         # which adds to the friction factor, causing more acceleration.
-        angle_effect = math.sin(-angle_rad) * gravity_effect * velocity
+        angle_effect = math.sin(angle_rad) * gravity_effect * velocity
 
         # Combine the effects. The angle effect is subtracted because
         # we want an upwards incline (positive angle) to reduce the friction factor,
@@ -413,25 +411,32 @@ class Player(Entity):
         return max(0, dynamic_friction)
 
     def get_friction(self):
-        base_friction_factor = None
-        if self.current_action_state == 'Move_State':
-            return self.get_friction_factor(self.vel.x, self.last_ramp_radians, 0.95)
+
+        gravity_effect = config.FRICTION_GRAVITY_EFFECT
+        base_factor = config.FRICTION_BASE_FACTOR
+        velocity_scaling = config.FRICTION_VELOCITY_SCALING
+
+        # no friction while mid-air
+        if self.current_action_state == 'Jump_State' or self.current_action_state == 'Fall_State':
+            base_factor = 1
+
+        elif self.current_action_state == 'Decel_State':
+            return 0.998
 
         elif self.current_action_state == 'Crouch_State':
+            # When crouch-sliding, adjust gravity effect on friction
             if self.pressed_right:
-                return self.get_friction_factor(self.vel.x, self.last_ramp_radians, 0.975)
+                # to have less deceleration for up-ramps
+                if self.last_ramp_radians > 0:
+                    gravity_effect = 0.0007
+                # and more acceleration for down-ramps
+                elif self.last_ramp_radians < 0:
+                    gravity_effect = 0.005
+            # normal crouching decelerates quickly
             else:
-                return 0.998
+                base_factor = 0.5
 
-        if base_friction_factor is not None:
-            return self.get_friction_factor(self.vel.x, self.last_ramp_radians, base_friction_factor)
-
-        # fixed deceleration friction
-        if self.current_action_state == 'Decel_State':
-            return 0.995
-
-        # no friction for all other states like jump, fall, etc.
-        return 1
+        return self.get_friction_factor(self.vel.x, self.last_ramp_radians, gravity_effect, base_factor, velocity_scaling)
 
     def movement(self):
         # pow() ensures friction to be applied independent of framerate
@@ -527,62 +532,46 @@ class Player(Entity):
 
     def launch_from_ramp(self):
 
-        print("launch from ramp")
-
-        # no launch for down-ramps
-        if self.last_ramp_radians > 0:
-            return
-
-        # Calculate the component of velocity parallel to the ramp
-        # Note: ramp_radians is the angle from horizontal, so we need to adjust
-        parallel_velocity = self.vel.x * math.cos(self.last_ramp_radians) - self.vel.y * math.sin(self.last_ramp_radians)
-
-        # Apply conservation of momentum when leaving the ramp
-        # The parallel component gets split between x and y based on ramp angle
-        # We use a coefficient to tune the effect for gameplay feel
-        coefficient = 1.3  # Tuned for gameplay feel (0.85 = 85% conservation)
-
-        # Calculate new vertical velocity component
-        # More horizontal speed and steeper ramps result in more "launch"
-        momentum = coefficient * parallel_velocity * math.sin(self.last_ramp_radians)
-
-        # Add a small boost based on ramp steepness for more dramatic effects on steep ramps
-        steepness_boost = abs(math.sin(self.last_ramp_radians)) * 0.1
-
-        # Apply the momentum and boost to vertical velocity
-        self.vel.y += momentum + steepness_boost
-
-        # Cap the vertical velocity to prevent excessive launching
-        max_launch_vel = config.MAX_FALL_VEL * coefficient
-        self.vel.y = max(-max_launch_vel, min(self.vel.y, max_launch_vel))
+        self.vel.y = -self.vel.x * math.tan(self.last_ramp_radians)
 
         # Set the player state to falling
         self.action_states.on_event('fall')
 
     def ramp_collisions(self):
 
+        # Get the line of the ramp we collided with (up or down)
         ramp_collider = self.shape.check_triangle_top_sides_collision(self.level.ramp_colliders)
 
         if ramp_collider is None:
             # launch when leaving a ramp
-            if self.last_ramp_radians < 0:
+            if self.last_ramp_radians > 0:
                 self.launch_from_ramp()
 
             # no ramp collision
             self.last_ramp_radians = 0
             return
 
-        # Get the relevant ramp start and end points
-        x0 = ramp_collider[0].x  # start x
-        y0 = ramp_collider[0].y  # start y
-        x1 = ramp_collider[1].x  # end x
-        y1 = ramp_collider[1].y  # end y
+        # unordered points of the ramp line
+        point0 = ramp_collider[0]
+        point1 = ramp_collider[1]
 
-        # calculate the current ramp angle in radians
-        next_rad = math.atan2(x1 - x0, y1 - y0)
+        # determine which is the start and which is the end point
+        if point0.x < point1.x:
+            # point0 ist der left (start) point
+            x_start, y_start = point0.x, point0.y
+            x_end, y_end = point1.x, point1.y
+        else:
+            # point1 ist der left (start) point
+            x_start, y_start = point1.x, point1.y
+            x_end, y_end = point0.x, point0.y
+
+        # get the angle from proper start and end points
+        dy = y_end - y_start
+        dx = x_end - x_start
+        next_rad = -math.atan2(dy, dx)
 
         # launch when sliding over the peak of a two-sided ramp
-        if self.last_ramp_radians < 0 < next_rad:
+        if self.last_ramp_radians > 0 > next_rad:
             self.launch_from_ramp()
             return
 
@@ -591,12 +580,10 @@ class Player(Entity):
 
         # Calculate horizontal progress (progress ratio) across the ramp
         x = self.shape.pos.x + self.shape.w / 2  # Player center x
-        ramp_width = x1 - x0 if x1 != x0 else 0.001  # avoid div by zero
-        progress = (x - x0) / ramp_width
-        progress = max(0, min(1, progress))  # Clamp to [0,1]
+        progress = max(0, min(1, (x - x_start) / dx))  # Clamp to [0,1]
 
         # Linear interpolation from base y to top y
-        y_on_ramp = (1 - progress) * y0 + progress * y1
+        y_on_ramp = (1 - progress) * y_start + progress * y_end
 
         # Set player's feet to ramp surface
         self.shape.pos.y = y_on_ramp - self.shape.h
@@ -715,11 +702,13 @@ class Player(Entity):
 
         y_boost = config.JUMP_VELOCITY
 
-        # Fix to allow jumping while colliding with a ramp
-        if self.last_ramp_radians != 0:
-            cos = math.cos(self.last_ramp_radians)
-            y_offset = 10
-            self.pos.y -= y_offset  # Apply the offset
+        # Fix jumping while colliding with a ramp by warping the player upwards
+        # depending on the ramp angle and player speed.
+        if self.last_ramp_radians > 0:
+            self.pos.y -= 100 * self.vel.x * math.tan(self.last_ramp_radians)
+            self.last_ramp_radians = 0
+        elif self.last_ramp_radians < 0:
+            self.pos.y -= 3
             self.last_ramp_radians = 0
 
 
@@ -798,6 +787,8 @@ class Player(Entity):
             else:
                 sounds.jump2.play()
 
+
+            owner_object.level.decals.append(Decal(f'dash{random.choice([1, 2])}', 666, owner_object.pos.x, owner_object.pos.y + owner_object.shape.h, bottom=True, fade_out=True))
             owner_object.add_jump_velocity()
 
         def update(self, owner_object):
@@ -960,6 +951,8 @@ class Player(Entity):
                 return Player.Jump_State()
             elif event == 'decel':
                 return Player.Decel_State()
+            elif event == 'fall':
+                return Player.Fall_State()
             elif event == 'move':
                 return Player.Move_State()
             elif event == 'idle':

@@ -10,10 +10,11 @@ class Decal(Vector2):
 
     types = {}
 
-    def __init__(self, type: str, duration, x, y, center: bool = False, fade_out=False):
+    def __init__(self, type: str, duration, x, y, center: bool = False, bottom: bool=False, fade_out=False):
         super(Decal, self).__init__(x, y)
         self.duration = duration
         self.center = center
+        self.bottom = bottom
         self.fade_out = fade_out
         self.sprite = Decal.types[type]
         self.start_time = pygame.time.get_ticks()
@@ -22,6 +23,8 @@ class Decal(Vector2):
         view_pos = camera.to_view_space(Vector2(self.x, self.y))
         if self.center:
             pos = (view_pos.x - self.sprite.get_width() / 2, view_pos.y - self.sprite.get_height() / 2)
+        elif self.bottom:
+            pos = (view_pos.x, view_pos.y - self.sprite.get_height())
         else:
             pos = (view_pos.x, view_pos.y)
 
