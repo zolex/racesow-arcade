@@ -291,16 +291,20 @@ class Level:
         for jump_pad in self.jump_pads:
             jump_pad.draw(self.surface, self.camera)
 
-        self.start_line.draw_back(self.surface, self.camera)
-        self.finish_line.draw_back(self.surface, self.camera)
+        if self.start_line:
+            self.start_line.draw_back(self.surface, self.camera)
+        if self.finish_line:
+            self.finish_line.draw_back(self.surface, self.camera)
 
         #print("num objects", len(self.filtered_objects))
 
         self.draw_decals()
 
     def draw_front(self):
-        self.start_line.draw_front(self.surface, self.camera)
-        self.finish_line.draw_front(self.surface, self.camera)
+        if self.start_line:
+            self.start_line.draw_front(self.surface, self.camera)
+        if self.finish_line:
+            self.finish_line.draw_front(self.surface, self.camera)
 
     def draw_sky(self):
         if self.sky is not None:
