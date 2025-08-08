@@ -1,2 +1,2 @@
 #!/bin/bash
-sudo startx /home/zlx/RacesowArcade/start.sh
+sudo startx /home/zlx/RacesowArcade/RacesowArcade.pyw
