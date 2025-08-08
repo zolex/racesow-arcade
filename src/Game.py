@@ -65,14 +65,15 @@ class Game():
         self.surface.blit(acc_text, (hud_center - 65, hud_y + 14))
 
 
-        if self.player.jumped_early is not None and self.player.jumped_early != float("inf"):
-            early = f"{round(self.player.jumped_early, 2)}".rjust(4, "0")
-            early_text = self.font_small.render(f"early: {early} ms", True, color_gradient(self.player.jumped_early, 20, 0))
-            self.surface.blit(early_text, (hud_center - 65, hud_y + 24))
-        elif self.player.jumped_late is not None and self.player.jumped_late != float("inf"):
-            late = f"{round(self.player.jumped_late, 2)}".rjust(4, "0")
-            late_text = self.font_small.render(f"late: {late} ms", True, color_gradient(self.player.jumped_late, 20, 0))
-            self.surface.blit(late_text, (hud_center - 65, hud_y + 24))
+        if self.player.jump_timing is not None:
+            if self.player.jump_timing < 0:
+                early = f"{round(self.player.jump_timing, 2)}".rjust(4, "0")
+                early_text = self.font_small.render(f"early: {early} ms", True, color_gradient(self.player.jump_timing, -20, 0))
+                self.surface.blit(early_text, (hud_center - 65, hud_y + 24))
+            elif self.player.jump_timing > 0:
+                late = f"{round(self.player.jump_timing, 2)}".rjust(4, "0")
+                late_text = self.font_small.render(f"late: {late} ms", True, color_gradient(self.player.jump_timing, 20, 0))
+                self.surface.blit(late_text, (hud_center - 65, hud_y + 24))
 
         ups = f"{round(self.player.vel.x * 1000)}".rjust(5, "0")
         fps_text = self.font_big.render(f"UPS: {ups}", True, color_gradient(self.player.vel.x, 0, 2))
