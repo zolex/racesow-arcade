@@ -83,7 +83,7 @@ class Level:
 
         finish_line = data.get('finish_line', None)
         if finish_line is not None:
-            self.finish_line = StartLine(Vector2(finish_line['x'], finish_line['y']))
+            self.finish_line = FinishLine(Vector2(finish_line['x'], finish_line['y']))
 
         min_x = float("inf")
         max_x = float("-inf")

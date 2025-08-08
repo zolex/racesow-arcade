@@ -9,8 +9,8 @@ from src.Vector2 import Vector2
 
 class StartLine(GameObject):
 
-    def __init__(self, pos: Vector2):
-        self.sprite = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'start.png')).convert_alpha()
+    def __init__(self, pos: Vector2, sprite: pygame.Surface = None):
+        self.sprite = sprite if sprite is not None else pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'start.png')).convert_alpha()
         super().__init__(SimpleRect(pos, self.sprite.get_width(), self.sprite.get_height()))
 
         self.bbox = (self.pos.x, self.pos.y, self.pos.x + self.shape.w, self.pos.y + self.shape.w)
