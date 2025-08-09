@@ -6,10 +6,10 @@ from src.Triangle import Triangle
 from src.Vector2 import Vector2
 from src import config, sounds
 
-def pre_load_projectiles():
+def pre_load_projectiles(SCALE:int = 1):
     for projectile in ['rocket', 'plasma']:
         sprite = pygame.image.load(os.path.join(config.assets_folder, 'graphics', f'projectile_{projectile}.png')).convert_alpha()
-        Projectile.types[projectile] = pygame.transform.scale(sprite, (sprite.get_width() / 5, sprite.get_height() / 5))
+        Projectile.types[projectile] = pygame.transform.scale(sprite, (sprite.get_width() / 5 * SCALE, sprite.get_height() / 5 * SCALE))
 
 class Projectile(Vector2):
 

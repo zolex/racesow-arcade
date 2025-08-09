@@ -176,7 +176,7 @@ class Animation:
             self.current_sprite = self.active_crouch_anim
 
     def run_anim(self):
-        frame_time = 50 / max(0.7, self.player.vel.x * 2.5)
+        frame_time = 50 / max(0.7, self.player.vel.x * 2.5 / self.player.settings.get_scale())
         self.current_sprite = self.active_run_anim[self.anim_frame]
         self.anim_timer += config.delta_time
         if self.anim_timer > frame_time:

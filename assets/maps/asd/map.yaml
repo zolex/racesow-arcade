@@ -39,8 +39,8 @@ jump_pads:
   y: 352.0
 overlay: textures/overlay.png
 player_spawnpoint:
-  x: 13376.0
-  y: -1408.0
+  x: -160.0
+  y: 256.0
 portals:
 - entry_x: 13888.0
   entry_y: 256.0

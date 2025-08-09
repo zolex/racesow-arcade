@@ -2,16 +2,18 @@ import os, pygame
 from src.Vector2 import Vector2
 from src import config
 
-def pre_load_items():
+def pre_load_items(SCALE:int = 1):
     for item in ['rocket', 'plasma']:
         Item.types[item] = pygame.image.load(os.path.join(config.assets_folder, 'graphics', f'item_{item}.png')).convert_alpha()
+        if SCALE != 1:
+            Item.types[item] = pygame.transform.scale(Item.types[item], (Item.types[item].get_width() * SCALE, Item.types[item].get_height() * SCALE))
 
 class Item:
 
     types = {}
 
     """Item class for items that can be picked up"""
-    def __init__(self, type: str, pos: Vector2, ammo: int = 0, stay: bool = False):
+    def __init__(self, type: str, pos: Vector2, width=16, height=16, ammo: int = 0, stay: bool = False):
         self.type = type
         self.pos: Vector2 = pos
         self.ammo: int = ammo
@@ -21,11 +23,13 @@ class Item:
         self.anim_frame = 0
         self.anim_timer = 0
         self.anim_dir = 1
+        self.width = width
+        self.height = height
 
         print(type)
         self.sprite = Item.types[type]
 
-        self.bbox = (self.pos.x, self.pos.y, self.pos.x + 16, self.pos.y + 16)
+        self.bbox = (self.pos.x, self.pos.y, self.pos.x + self.width, self.pos.y + self.height)
 
     def draw(self, surface, camera):
         if self.picked_up:

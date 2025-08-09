@@ -35,14 +35,17 @@ PINK = (255, 0, 255, 255)
 BACKGROUND_COLOR = (107, 140, 255)
 
 #Window settings
-RESOLUTIONS={
-    1: (320, 240, 0.05, 30),
-    2: (640, 320, 0.035, 60),
-    3: (640, 480, 0.035, 60),
-}
+#RESOLUTIONS={
+#    1: (320, 240, 0.05, 30),
+#    2: (640, 320, 0.035, 60),
+#    3: (640, 480, 0.035, 60),
+#}
 
-res = os.getenv('RESOLUTION', 2)
-SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SMOOTHING_FACTOR, CAMERA_OFFSET_LEFT = RESOLUTIONS.get(int(res), 1)
+#res = os.getenv('RESOLUTION', 2)
+#SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SMOOTHING_FACTOR, CAMERA_OFFSET_LEFT = RESOLUTIONS.get(int(res), 1)
+
+CAMERA_SMOOTHING_FACTOR=0.035
+CAMERA_OFFSET_LEFT = 60
 
 CAPTION = 'Racesow Arcade'
 
@@ -67,8 +70,6 @@ BOUNCE_VEL = 0.1
 JUMP_VELOCITY = -0.325
 WALLJUMP_VELOCITY = -0.22
 DEATH_VEL_Y = -0.35
-
-CAMERA_FOLLOW_X = 40
 
 #Sets timer value so animations start instantly instead of counting up first
 INITIAL_TIMER_VALUE = 1000

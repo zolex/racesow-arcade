@@ -20,15 +20,15 @@ class Game(GameScene):
     def __init__(self, surface: pygame.Surface, clock: pygame.time.Clock, settings: Settings = None):
         super().__init__(surface, clock, settings)
 
-        pre_load_decals()
-        pre_load_items()
-        pre_load_projectiles()
+        SCALE = settings.get_scale()
+        pre_load_decals(SCALE)
+        pre_load_items(SCALE)
+        pre_load_projectiles(SCALE)
 
-        self.camera = Camera(Vector2(), self.settings.width, self.settings.height)
+        self.camera = Camera(Vector2(), self.settings)
         self.level = Level(self.surface, self.camera, self.settings)
-        self.player = Player(self.surface, self.camera)
+        self.player = Player(self.surface, self.camera, self.settings)
         self.level.load('asd', self.player)
-        self.camera.set_start_pos_y(self.level.player_start.y)
         self.player.set_level(self.level)
         self.last_velocity = 0
         self.font = pygame.font.Font(None, 16)
@@ -44,6 +44,8 @@ class Game(GameScene):
 
         pygame.mixer.music.load(sounds.main_theme)
         pygame.mixer.music.play()
+
+        self.start_time = pygame.time.get_ticks()
 
 
     def draw(self):
@@ -83,7 +85,7 @@ class Game(GameScene):
                 late_text = self.font_small.render(f"late: {late} ms", True, color_gradient(self.player.jump_timing, 20, 0))
                 self.surface.blit(late_text, (hud_center - 65, hud_y + 24))
 
-        ups = f"{round(self.player.vel.x * 1000)}".rjust(5, "0")
+        ups = f"{round(self.player.vel.x * 1000 / self.settings.get_scale())}".rjust(5, "0")
         fps_text = self.font_big.render(f"UPS: {ups}", True, color_gradient(self.player.vel.x, 0, 2))
         self.surface.blit(fps_text, (hud_center + 30, hud_y + 15))
 
@@ -101,6 +103,12 @@ class Game(GameScene):
             self.surface.blit(fps_text, (self.settings.width - 60, self.settings.height - 15))
 
     def update(self):
+
+        # let it "load" a few milliseconds to avoid missing out collision checks
+        # causing the player to fall out of the level at higher screen resolutions
+        if self.start_time + 100 > pygame.time.get_ticks():
+            return
+
         self.player.update()
         self.camera.update(self.player)
         self.level.update(self.player)

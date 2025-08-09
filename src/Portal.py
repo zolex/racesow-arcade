@@ -3,40 +3,45 @@ import os, pygame
 from src.Camera import Camera
 from src import config
 from src.GameObject import GameObject
+from src.Settings import Settings
 from src.SimpleRect import SimpleRect
 from src.Vector2 import Vector2
 
 
 class Portal(GameObject):
 
-    WIDTH = 64
-    HEIGHT = 64
-    FRAME_TIME = 25
-    FRAMES_ENTRY = [
-        (0 * WIDTH, 2 * HEIGHT, WIDTH, HEIGHT),
-        (3 * WIDTH, 1 * HEIGHT, WIDTH, HEIGHT),
-        (2 * WIDTH, 1 * HEIGHT, WIDTH, HEIGHT),
-        (1 * WIDTH, 1 * HEIGHT, WIDTH, HEIGHT),
-        (0 * WIDTH, 1 * HEIGHT, WIDTH, HEIGHT),
-        (3 * WIDTH, 0 * HEIGHT, WIDTH, HEIGHT),
-        (2 * WIDTH, 0 * HEIGHT, WIDTH, HEIGHT),
-        (1 * WIDTH, 0 * HEIGHT, WIDTH, HEIGHT),
-        (0 * WIDTH, 0 * HEIGHT, WIDTH, HEIGHT),
-    ]
+    def __init__(self, entry: Vector2, exit: Vector2, settings: Settings):
 
-    FRAMES_EXIT = [
-        (0 * WIDTH, 5 * HEIGHT, WIDTH, HEIGHT),
-        (3 * WIDTH, 4 * HEIGHT, WIDTH, HEIGHT),
-        (2 * WIDTH, 4 * HEIGHT, WIDTH, HEIGHT),
-        (1 * WIDTH, 4 * HEIGHT, WIDTH, HEIGHT),
-        (0 * WIDTH, 4 * HEIGHT, WIDTH, HEIGHT),
-        (3 * WIDTH, 3 * HEIGHT, WIDTH, HEIGHT),
-        (2 * WIDTH, 3 * HEIGHT, WIDTH, HEIGHT),
-        (1 * WIDTH, 3 * HEIGHT, WIDTH, HEIGHT),
-        (0 * WIDTH, 3 * HEIGHT, WIDTH, HEIGHT),
-    ]
+        self.settings = settings
+        SCALE = settings.get_scale()
+        self.WIDTH = 64 * SCALE
+        self.HEIGHT = 64 * SCALE
+        self.FRAME_TIME = 25
+        self.FRAMES_ENTRY = [
+            (0 * self.WIDTH, 2 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (3 * self.WIDTH, 1 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (2 * self.WIDTH, 1 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (1 * self.WIDTH, 1 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (0 * self.WIDTH, 1 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (3 * self.WIDTH, 0 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (2 * self.WIDTH, 0 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (1 * self.WIDTH, 0 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (0 * self.WIDTH, 0 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+        ]
 
-    def __init__(self, entry: Vector2, exit: Vector2):
+        self.FRAMES_EXIT = [
+            (0 * self.WIDTH, 5 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (3 * self.WIDTH, 4 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (2 * self.WIDTH, 4 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (1 * self.WIDTH, 4 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (0 * self.WIDTH, 4 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (3 * self.WIDTH, 3 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (2 * self.WIDTH, 3 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (1 * self.WIDTH, 3 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+            (0 * self.WIDTH, 3 * self.HEIGHT, self.WIDTH, self.HEIGHT),
+        ]
+
+
         super().__init__(SimpleRect(entry, self.WIDTH, self.HEIGHT))
         self.exit = exit
         self.exit.x += self.shape.w // 2 + 12
@@ -46,7 +51,7 @@ class Portal(GameObject):
         self.current_frame = 0
         self.anim_timer = 0
         sprite = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'portal.png')).convert_alpha()
-        new_size = (sprite.get_width() / 2, sprite.get_height() / 2)
+        new_size = (sprite.get_width() / 2 * SCALE, sprite.get_height() / 2  * SCALE)
         self.sprite = pygame.transform.smoothscale(sprite, new_size)
         self.sound = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'teleport.mp3'))
         self.sound.set_volume(1)
@@ -76,9 +81,10 @@ class Portal(GameObject):
         self.sound.play()
         player.pos.x = self.exit.x + 10
         player.pos.y = self.exit.y - 5
-        if player.vel.x < 0.3:
-            player.vel.x = 0.3
-        if player.vel.y > 0:
-            player.vel.y = 0
+        player.vel.y = 0.001  # not 0 because it would cause the camera settling for the portal exit!
+        scale = self.settings.get_scale()
+        if player.vel.x < 0.3 * scale:
+            player.vel.x = 0.3 * scale
+        player.camera.stop_settling()
         player.camera.pos.x = self.exit.x - 30
-        player.camera.pos.y = self.exit.y - player.height
+        player.camera.pos.y = self.exit.y - self.settings.height // 2

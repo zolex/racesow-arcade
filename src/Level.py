@@ -73,21 +73,23 @@ class Level:
 
         self.map_folder = os.path.join(config.assets_folder, 'maps', self.map_name)
 
+        SCALE = self.settings.get_scale()
+
         map_file = os.path.join(self.map_folder, 'map.yaml')
         with open(map_file, 'r') as file:
             data = yaml.safe_load(file)
 
         spawnpoint = data.get('player_spawnpoint', None)
         if spawnpoint is not None:
-            self.player_start = Vector2(spawnpoint['x'], spawnpoint['y'])
+            self.player_start = Vector2(spawnpoint['x'] * SCALE, spawnpoint['y'] * SCALE)
 
         start_line = data.get('start_line', None)
         if start_line is not None:
-            self.start_line = StartLine(Vector2(start_line['x'], start_line['y']))
+            self.start_line = StartLine(Vector2(start_line['x'] * SCALE, start_line['y'] * SCALE), scale=SCALE)
 
         finish_line = data.get('finish_line', None)
         if finish_line is not None:
-            self.finish_line = FinishLine(Vector2(finish_line['x'], finish_line['y']))
+            self.finish_line = FinishLine(Vector2(finish_line['x'] * SCALE, finish_line['y'] * SCALE))
 
         min_x = float("inf")
         max_x = float("-inf")
@@ -97,44 +99,44 @@ class Level:
         items = data.get('items', None)
         if items is not None:
             for item in items:
-                min_x = min(item['x'], min_x)
-                max_x = max(item['x'], max_x)
-                min_y = min(item['y'], min_y)
-                max_y = max(item['y'], max_y)
-                self.items.append(Item(item['type'], Vector2(item['x'], item['y'] + 12), item['ammo'], item['stay']))
+                min_x = min(item['x'] * SCALE, min_x)
+                max_x = max(item['x'] * SCALE, max_x)
+                min_y = min(item['y'] * SCALE, min_y)
+                max_y = max(item['y'] * SCALE, max_y)
+                self.items.append(Item(item['type'], Vector2(item['x'] * SCALE, item['y'] * SCALE + 12 * SCALE), 16 * SCALE, 16 * SCALE, item['ammo'], item['stay']))
 
         portals = data.get('portals', None)
         if portals is not None:
             for portal in portals:
-                min_x = min(portal['entry_x'], portal['exit_x'], min_x)
-                max_x = max(portal['entry_x'], portal['entry_x'], max_x)
-                min_y = min(portal['entry_y'], portal['entry_y'], min_y)
-                max_y = max(portal['entry_y'], portal['entry_y'], max_y)
-                self.portals.append(Portal(Vector2(portal['entry_x'], portal['entry_y']), Vector2(portal['exit_x'], portal['exit_y'])))
+                min_x = min(portal['entry_x'] * SCALE, portal['exit_x'] * SCALE, min_x)
+                max_x = max(portal['entry_x'] * SCALE, portal['entry_x'] * SCALE, max_x)
+                min_y = min(portal['entry_y'] * SCALE, portal['entry_y'] * SCALE, min_y)
+                max_y = max(portal['entry_y'] * SCALE, portal['entry_y'] * SCALE, max_y)
+                self.portals.append(Portal(Vector2(portal['entry_x'] * SCALE, portal['entry_y'] * SCALE), Vector2(portal['exit_x'] * SCALE, portal['exit_y'] * SCALE), self.settings))
 
         jump_pads = data.get('jump_pads', None)
         if jump_pads is not None:
             for jump_pad in jump_pads:
-                min_x = min(jump_pad['x'], min_x)
-                max_x = max(jump_pad['x'], max_x)
-                min_y = min(jump_pad['y'], min_y)
-                max_y = max(jump_pad['y'], max_y)
-                self.jump_pads.append(JumpPad(Vector2(jump_pad['x'], jump_pad['y']), Vector2(jump_pad['vel_x'], jump_pad['vel_y'])))
+                min_x = min(jump_pad['x'] * SCALE, min_x)
+                max_x = max(jump_pad['x'] * SCALE, max_x)
+                min_y = min(jump_pad['y'] * SCALE, min_y)
+                max_y = max(jump_pad['y'] * SCALE, max_y)
+                self.jump_pads.append(JumpPad(Vector2(jump_pad['x'] * SCALE, jump_pad['y'] * SCALE), Vector2(jump_pad['vel_x'] * SCALE, jump_pad['vel_y'] * SCALE), SCALE))
 
         rectangles = data.get('rectangles', None)
         if rectangles is not None:
             for rect in rectangles:
 
-                min_x = min(rect['x'], min_x)
-                max_x = max(rect['x'] + rect['w'], max_x)
-                min_y = min(rect['y'], min_y)
-                max_y = max(rect['y'] + rect['h'], max_y)
+                min_x = min(rect['x'] * SCALE, min_x)
+                max_x = max(rect['x'] * SCALE + rect['w'] * SCALE, max_x)
+                min_y = min(rect['y'] * SCALE, min_y)
+                max_y = max(rect['y'] * SCALE + rect['h'] * SCALE, max_y)
 
                 texture = None
                 texture_path = rect.get('texture', None)
                 if texture_path is not None:
-                    texture = Texture(os.path.join(self.map_folder, rect['texture']), rect.get('texture_scale', 1), rect.get('texture_offset_x', 0), rect.get('texture_offset_y', 0), rect.get('texture_rotation', 0))
-                collider = Collider(Rectangle(Vector2(rect['x'], rect['y']), int(rect['w']), int(rect['h']), texture), rect['wall_type'])
+                    texture = Texture(os.path.join(self.map_folder, rect['texture']), rect.get('texture_scale', 1) * SCALE, rect.get('texture_offset_x', 0) * SCALE, rect.get('texture_offset_y', 0) * SCALE, rect.get('texture_rotation', 0))
+                collider = Collider(Rectangle(Vector2(rect['x'] * SCALE, rect['y'] * SCALE), int(rect['w'] * SCALE), int(rect['h'] * SCALE), texture), rect['wall_type'])
                 if rect['wall_type'] == 'static':
                     self.static_colliders.append(collider)
                 elif rect['wall_type'] == 'wall':
@@ -150,14 +152,14 @@ class Level:
                 texture = None
                 texture_path = triangle.get('texture', None)
                 if texture_path is not None:
-                    texture = Texture(os.path.join(self.map_folder, triangle['texture']), triangle.get('texture_scale', 1), triangle.get('texture_offset_x', 0), triangle.get('texture_offset_y', 0), triangle.get('texture_rotation', 0))
+                    texture = Texture(os.path.join(self.map_folder, triangle['texture']), triangle.get('texture_scale', 1) * SCALE, triangle.get('texture_offset_x', 0) * SCALE, triangle.get('texture_offset_y', 0) * SCALE, triangle.get('texture_rotation', 0))
                 points = triangle.get('points', None)
                 for p in points:
-                    min_x = min(p['x'], min_x)
-                    max_x = max(p['x'], max_x)
-                    min_y = min(p['y'], min_y)
-                    max_y = max(p['y'], max_y)
-                collider = Collider(Triangle(Vector2(points[0]['x'], points[0]['y']), Vector2(points[1]['x'], points[1]['y']), Vector2(points[2]['x'], points[2]['y']), texture), 'ramp')
+                    min_x = min(p['x'] * SCALE, min_x)
+                    max_x = max(p['x'] * SCALE, max_x)
+                    min_y = min(p['y'] * SCALE, min_y)
+                    max_y = max(p['y'] * SCALE, max_y)
+                collider = Collider(Triangle(Vector2(points[0]['x'] * SCALE, points[0]['y'] * SCALE), Vector2(points[1]['x'] * SCALE, points[1]['y'] * SCALE), Vector2(points[2]['x'] * SCALE, points[2]['y'] * SCALE), texture), 'ramp')
                 if triangle['wall_type'] == 'ramp':
                     self.ramp_colliders.append(collider)
 
@@ -250,7 +252,8 @@ class Level:
         self.portals = []
         self.jump_pads = []
 
-        boundary = (self.camera.pos.x, self.camera.pos.y, self.camera.pos.x + self.camera.w, self.camera.pos.y + self.camera.h)
+        # extend the boundary to the bottom extremely (42) so we can always find the distance to the collider below
+        boundary = (self.camera.pos.x, self.camera.pos.y, self.camera.pos.x + self.camera.w, self.camera.pos.y + self.camera.h * 42)
         self.filtered_objects = self.tree.intersect(boundary)
         for object in self.filtered_objects:
             if isinstance(object, Collider):

@@ -12,14 +12,14 @@ class JumpPad(GameObject):
     WIDTH = 64
     HEIGHT = 21
 
-    def __init__(self, pos: Vector2, vel: Vector2 = Vector2(0, -0.7)):
-        super().__init__(SimpleRect(pos, self.WIDTH, self.HEIGHT))
+    def __init__(self, pos: Vector2, vel: Vector2 = Vector2(0, -0.7), scale: float = 1.0):
+        super().__init__(SimpleRect(pos, self.WIDTH * scale, self.HEIGHT * scale))
         self.jumped_at = float("-inf")
         self.vel = vel
-        self.pos.x += self.shape.w // 2 + 32
+        self.pos.x += self.shape.w // 2 + (32 * scale)
         self.pos.y += self.shape.h
         sprite = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'jumppad.png')).convert_alpha()
-        new_size = (sprite.get_width() / 2, sprite.get_height() / 2)
+        new_size = (sprite.get_width() / 2 * scale, sprite.get_height() / 2 * scale)
         self.sprite = pygame.transform.smoothscale(sprite, new_size)
         self.sound = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'jumppad.mp3'))
 

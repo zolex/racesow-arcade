@@ -8,6 +8,9 @@ class Settings:
         self.fullscreen = False
         self.max_fps = 120
 
+    def get_scale(self):
+        return self.height / 320
+
     def load(self):
         if not os.path.isfile(self.settings_file):
             return

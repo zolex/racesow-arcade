@@ -2,9 +2,12 @@ import pygame, os
 from src.Vector2 import Vector2
 from src import config
 
-def pre_load_decals():
+def pre_load_decals(SCALE:int = 1):
     for decal in ['dash1', 'dash2', 'rocket', 'plasma']:
         Decal.types[decal] = pygame.image.load(os.path.join(config.assets_folder, 'graphics', f'decal_{decal}.png')).convert_alpha()
+        if SCALE != 1:
+            Decal.types[decal] = pygame.transform.scale(Decal.types[decal], (Decal.types[decal].get_width() * SCALE, Decal.types[decal].get_height() * SCALE))
+
 
 class Decal(Vector2):
 
