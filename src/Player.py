@@ -254,7 +254,7 @@ class Player(Entity):
                 sounds.rocket_launch.play()
                 channel = sounds.rocket_fly.play(loops=-1)
                 if self.pressed_down:
-                    self.level.projectiles.append(Projectile('rocket', 1337000, self.pos.x + 9, self.pos.y + 10, self.vel.x, self.vel.y + 1, 0.7, -0.0015, channel))
+                    self.level.projectiles.append(Projectile('rocket', 1337000, self.pos.x + config.ROCKET_DOWN_OFFSET_X, self.pos.y + config.ROCKET_DOWN_OFFSET_Y, self.vel.x, self.vel.y + 1, 0.7, -0.0015, channel))
                 else:
                     self.level.projectiles.append(Projectile('rocket', 1337000, self.pos.x + 30, self.pos.y + 5, self.vel.x + 1, 0, 1.1, -0.00075, channel))
 
@@ -269,18 +269,20 @@ class Player(Entity):
                 self.plasma_ammo -= 1
                 if (self.pressed_down or self.pressed_left or self.pressed_up or self.pressed_right) and self.plasma_climb_collisions():
                     if self.pressed_left:
-                        decal_offset = 3
+                        decal_offset = 4
                     elif self.pressed_right:
-                        decal_offset = 14
+                        decal_offset = 24
                     else:
-                        decal_offset = 7
+                        decal_offset = 14
+
                     self.action_states.on_event('plasma')
                     self.level.decals.append(Decal('plasma', 1000, self.pos.x + decal_offset, self.pos.y + 5, center=True, fade_out=True))
+
                     if self.pressed_down:
                         if self.pressed_left or self.pressed_right:
-                            self.vel.y -= 0.08
+                            self.vel.y -= 0.07
                         else:
-                            self.vel.y -= 0.1
+                            self.vel.y -= 0.103
                         # add some extra velocity if climbing very slow
                         if self.vel.y > -0.15:
                             self.vel.y -= 0.015
@@ -434,7 +436,7 @@ class Player(Entity):
                     gravity_effect = 0.005
             # normal crouching decelerates quickly
             else:
-                base_factor = 0.5
+                return 0.999
 
         return self.get_friction_factor(self.vel.x, self.last_ramp_radians, gravity_effect, base_factor, velocity_scaling)
 
@@ -568,6 +570,7 @@ class Player(Entity):
         # get the angle from proper start and end points
         dy = y_end - y_start
         dx = x_end - x_start
+
         next_rad = -math.atan2(dy, dx)
 
         # launch when sliding over the peak of a two-sided ramp
@@ -682,7 +685,7 @@ class Player(Entity):
         self.jump_action_distance = None
 
         boost = 0
-        if self.jump_timing:
+        if not self.pressed_down and not self.pressed_up and self.jump_timing:
             min_boost = 0.01
             max_boost = 1
             max_distance = 32
@@ -694,11 +697,11 @@ class Player(Entity):
             if not self.pressed_right:
                 boost *= 1.337
 
+            if self.vel.x < 0.2:
+                self.vel.x = 0.15
+
         self.acceleration = 0
         self.last_boost = round(boost * 1000)
-
-        if self.vel.x < 0.2:
-            self.vel.x = 0.15
 
         y_boost = config.JUMP_VELOCITY
 
@@ -722,10 +725,10 @@ class Player(Entity):
             vel_magnitude = 1 / (1 + 0.013 * distance ** 1.33)
 
             # Calculate x and y components of velocity
-            vel_x =  vel_magnitude * math.cos(angle_rad)
+            vel_x = vel_magnitude * math.cos(angle_rad)
             vel_y = vel_magnitude * math.sin(angle_rad)
 
-            #print("distance", distance, "vel_mag", vel_magnitude, "vel_x", vel_x, "vel_y", vel_y)
+            print("distance", distance, "angle", math.degrees(angle_rad), "vel_mag", vel_magnitude, "vel_x", vel_x, "vel_y", vel_y)
 
             # add additional momentum when jumping from a ramp
             #if self.last_ramp_radians > 0:

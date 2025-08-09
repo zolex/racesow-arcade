@@ -271,7 +271,7 @@ class Level:
 
         for i in range(len(self.projectiles) - 1, -1, -1):
             # projectile can produce a decal (e.g. on hit with wall)
-            decal = self.projectiles[i].update(player, self.static_colliders + self.ramp_colliders)
+            decal = self.projectiles[i].update(self)
             if decal:
                 del self.projectiles[i]
                 if isinstance(decal, Decal):

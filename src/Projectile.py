@@ -15,18 +15,19 @@ class Projectile(Vector2):
 
     types = {}
 
-    def __init__(self, type: str, duration, x, y, vel_x = 0, vel_y = 0, target_vel = 0, acc = 0, sound = None):
+    def __init__(self, type: str, duration: float, x: float, y: float, vel_x: float = 0.0, vel_y: float = 0.0, target_vel: float = 0.0, acc: float = 0.0, sound: pygame.mixer.Sound = None, collide_with: str|list[str] = ['static', 'ramp']):
         super(Projectile, self).__init__(x, y)
-        self.type = type
-        self.vel_x = vel_x
-        self.vel_y = vel_y
-        self.target_vel = target_vel
-        self.acc = acc
-        self.duration = duration
-        self.start_time = pygame.time.get_ticks()
-        self.sound = sound
-        self.rotation = -math.degrees(math.atan2(vel_y, vel_x))
-        self.sprite = pygame.transform.rotate(Projectile.types[type], self.rotation)
+        self.type: str = type
+        self.vel_x: float = vel_x
+        self.vel_y: float = vel_y
+        self.target_vel: float = target_vel
+        self.acc: float = acc
+        self.duration: float = duration
+        self.start_time: int = pygame.time.get_ticks()
+        self.sound: pygame.mixer.Sound = sound
+        self.collide_with: list[str] = isinstance(collide_with, list) and collide_with or [collide_with]
+        self.rotation: float = -math.degrees(math.atan2(vel_y, vel_x))
+        self.sprite: pygame.Surface = pygame.transform.rotate(Projectile.types[type], self.rotation)
 
     def draw(self, surface, camera):
         view_pos = camera.to_view_space(Vector2(self.x, self.y))
@@ -49,7 +50,7 @@ class Projectile(Vector2):
         dy = p1.y - self.y
         return math.sqrt(dx ** 2 + dy ** 2)
 
-    def update(self, player, colliders):
+    def update(self, level):
         if self.start_time + self.duration < pygame.time.get_ticks():
             return True
         elif self.vel_x > 0 or self.vel_y > 0:
@@ -60,19 +61,30 @@ class Projectile(Vector2):
             if self.vel_y > self.target_vel:
                 self.vel_y += self.acc * config.delta_time
             if self.sound is not None:
-                distance = self.get_distance(player.pos)
+                distance = self.get_distance(level.player.pos)
                 self.sound.set_volume(self.volume_for_distance(distance))
+
+            colliders = []
+            for list in self.collide_with:
+                if list == 'static':
+                    collider_list = level.static_colliders
+                elif list == 'ramp':
+                    collider_list = level.static_colliders
+                elif list == 'wall':
+                    collider_list = level.wall_colliders
+                colliders += collider_list
 
             collider = self.check_collisions(colliders)
             if collider is not None:
                 if self.type == 'rocket':
-                    distance = self.get_distance(player.pos)
+                    distance = self.get_distance(level.player.pos)
                     sounds.rocket.set_volume(self.volume_for_distance(distance))
                     sounds.rocket.play()
-                    player.add_rocket_velocity(distance, math.atan2(player.pos.y - self.y, player.pos.x - self.x))
+                    level.player.add_rocket_velocity(distance, math.atan2(level.player.pos.y - self.y, level.player.pos.x - self.x + config.ROCKET_DOWN_OFFSET_X))
                     return Decal('rocket', 500, self.x, self.y, center=True, fade_out=True)
 
                 elif self.type == 'plasma':
+                    #level.player.add_plasma_velocity(distance, angle)
                     return Decal('plasma', 1000, self.x + random.randrange(-3, 3), self.y + random.randrange(-3, 3), center=False, fade_out=True)
 
         return False
