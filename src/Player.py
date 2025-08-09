@@ -168,7 +168,7 @@ class Player(Entity):
             self.surface.blit(rotated_sprite, rect.topleft)
 
         # debug draw rect around player
-        self.shape.draw(self.surface, self.camera, 1)
+        #self.shape.draw(self.surface, self.camera, 1)
 
     def handle_inputs(self):
         if self.freeze_input:
@@ -230,8 +230,6 @@ class Player(Entity):
 
         self.can_uncrouch = self.crouching and self.check_can_uncrouch()
         self.distance_to_ground = self.get_distance_to_collider_below()
-
-        print("can uncrouch: ", self.can_uncrouch)
 
         self.handle_inputs()
 

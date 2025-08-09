@@ -1,7 +1,8 @@
 import pygame, os
-
+from time import sleep
 from src.MainMenu import MainMenu
 from src.Settings import Settings
+from src.config import assets_folder
 
 if __name__ == '__main__':
 
@@ -26,6 +27,10 @@ if __name__ == '__main__':
     MainMenu(screen, clock, settings).game_loop()
 
     settings.save()
+
+    back = pygame.mixer.Sound(os.path.join(assets_folder, 'sounds', 'menu', 'back.wav'))
+    back.play()
+    sleep(0.75)
 
     pygame.mixer.quit()
     pygame.quit()

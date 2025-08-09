@@ -3,7 +3,7 @@ import os, pygame, math
 from src.GameScene import GameScene
 from src.Level import Level
 from src.Player import Player
-from src import sounds, config
+from src import config
 from src.Camera import Camera
 from src.Settings import Settings
 from src.Vector2 import Vector2
@@ -41,9 +41,6 @@ class Game(GameScene):
         if pygame.joystick.get_count():
             self.joystick = pygame.joystick.Joystick(0)
             self.joystick.init()
-
-        pygame.mixer.music.load(sounds.main_theme)
-        pygame.mixer.music.play()
 
         self.start_time = pygame.time.get_ticks()
 
@@ -150,3 +147,7 @@ class Game(GameScene):
             self.draw()
 
             pygame.display.update()
+
+
+        back = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'menu', 'back.wav'))
+        back.play()

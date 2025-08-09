@@ -1,16 +1,9 @@
-import os, tempfile
-from _ast import Not
-from time import sleep
-
-import pygame
-import yaml
-
+import os, pygame, tempfile, yaml
+from src import config
 from src.Game import Game
 from src.Settings import Settings
 from src.sounds import main_theme
-
 from src.GameScene import GameScene
-import src.config as config
 
 class MainMenu(GameScene):
 
@@ -158,30 +151,33 @@ class MainMenu(GameScene):
 
 
     def menu_ok(self):
-        self.ok.play()
-
         selected_item = self.active_menu.get('items')[self.selected_item]
 
         if selected_item.get('action') == 'play':
+            self.ok.play()
+            pygame.mixer.music.stop()
             Game(self.surface, self.clock, self.settings).game_loop()
 
         elif selected_item.get('action') == 'menu':
+            self.ok.play()
             self.activate_menu(selected_item)
 
         elif selected_item.get('action') == 'back':
-            self.menu_back_or_quit()
+             self.menu_back_or_quit()
 
         elif selected_item.get('action') == 'resolution':
+            self.ok.play()
             self.change_resolution(selected_item.get('width'), selected_item.get('height'))
 
         elif selected_item.get('action') == 'fps':
+            self.ok.play()
             self.change_max_fps(selected_item.get('fps'))
 
         elif selected_item.get('action') == 'switch_fullscreen':
+            self.ok.play()
             self.switch_fullscreen()
 
         elif selected_item.get('action') == 'quit':
-            sleep(1)
             self.menu_back_or_quit()
 
     def activate_menu(self, menu_item):
@@ -225,6 +221,7 @@ class MainMenu(GameScene):
 
     def menu_back_or_quit(self):
         if len(self.parent_menus) > 0:
+            self.back.play()
             self.active_menu = self.parent_menus.pop()
             self.selected_item = self.active_menu.get('selected_item', 0)
         else:
