@@ -14,7 +14,21 @@ from src import sounds, config
 
 class Player(Entity):
     def __init__(self, surface: pygame.surface.Surface, camera: Camera):
-        super(Player, self).__init__(Vector2(0, 0), Rectangle(Vector2(0, 0), WIDTH, HEIGHT))
+
+
+        self.CROUCH_OFF = 1  # reduce "physical" crouch height from sprite height
+        self.CROUCH_HEIGHT = 32 - self.CROUCH_OFF
+
+        self.P_SCALE = 0.5
+        self.P_WIDTH = 128
+        self.P_HEIGHT = 128
+        self.P_WIDTH_S = self.P_WIDTH * self.P_SCALE
+        self.P_HEIGHT_S = self.P_HEIGHT * self.P_SCALE
+
+        self.WIDTH = 32
+        self.HEIGHT = 42
+
+        super(Player, self).__init__(Vector2(0, 0), Rectangle(Vector2(0, 0), self.WIDTH, self.HEIGHT))
         self.distance_to_ground = 0
         self.last_boost = 0
         self.acceleration = 0
@@ -64,9 +78,9 @@ class Player(Entity):
         self.is_plasma_climbing = False
 
         player = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'player.png'))
-        new_size = (player.get_width() * P_SCALE, player.get_height() * P_SCALE)
+        new_size = (player.get_width() * self.P_SCALE, player.get_height() * self.P_SCALE)
         self.sprite = pygame.transform.smoothscale(player, new_size).convert_alpha()
-        self.height = player.get_height() * P_SCALE
+        self.height = player.get_height() * self.P_SCALE
 
     def reset(self):
         self.distance_to_ground = 0
@@ -656,8 +670,8 @@ class Player(Entity):
     def check_can_uncrouch(self):
         stand_rect = copy.copy(self.shape)
         stand_rect.pos = copy.copy(self.shape.pos)
-        stand_rect.pos.y -= (HEIGHT - self.shape.h)
-        stand_rect.h = HEIGHT
+        stand_rect.pos.y -= (self.HEIGHT - self.shape.h)
+        stand_rect.h = self.HEIGHT
         for collider in self.level.static_colliders:
             if collider.shape.overlaps(stand_rect):
                 return False
@@ -708,7 +722,7 @@ class Player(Entity):
         # Fix jumping while colliding with a ramp by warping the player upwards
         # depending on the ramp angle and player speed.
         if self.last_ramp_radians > 0:
-            self.pos.y -= 100 * self.vel.x * math.tan(self.last_ramp_radians)
+            self.pos.y -= 166 * self.vel.x * math.tan(self.last_ramp_radians)
             self.last_ramp_radians = 0
         elif self.last_ramp_radians < 0:
             self.pos.y -= 3
@@ -969,8 +983,8 @@ class Player(Entity):
         def on_enter(self, owner_object):
             #print(__class__, pygame.time.get_ticks())
 
-            owner_object.pos.y += (HEIGHT - CROUCH_HEIGHT)
-            owner_object.shape.h = CROUCH_HEIGHT
+            owner_object.pos.y += (owner_object.HEIGHT - owner_object.CROUCH_HEIGHT)
+            owner_object.shape.h = owner_object.CROUCH_HEIGHT
             owner_object.crouching = True
 
         def update(self, owner_object):
@@ -980,9 +994,9 @@ class Player(Entity):
                 owner_object.lifted_right = False
 
         def on_exit(self, owner_object):
-            owner_object.pos.y -= (HEIGHT - CROUCH_HEIGHT)
+            owner_object.pos.y -= (owner_object.HEIGHT - owner_object.CROUCH_HEIGHT)
             owner_object.start_height = owner_object.pos.y
-            owner_object.shape.h = HEIGHT
+            owner_object.shape.h = owner_object.HEIGHT
             owner_object.crouching = False
 
 
@@ -1013,100 +1027,3 @@ class Player(Entity):
                 owner_object.level.reset()
                 owner_object.reset()
                 owner_object.action_states.on_event('idle')
-
-
-WIDTH=32
-HEIGHT=42
-CROUCH_OFF=1 # reduce "physical" crouch height from sprite height
-CROUCH_HEIGHT=32 - CROUCH_OFF
-
-P_SCALE    = 0.5
-P_WIDTH    = 128
-P_HEIGHT   = 128
-P_WIDTH_S  = P_WIDTH  * P_SCALE
-P_HEIGHT_S = P_HEIGHT * P_SCALE
-
-DEAD_PLAYER   = (0    * P_SCALE, 0    * P_SCALE,              P_WIDTH_S, P_HEIGHT_S)
-IDLE          = (128  * P_SCALE, 256  * P_SCALE,              P_WIDTH_S, P_HEIGHT_S)
-IDLE_PLASMA   = (128  * P_SCALE, 640  * P_SCALE,              P_WIDTH_S, P_HEIGHT_S)
-IDLE_ROCKET   = (128  * P_SCALE, 1024 * P_SCALE,              P_WIDTH_S, P_HEIGHT_S)
-CROUCH        = (0    * P_SCALE, 256  * P_SCALE + CROUCH_OFF, P_WIDTH_S, P_HEIGHT_S - CROUCH_OFF)
-CROUCH_PLASMA = (0    * P_SCALE, 640  * P_SCALE + CROUCH_OFF, P_WIDTH_S, P_HEIGHT_S - CROUCH_OFF)
-CROUCH_ROCKET = (0    * P_SCALE, 1024 * P_SCALE + CROUCH_OFF, P_WIDTH_S, P_HEIGHT_S - CROUCH_OFF)
-SLIDE         = (0    * P_SCALE, 1280 * P_SCALE + CROUCH_OFF, P_WIDTH_S, P_HEIGHT_S - CROUCH_OFF)
-SLIDE_PLASMA  = (256  * P_SCALE, 1280 * P_SCALE + CROUCH_OFF, P_WIDTH_S, P_HEIGHT_S - CROUCH_OFF)
-SLIDE_ROCKET  = (128  * P_SCALE, 1280 * P_SCALE + CROUCH_OFF, P_WIDTH_S, P_HEIGHT_S - CROUCH_OFF)
-PLASMA_CLIMB  = (640  * P_SCALE, 640  * P_SCALE,              P_WIDTH_S, P_HEIGHT_S)
-
-RUN = [
-   (0    * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (128  * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (256  * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (384  * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (512  * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (640  * P_SCALE, 0    * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (0    * P_SCALE, 128  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (128  * P_SCALE, 128  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (256  * P_SCALE, 128  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (384  * P_SCALE, 128  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (512  * P_SCALE, 128  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (640  * P_SCALE, 128  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-]
-
-RUN_PLASMA = [
-   (0    * P_SCALE, 384  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (128  * P_SCALE, 384  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (256  * P_SCALE, 384  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (384  * P_SCALE, 384  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (512  * P_SCALE, 384  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (640  * P_SCALE, 384  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (0    * P_SCALE, 512  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (128  * P_SCALE, 512  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (256  * P_SCALE, 512  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (384  * P_SCALE, 512  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (512  * P_SCALE, 512  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (640  * P_SCALE, 512  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-]
-
-RUN_ROCKET = [
-   (0    * P_SCALE, 768  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (128  * P_SCALE, 768  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (256  * P_SCALE, 768  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (384  * P_SCALE, 768  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (512  * P_SCALE, 768  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (640  * P_SCALE, 768  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (0    * P_SCALE, 896  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (128  * P_SCALE, 896  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (256  * P_SCALE, 896  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (384  * P_SCALE, 896  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (512  * P_SCALE, 896  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (640  * P_SCALE, 896  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-]
-
-WALLJUMP = [
-   (256  * P_SCALE, 256  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (384  * P_SCALE, 256  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (512  * P_SCALE, 256  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-]
-
-WALLJUMP_PLASMA = [
-   (256  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (384  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (512  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-]
-
-WALLJUMP_ROCKET = [
-   (256  * P_SCALE, 1024 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (384  * P_SCALE, 1024 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (512  * P_SCALE, 1024 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-]
-
-SHOOT_PLASMA = [
-   (640  * P_SCALE, 640  * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-]
-
-SHOOT_ROCKET = [
-   (0    * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (128  * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-   (256  * P_SCALE, 1152 * P_SCALE, P_WIDTH_S, P_HEIGHT_S),
-]

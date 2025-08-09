@@ -2,6 +2,8 @@ import os
 
 assets_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets')
 
+FPS = 120
+
 #Shared variables
 screen = None
 surface = None

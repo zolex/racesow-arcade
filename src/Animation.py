@@ -1,14 +1,99 @@
 from src import config
-from src import Player
 
 class Animation:
     """Contains specific animation variables and functions for this class"""
 
     def __init__(self, player):
+        
+        self.DEAD_PLAYER = (0 * player.P_SCALE, 0 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S)
+        self.IDLE = (128 * player.P_SCALE, 256 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S)
+        self.IDLE_PLASMA = (128 * player.P_SCALE, 640 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S)
+        self.IDLE_ROCKET = (128 * player.P_SCALE, 1024 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S)
+        self.CROUCH = (0 * player.P_SCALE, 256 * player.P_SCALE + player.CROUCH_OFF, player.P_WIDTH_S, player.P_HEIGHT_S - player.CROUCH_OFF)
+        self.CROUCH_PLASMA = (0 * player.P_SCALE, 640 * player.P_SCALE + player.CROUCH_OFF, player.P_WIDTH_S, player.P_HEIGHT_S - player.CROUCH_OFF)
+        self.CROUCH_ROCKET = (0 * player.P_SCALE, 1024 * player.P_SCALE + player.CROUCH_OFF, player.P_WIDTH_S, player.P_HEIGHT_S - player.CROUCH_OFF)
+        self.SLIDE = (0 * player.P_SCALE, 1280 * player.P_SCALE + player.CROUCH_OFF, player.P_WIDTH_S, player.P_HEIGHT_S - player.CROUCH_OFF)
+        self.SLIDE_PLASMA = (256 * player.P_SCALE, 1280 * player.P_SCALE + player.CROUCH_OFF, player.P_WIDTH_S, player.P_HEIGHT_S - player.CROUCH_OFF)
+        self.SLIDE_ROCKET = (128 * player.P_SCALE, 1280 * player.P_SCALE + player.CROUCH_OFF, player.P_WIDTH_S, player.P_HEIGHT_S - player.CROUCH_OFF)
+        self.PLASMA_CLIMB = (640 * player.P_SCALE, 640 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S)
+
+        self.RUN = [
+            (0 * player.P_SCALE, 0 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (128 * player.P_SCALE, 0 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (256 * player.P_SCALE, 0 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (384 * player.P_SCALE, 0 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (512 * player.P_SCALE, 0 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (640 * player.P_SCALE, 0 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (0 * player.P_SCALE, 128 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (128 * player.P_SCALE, 128 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (256 * player.P_SCALE, 128 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (384 * player.P_SCALE, 128 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (512 * player.P_SCALE, 128 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (640 * player.P_SCALE, 128 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+        ]
+
+        self.RUN_PLASMA = [
+            (0 * player.P_SCALE, 384 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (128 * player.P_SCALE, 384 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (256 * player.P_SCALE, 384 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (384 * player.P_SCALE, 384 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (512 * player.P_SCALE, 384 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (640 * player.P_SCALE, 384 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (0 * player.P_SCALE, 512 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (128 * player.P_SCALE, 512 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (256 * player.P_SCALE, 512 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (384 * player.P_SCALE, 512 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (512 * player.P_SCALE, 512 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (640 * player.P_SCALE, 512 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+        ]
+
+        self.RUN_ROCKET = [
+            (0 * player.P_SCALE, 768 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (128 * player.P_SCALE, 768 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (256 * player.P_SCALE, 768 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (384 * player.P_SCALE, 768 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (512 * player.P_SCALE, 768 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (640 * player.P_SCALE, 768 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (0 * player.P_SCALE, 896 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (128 * player.P_SCALE, 896 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (256 * player.P_SCALE, 896 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (384 * player.P_SCALE, 896 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (512 * player.P_SCALE, 896 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (640 * player.P_SCALE, 896 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+        ]
+
+        self.WALLJUMP = [
+            (256 * player.P_SCALE, 256 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (384 * player.P_SCALE, 256 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (512 * player.P_SCALE, 256 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+        ]
+
+        self.WALLJUMP_PLASMA = [
+            (256 * player.P_SCALE, 640 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (384 * player.P_SCALE, 640 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (512 * player.P_SCALE, 640 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+        ]
+
+        self.WALLJUMP_ROCKET = [
+            (256 * player.P_SCALE, 1024 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (384 * player.P_SCALE, 1024 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (512 * player.P_SCALE, 1024 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+        ]
+
+        self.SHOOT_PLASMA = [
+            (640 * player.P_SCALE, 640 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+        ]
+
+        self.SHOOT_ROCKET = [
+            (0 * player.P_SCALE, 1152 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (128 * player.P_SCALE, 1152 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (256 * player.P_SCALE, 1152 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+        ]
+        
+        
         self.player = player
-        self.current_sprite = Player.IDLE
+        self.current_sprite = self.IDLE
         self.end_frame = 11
-        self.player_size = 'Default_Player'
         self.anim_frame = 0
         self.anim_timer = config.INITIAL_TIMER_VALUE
 
@@ -27,25 +112,25 @@ class Animation:
         self.select_no_weapon()
 
     def select_no_weapon(self):
-        self.active_run_anim = Player.RUN
-        self.active_walljump_anim = Player.WALLJUMP
-        self.active_crouch_anim = Player.CROUCH
-        self.active_slide_anim = Player.SLIDE
-        self.active_idle_anim = Player.IDLE
+        self.active_run_anim = self.RUN
+        self.active_walljump_anim = self.WALLJUMP
+        self.active_crouch_anim = self.CROUCH
+        self.active_slide_anim = self.SLIDE
+        self.active_idle_anim = self.IDLE
 
     def select_plasma(self):
-        self.active_run_anim = Player.RUN_PLASMA
-        self.active_walljump_anim = Player.WALLJUMP_PLASMA
-        self.active_crouch_anim = Player.CROUCH_PLASMA
-        self.active_slide_anim = Player.SLIDE_PLASMA
-        self.active_idle_anim = Player.IDLE_PLASMA
+        self.active_run_anim = self.RUN_PLASMA
+        self.active_walljump_anim = self.WALLJUMP_PLASMA
+        self.active_crouch_anim = self.CROUCH_PLASMA
+        self.active_slide_anim = self.SLIDE_PLASMA
+        self.active_idle_anim = self.IDLE_PLASMA
 
     def select_rocket(self):
-        self.active_run_anim = Player.RUN_ROCKET
-        self.active_walljump_anim = Player.WALLJUMP_ROCKET
-        self.active_crouch_anim = Player.CROUCH_ROCKET
-        self.active_slide_anim = Player.SLIDE_ROCKET
-        self.active_idle_anim = Player.IDLE_ROCKET
+        self.active_run_anim = self.RUN_ROCKET
+        self.active_walljump_anim = self.WALLJUMP_ROCKET
+        self.active_crouch_anim = self.CROUCH_ROCKET
+        self.active_slide_anim = self.SLIDE_ROCKET
+        self.active_idle_anim = self.IDLE_ROCKET
 
     def set_active_weapon(self):
         if self.player.active_weapon == 'plasma':
@@ -106,7 +191,7 @@ class Animation:
 
     def jump_anim(self):
         if self.player.active_weapon == 'rocket' and self.player.pressed_down :
-            self.current_sprite = Player.SHOOT_ROCKET[2]
+            self.current_sprite = self.SHOOT_ROCKET[2]
             return
 
 
@@ -132,13 +217,13 @@ class Animation:
 
     def rocket_anim(self):
         frame_time = 50
-        if self.anim_frame > len(Player.SHOOT_ROCKET) - 1:
+        if self.anim_frame > len(self.SHOOT_ROCKET) - 1:
             return
-        self.current_sprite = Player.SHOOT_ROCKET[self.anim_frame]
+        self.current_sprite = self.SHOOT_ROCKET[self.anim_frame]
         self.anim_timer += config.delta_time
         if self.anim_timer > frame_time:
             self.anim_timer = 0
             self.anim_frame += 1
 
     def plasma_anim(self):
-        self.current_sprite = Player.SHOOT_PLASMA[0]
+        self.current_sprite = self.SHOOT_PLASMA[0]

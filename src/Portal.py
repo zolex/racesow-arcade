@@ -81,4 +81,4 @@ class Portal(GameObject):
         if player.vel.y > 0:
             player.vel.y = 0
         player.camera.pos.x = self.exit.x - 30
-        player.camera.pos.y = self.exit.y - config.SCREEN_HEIGHT // 2
+        player.camera.pos.y = self.exit.y - player.height

@@ -18,7 +18,7 @@ a = Analysis(
 pyz = PYZ(a.pure)
 
 
-splash = Splash('./assets/graphics/splash.jpg',
+splash = Splash('./assets/graphics/splash_low.jpg',
                 binaries=a.binaries,
                 datas=a.datas,
                 text_pos=(10, 30),

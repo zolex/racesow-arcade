@@ -17,14 +17,14 @@ class Camera(SimpleRect):
         """Checks if camera horizontally overlaps with a rectangle (partial or full containment)"""
         # Check if there's any horizontal overlap
         return not (other.pos.x + other.w <= self.pos.x or  # object is completely to the left
-                    other.pos.x >= self.pos.x + config.SCREEN_WIDTH)  # object is completely to the right
+                    other.pos.x >= self.pos.x + self.w)  # object is completely to the right
 
     def contains_triangle(self, triangle):
         """Checks if camera horizontally overlaps with a triangle (partial or full containment)"""
         # Check if any of the triangle's vertices are horizontally within the camera view
-        if (self.pos.x <= triangle.p1.x <= self.pos.x + config.SCREEN_WIDTH or
-                self.pos.x <= triangle.p2.x <= self.pos.x + config.SCREEN_WIDTH or
-                self.pos.x <= triangle.p3.x <= self.pos.x + config.SCREEN_WIDTH):
+        if (self.pos.x <= triangle.p1.x <= self.pos.x + self.w or
+                self.pos.x <= triangle.p2.x <= self.pos.x + self.w or
+                self.pos.x <= triangle.p3.x <= self.pos.x + self.w):
             return True
 
         # Check if the triangle completely contains the camera horizontally
@@ -35,12 +35,12 @@ class Camera(SimpleRect):
         # If the leftmost point of the triangle is to the left of the camera's left edge
         # AND the rightmost point is to the right of the camera's right edge
         # then the triangle completely contains the camera horizontally
-        if left_x <= self.pos.x and right_x >= self.pos.x + config.SCREEN_WIDTH:
+        if left_x <= self.pos.x and right_x >= self.pos.x + self.w:
             return True
 
         # Check if any of the triangle's edges intersect with the camera's vertical boundaries
         camera_left = self.pos.x
-        camera_right = self.pos.x + config.SCREEN_WIDTH
+        camera_right = self.pos.x + self.w
 
         # Define the triangle's edges
         edges = [
@@ -68,7 +68,7 @@ class Camera(SimpleRect):
     def contains_point(self, point):
         """Checks if camera horizontally contains a point"""
         # Check if the point's x-coordinate is within the camera's horizontal range
-        return self.pos.x <= point.x <= self.pos.x + config.SCREEN_WIDTH
+        return self.pos.x <= point.x <= self.pos.x + self.w
 
     def set_start_pos_y(self, y):
         # This method is now a no-op as the camera always follows the player
@@ -91,12 +91,12 @@ class Camera(SimpleRect):
 
         # when falling, lower the bottom threshold to see where we land
         bottom_sub = 0
-        if player.distance_to_ground is None or player.distance_to_ground > config.SCREEN_HEIGHT * 0.35:
+        if player.distance_to_ground is None or player.distance_to_ground > self.h * 0.35:
             bottom_sub = player.vel.y
 
         # Define thresholds - player can move freely within these bounds
-        top_threshold = config.SCREEN_HEIGHT * 0.25    # 25% from the top
-        bottom_threshold = config.SCREEN_HEIGHT * (0.6 - bottom_sub)  # 60% from the top
+        top_threshold = self.h * 0.25    # 25% from the top
+        bottom_threshold = self.h * (0.6 - bottom_sub)  # 60% from the top
 
         # Only move camera if player goes beyond thresholds or has no y movement
         if player_rel_y < top_threshold:

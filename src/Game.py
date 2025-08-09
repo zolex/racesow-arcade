@@ -1,8 +1,11 @@
 import os, pygame, math
+
+from src.GameScene import GameScene
 from src.Level import Level
 from src.Player import Player
 from src import sounds, config
 from src.Camera import Camera
+from src.Settings import Settings
 from src.Vector2 import Vector2
 from src.Item import Item
 from src.utils import color_gradient
@@ -12,17 +15,17 @@ from src.Item import pre_load_items
 from src.Projectile import pre_load_projectiles
 
 
-class Game():
+class Game(GameScene):
     """Contains main loop and handles the game"""
-    def __init__(self, surface):
+    def __init__(self, surface: pygame.Surface, clock: pygame.time.Clock, settings: Settings = None):
+        super().__init__(surface, clock, settings)
 
         pre_load_decals()
         pre_load_items()
         pre_load_projectiles()
 
-        self.surface = surface
-        self.camera = Camera(Vector2(), config.SCREEN_WIDTH, config.SCREEN_HEIGHT)
-        self.level = Level(self.surface, self.camera)
+        self.camera = Camera(Vector2(), self.settings.width, self.settings.height)
+        self.level = Level(self.surface, self.camera, self.settings)
         self.player = Player(self.surface, self.camera)
         self.level.load('asd', self.player)
         self.camera.set_start_pos_y(self.level.player_start.y)
@@ -54,13 +57,13 @@ class Game():
 
         #self.time.draw()
 
-        hud_center = config.SCREEN_WIDTH / 2
+        hud_center = self.settings.width / 2
         hud_x = hud_center - self.hud.get_width() / 2
-        hud_y = config.SCREEN_HEIGHT - self.hud.get_height() / 2 - 20
+        hud_y = self.settings.height - self.hud.get_height() / 2 - 20
 
         self.surface.blit(self.hud, (hud_x, hud_y))
 
-        fps = config.clock.get_fps()
+        fps = self.clock.get_fps()
         fpss = f"{0 if math.isinf(fps) else round(fps)}".rjust(3, "0")
         fps_text = self.font.render(f"FPS: {fpss}", True, (255, 255, 255))
         self.surface.blit(fps_text, (hud_center - 240, hud_y + 17))
@@ -88,14 +91,14 @@ class Game():
         self.surface.blit(time_text, (hud_center + 160, hud_y + 16))
 
         if self.player.has_plasma:
-            self.surface.blit(Item.types['plasma'], (config.SCREEN_WIDTH - 45, config.SCREEN_HEIGHT - 20))
+            self.surface.blit(Item.types['plasma'], (self.settings.width - 45, self.settings.height - 20))
             fps_text = self.font.render(f"{self.player.plasma_ammo}", True, (255, 255, 255))
-            self.surface.blit(fps_text, (config.SCREEN_WIDTH - 20, config.SCREEN_HEIGHT - 15))
+            self.surface.blit(fps_text, (self.settings.width - 20, self.settings.height - 15))
 
         if self.player.has_rocket:
-            self.surface.blit(Item.types['rocket'], (config.SCREEN_WIDTH - 90, config.SCREEN_HEIGHT - 20))
+            self.surface.blit(Item.types['rocket'], (self.settings.width - 90, self.settings.height - 20))
             fps_text = self.font.render(f"{self.player.rocket_ammo}", True, (255, 255, 255))
-            self.surface.blit(fps_text, (config.SCREEN_WIDTH - 60, config.SCREEN_HEIGHT - 15))
+            self.surface.blit(fps_text, (self.settings.width - 60, self.settings.height - 15))
 
     def update(self):
         self.player.update()
@@ -128,11 +131,8 @@ class Game():
         return True
 
     def game_loop(self):
-        """Main game loop, updates and draws the level every frame"""
-        pygame.mixer.init()
-        pygame.mixer.set_num_channels(64)
         while True:
-            config.delta_time = config.clock.tick(120)
+            config.delta_time = self.tick()
             config.keys = pygame.key.get_pressed()
             config.mods = pygame.key.get_mods()
             if not self.handle_pygame_events():

@@ -1,0 +1,80 @@
+menu:
+  title: MAIN MENU
+  style: default
+  items:
+    - text: PLAY
+      action: play
+    - text: SETTINGS
+      action: menu
+      menu:
+        title: SETTINGS MENU
+        style: default
+        items:
+          - text: CONTROLS
+            action: controls
+          - text: GRAPHICS
+            action: menu
+            menu:
+              title: GRAPHICS MENU
+              style: default
+              items:
+                - text: FULLSCREEN
+                  action: switch_fullscreen
+                - text: RESOLUTION
+                  action: menu
+                  menu:
+                    title: RESOLUTION MENU
+                    style: small
+                    items:
+                      - text: 320x240
+                        action: resolution
+                        width: 320
+                        height: 240
+                      - text: 640x320 (standard)
+                        action: resolution
+                        width: 640
+                        height: 320
+                      - text: 1024x512
+                        action: resolution
+                        width: 1024
+                        height: 512
+                      - text: 1280x640
+                        action: resolution
+                        width: 1280
+                        height: 640
+                      - text: 1920x960
+                        action: resolution
+                        width: 1920
+                        height: 960
+                      - text: 3840x1600
+                        action: resolution
+                        width: 3840
+                        height: 1600
+                      - text: BACK
+                        action: back
+#                - text: MAX FPS
+#                  action: menu
+#                  menu:
+#                    title: MAX FPS
+#                    style: small
+#                    items:
+#                      - text: "30"
+#                        action: fps
+#                        fps: 30
+#                      - text: "60"
+#                        action: fps
+#                        fps: 60
+#                      - text: "120"
+#                        action: fps
+#                        fps: 120
+#                      - text: unlimited
+#                        action: fps
+#                        fps: 0
+#                      - text: BACK
+#                        action: back
+                - text: BACK
+                  action: back
+          - text: BACK
+            action: back
+    - text: QUIT
+      action: quit

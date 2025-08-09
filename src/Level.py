@@ -5,6 +5,7 @@ from src.Decal import Decal
 from src.FinishLine import FinishLine
 from src.JumpPad import JumpPad
 from src.Portal import Portal
+from src.Settings import Settings
 from src.StartLine import StartLine
 from src.Vector2 import Vector2
 from src.Triangle import Triangle
@@ -18,8 +19,9 @@ from src.Player import Player
 from src import config, sounds
 
 class Level:
-    def __init__(self, surface: pygame.surface, camera: Camera):
+    def __init__(self, surface: pygame.surface, camera: Camera, settings: Settings):
 
+        self.settings = settings
         self.map_folder = None
         self.map_name: str|None = None
         self.surface: pygame.surface = surface
@@ -203,7 +205,7 @@ class Level:
             sky_path = os.path.join(self.map_folder, sky)
             if os.path.isfile(sky_path):
                 self.sky = pygame.image.load(sky_path).convert()
-                width = config.SCREEN_WIDTH
+                width = self.settings.width
                 height = int(width * self.sky.get_height() / self.sky.get_width())
                 self.sky = pygame.transform.scale(self.sky, (width, height))
 
@@ -212,7 +214,7 @@ class Level:
             overlay1_path = os.path.join(self.map_folder, overlay)
             if os.path.isfile(overlay1_path):
                 self.overlay = pygame.image.load(overlay1_path).convert_alpha()
-                self.overlay_width = config.SCREEN_WIDTH
+                self.overlay_width = self.settings.width
                 height = int(self.overlay_width * self.overlay.get_height() / self.overlay.get_width())
                 self.overlay = pygame.transform.scale(self.overlay, (self.overlay_width, height))
 
@@ -321,10 +323,10 @@ class Level:
     def draw_overlay(self):
         if self.overlay is not None:
             offset = -1.05 / self.overlay_width * self.camera.pos.x
-            x = config.SCREEN_WIDTH + offset * self.overlay_width + self.overlay_offset
+            x = self.settings.width + offset * self.overlay_width + self.overlay_offset
             if x < -self.overlay_width:
                 self.overlay_offset += self.overlay_width * 2
-            self.surface.blit(self.overlay, (x, config.SCREEN_HEIGHT / 2.5 - self.camera.pos.y * 1.2))
+            self.surface.blit(self.overlay, (x, self.settings.height / 2.5 - self.camera.pos.y * 1.2))
 
     def draw_projectiles(self):
         for projectiles in self.projectiles:
