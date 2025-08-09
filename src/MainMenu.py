@@ -157,6 +157,7 @@ class MainMenu(GameScene):
             self.ok.play()
             pygame.mixer.music.stop()
             Game(self.surface, self.clock, self.settings).game_loop()
+            pygame.mixer.music.play(loops=-1)
 
         elif selected_item.get('action') == 'menu':
             self.ok.play()
