@@ -80,6 +80,10 @@ class Player(Entity):
         self.last_weapon_switch = 0
 
         self.is_plasma_climbing = False
+        self.plasma_cooldown = 92
+        self.plasma_timer = self.plasma_cooldown
+        self.rocket_cooldown = 1337
+        self.rocket_timer = self.rocket_cooldown
 
         player = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'player.png'))
         new_size = (player.get_width() * self.P_SCALE, player.get_height() * self.P_SCALE)
@@ -231,6 +235,9 @@ class Player(Entity):
         self.can_uncrouch = self.crouching and self.check_can_uncrouch()
         self.distance_to_ground = self.get_distance_to_collider_below()
 
+        self.plasma_timer = min(self.plasma_timer + config.delta_time, self.plasma_cooldown)
+        self.rocket_timer = min(self.rocket_timer + config.delta_time, self.rocket_cooldown)
+
         self.handle_inputs()
 
         # Handle state transitions
@@ -268,9 +275,8 @@ class Player(Entity):
 
     def shoot_rocket(self):
         scale = self.settings.get_scale()
-        ticks = pygame.time.get_ticks()
-        if self.last_rocket_time + 1337 < ticks:
-            self.last_rocket_time = pygame.time.get_ticks()
+        if self.rocket_timer >= self.rocket_cooldown:
+            self.rocket_timer -= self.rocket_cooldown
             if self.rocket_ammo <= 0:
                 sounds.weapon_empty.play()
             else:
@@ -284,9 +290,8 @@ class Player(Entity):
 
     def shoot_plasma(self):
         scale = self.settings.get_scale()
-        ticks = pygame.time.get_ticks()
-        if self.last_plasma_time + 100 < ticks:
-            self.last_plasma_time = ticks
+        if self.plasma_timer >= self.plasma_cooldown:
+            self.plasma_timer -= self.plasma_cooldown
             if self.plasma_ammo <= 0:
                 sounds.weapon_empty.play()
             else:

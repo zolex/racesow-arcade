@@ -52,26 +52,26 @@ menu:
                         height: 1600
                       - text: BACK
                         action: back
-#                - text: MAX FPS
-#                  action: menu
-#                  menu:
-#                    title: MAX FPS
-#                    style: small
-#                    items:
-#                      - text: "30"
-#                        action: fps
-#                        fps: 30
-#                      - text: "60"
-#                        action: fps
-#                        fps: 60
-#                      - text: "120"
-#                        action: fps
-#                        fps: 120
-#                      - text: unlimited
-#                        action: fps
-#                        fps: 0
-#                      - text: BACK
-#                        action: back
+                - text: MAX FPS
+                  action: menu
+                  menu:
+                    title: MAX FPS
+                    style: small
+                    items:
+                      - text: "30"
+                        action: fps
+                        fps: 30
+                      - text: "60"
+                        action: fps
+                        fps: 60
+                      - text: "120"
+                        action: fps
+                        fps: 120
+                      - text: unlimited
+                        action: fps
+                        fps: 0
+                      - text: BACK
+                        action: back
                 - text: BACK
                   action: back
           - text: BACK

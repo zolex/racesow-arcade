@@ -136,7 +136,13 @@ class Game(GameScene):
         return True
 
     def game_loop(self):
+
+        frame = 1
         while True:
+
+            print("frame", frame)
+            frame += 1
+
             config.delta_time = self.tick()
             config.keys = pygame.key.get_pressed()
             config.mods = pygame.key.get_mods()
