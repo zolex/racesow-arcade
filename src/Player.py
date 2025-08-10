@@ -299,11 +299,11 @@ class Player(Entity):
                 self.plasma_ammo -= 1
                 if (self.pressed_down or self.pressed_left or self.pressed_up or self.pressed_right) and self.plasma_climb_collisions():
                     if self.pressed_left:
-                        decal_offset = 4 * scale
+                        decal_offset = 5
                     elif self.pressed_right:
-                        decal_offset = 24 * scale
+                        decal_offset = 30
                     else:
-                        decal_offset = 14 * scale
+                        decal_offset = 15
 
                     self.action_states.on_event('plasma')
                     self.map.decals.append(Decal('plasma', 1000, self.pos.x + decal_offset * scale, self.pos.y + 5 * scale, center=True, fade_out=True))
