@@ -1045,7 +1045,6 @@ class Player(Entity):
             #print(__class__, pygame.time.get_ticks())
             #owner_object.freeze_movement = True
             owner_object.freeze_input = True
-            pygame.mixer.music.stop()
             sounds.death.play()
 
         def update(self, owner_object):
