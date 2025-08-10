@@ -28,7 +28,7 @@ class Game(GameScene):
         self.camera = Camera(Vector2(), self.settings)
         self.level = Level(self.surface, self.camera, self.settings)
         self.player = Player(self.surface, self.camera, self.settings)
-        self.level.load('asd', self.player)
+        self.level.load('egypt', self.player)
         self.player.set_level(self.level)
         self.last_velocity = 0
         self.font = pygame.font.Font(None, 16)
@@ -53,9 +53,6 @@ class Game(GameScene):
         self.draw_hud()
 
     def draw_hud(self):
-
-        #self.time.draw()
-
         hud_center = self.settings.width / 2
         hud_x = hud_center - self.hud.get_width() / 2
         hud_y = self.settings.height - self.hud.get_height() / 2 - 20
@@ -129,20 +126,13 @@ class Game(GameScene):
             if event.type == pygame.QUIT:
                 return False
 
-
         if config.keys[pygame.K_ESCAPE] or config.INPUT_BUTTONS[8]:
             return False
 
         return True
 
     def game_loop(self):
-
-        frame = 1
         while True:
-
-            print("frame", frame)
-            frame += 1
-
             config.delta_time = self.tick()
             config.keys = pygame.key.get_pressed()
             config.mods = pygame.key.get_mods()
@@ -151,9 +141,7 @@ class Game(GameScene):
 
             self.update()
             self.draw()
-
             pygame.display.update()
-
 
         back = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'menu', 'back.wav'))
         back.play()

@@ -1,8 +1,7 @@
-import copy, os, pygame, yaml
+import os, pygame, random, yaml
 from src import config
 from src.Game import Game
 from src.Settings import Settings
-from src.sounds import main_theme
 from src.GameScene import GameScene
 
 class MainMenu(GameScene):
@@ -53,9 +52,9 @@ class MainMenu(GameScene):
             "text_offset": 1.33,
             "mapping_offset": 0.66,
         },
-        "medium": {
+        "large": {
             "font_path": "assets/console.ttf",
-            "font_size": 21,
+            "font_size": 30,
             "item_padding": 4,
             "item_margin": 8,
         }
@@ -83,14 +82,22 @@ class MainMenu(GameScene):
 
         self.active_mapping = None
 
-        pygame.mixer.music.load(main_theme)
-        pygame.mixer.music.play(loops=-1)
+        self.music = [
+            os.path.join(config.assets_folder, 'sounds', 'menu_1.ogg'),
+            os.path.join(config.assets_folder, 'sounds', 'menu_2.ogg'),
+        ]
+
+        self.play_music()
 
         self.controllers: list[pygame.joystick.Joystick] = []
         pygame.joystick.init()
         for i in range(0, pygame.joystick.get_count()):
             controller = pygame.joystick.Joystick(i)
             self.controllers.append(controller)
+
+    def play_music(self):
+        pygame.mixer.music.load(self.music[random.choice([0, 1])])
+        pygame.mixer.music.play(loops=-1)
 
     def load_splash(self):
         splash = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'splash.jpg')).convert_alpha()
@@ -323,7 +330,7 @@ class MainMenu(GameScene):
             self.draw_back_button(start_y, style)
 
         # menu title
-        title_style = self.scale_style(MainMenu.MENU_STYLES.get('medium'))
+        title_style = self.scale_style(MainMenu.MENU_STYLES.get('large'))
         text_surface = title_style['font'].render(self.active_menu.get('title'), True, (255, 255, 255))
         text_width, text_height = text_surface.get_size()
         text_x = self.settings.width - text_width - title_style['item_margin']
@@ -504,7 +511,7 @@ class MainMenu(GameScene):
             self.ok.play()
             pygame.mixer.music.stop()
             Game(self.surface, self.clock, self.settings).game_loop()
-            pygame.mixer.music.play(loops=-1)
+            self.play_music()
 
         elif selected_item.get('action') == 'menu':
             self.ok.play()
