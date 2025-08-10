@@ -95,14 +95,14 @@ class Game(GameScene):
         self.surface.blit(time_text, (hud_center + 17 * scale, hud_y + 10 * scale))
 
         if self.player.has_plasma:
-            self.surface.blit(Item.types['plasma'], (self.settings.width - 105, hud_y + 15 * scale))
+            self.surface.blit(Item.types['plasma'], (hud_center + 212 * scale, hud_y + 15 * scale))
             fps_text = self.font.render(f"{self.player.plasma_ammo}", True, (255, 255, 255))
-            self.surface.blit(fps_text, (self.settings.width - 83 * scale, hud_y + 21 * scale))
+            self.surface.blit(fps_text, (hud_center + 235 * scale, hud_y + 21 * scale))
 
         if self.player.has_rocket:
-            self.surface.blit(Item.types['rocket'], (self.settings.width - 65, hud_y + 15 * scale))
+            self.surface.blit(Item.types['rocket'], (hud_center + 255 * scale, hud_y + 15 * scale))
             fps_text = self.font.render(f"{self.player.rocket_ammo}", True, (255, 255, 255))
-            self.surface.blit(fps_text, (self.settings.width - 43 * scale, hud_y + 21 * scale))
+            self.surface.blit(fps_text, (hud_center + 278 * scale, hud_y + 21 * scale))
 
     def update(self):
 
