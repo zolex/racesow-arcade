@@ -1,4 +1,4 @@
-import os, pygame
+import os, pygame, random
 from src.Vector2 import Vector2
 from src import config
 
@@ -21,7 +21,7 @@ class Item:
         self.stay: bool = stay
         self.respawn_at = None
         self.anim_frame = 0
-        self.anim_timer = 0
+        self.anim_timer = random.randint(0, 250)
         self.anim_dir = 1
         self.width = width
         self.height = height
@@ -37,12 +37,12 @@ class Item:
 
         if self.anim_frame == 5:
             self.anim_dir = -1
-            frame_time = 75
+            frame_time = random.randint(50, 100)
         elif self.anim_frame == 0:
             self.anim_dir = 1
-            frame_time = 250
+            frame_time = random.randint(200, 275)
         else:
-            frame_time = 50
+            frame_time = random.randint(33, 66)
 
         self.anim_timer += config.delta_time
         if self.anim_timer > frame_time:

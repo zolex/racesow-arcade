@@ -1,7 +1,23 @@
+name: Egypt
+levelshot: textures/levelshot.png
+version: alpha.1
+sky: textures/sky.png
+parallax_1: textures/parallax1.png
+parallax_2: textures/parallax2.png
 finish_line:
   x: 35392.0
   y: 256.0
 items:
+- ammo: 10
+  stay: false
+  type: rocket
+  x: -32.0
+  y: 352.0
+- ammo: 100
+  stay: false
+  type: plasma
+  x: 32.0
+  y: 352.0
 - ammo: 100
   stay: false
   type: rocket
@@ -42,8 +58,6 @@ jump_pads:
   vel_y: 0.6000000238418579
   x: 11776.0
   y: 352.0
-parallax_1: textures/parallax1.png
-parallax_2: textures/parallax2.png
 player_spawnpoint:
   x: -128.0
   y: 256.0
@@ -1769,7 +1783,6 @@ rectangles:
   x: 11232.0
   y: 384.0
   z_index: 7.0
-sky: textures/sky.png
 start_line:
   x: 160.0
   y: 256.0

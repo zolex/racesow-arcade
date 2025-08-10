@@ -20,7 +20,7 @@ INPUT_LEFT = False
 INPUT_RIGHT = False
 INPUT_BUTTONS = {0: False, 1: False, 2: False, 3: False, 4: False, 5: False, 6: False, 7: False, 8: False, 9: False}
 
-#Colors for level loading
+#Colors for map loading
 BLACK = (0, 0, 0, 255)
 BLUE = (0, 0, 255, 255)
 RED = (255, 0, 0, 255)
@@ -31,7 +31,7 @@ BROWN = (124, 66, 0, 255)
 PURPLE = (124, 0, 255, 255)
 PINK = (255, 0, 255, 255)
 
-#Background color of level
+#Background color of map
 BACKGROUND_COLOR = (107, 140, 255)
 
 #Window settings

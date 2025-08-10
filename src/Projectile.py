@@ -50,7 +50,7 @@ class Projectile(Vector2):
         dy = p1.y - self.y
         return math.sqrt(dx ** 2 + dy ** 2)
 
-    def update(self, level):
+    def update(self, map):
         if self.start_time + self.duration < pygame.time.get_ticks():
             return True
         elif self.vel_x > 0 or self.vel_y > 0:
@@ -61,30 +61,30 @@ class Projectile(Vector2):
             if self.vel_y > self.target_vel:
                 self.vel_y += self.acc * config.delta_time
             if self.sound is not None:
-                distance = self.get_distance(level.player.pos)
+                distance = self.get_distance(map.player.pos)
                 self.sound.set_volume(self.volume_for_distance(distance))
 
             colliders = []
             for list in self.collide_with:
                 if list == 'static':
-                    collider_list = level.static_colliders
+                    collider_list = map.static_colliders
                 elif list == 'ramp':
-                    collider_list = level.static_colliders
+                    collider_list = map.static_colliders
                 elif list == 'wall':
-                    collider_list = level.wall_colliders
+                    collider_list = map.wall_colliders
                 colliders += collider_list
 
             collider = self.check_collisions(colliders)
             if collider is not None:
                 if self.type == 'rocket':
-                    distance = self.get_distance(level.player.pos)
+                    distance = self.get_distance(map.player.pos)
                     sounds.rocket.set_volume(self.volume_for_distance(distance))
                     sounds.rocket.play()
-                    level.player.add_rocket_velocity(distance, math.atan2(level.player.pos.y - self.y, level.player.pos.x - self.x + config.ROCKET_DOWN_OFFSET_X))
+                    map.player.add_rocket_velocity(distance, math.atan2(map.player.pos.y - self.y, map.player.pos.x - self.x + config.ROCKET_DOWN_OFFSET_X))
                     return Decal('rocket', 500, self.x, self.y, center=True, fade_out=True)
 
                 elif self.type == 'plasma':
-                    #level.player.add_plasma_velocity(distance, angle)
+                    #map.player.add_plasma_velocity(distance, angle)
                     return Decal('plasma', 1000, self.x + random.randrange(-3, 3), self.y + random.randrange(-3, 3), center=False, fade_out=True)
 
         return False
