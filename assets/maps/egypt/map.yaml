@@ -1,28 +1,7 @@
-name: Egypt
-levelshot: textures/levelshot.png
-version: alpha.1
-sky: textures/sky.png
-parallax_1: textures/parallax1.png
-parallax_2: textures/parallax2.png
 finish_line:
   x: 35392.0
   y: 256.0
 items:
-- ammo: 10
-  stay: false
-  type: rocket
-  x: -32.0
-  y: 352.0
-- ammo: 100
-  stay: false
-  type: plasma
-  x: 32.0
-  y: 352.0
-- ammo: 100
-  stay: false
-  type: rocket
-  x: 14240.0
-  y: 32.0
 - ammo: 50
   stay: false
   type: plasma
@@ -43,21 +22,37 @@ items:
   type: plasma
   x: 8928.0
   y: 352.0
-- ammo: 1000
+- ammo: 2
   stay: true
   type: rocket
-  x: 13472.0
+  x: 13504.0
   y: -1312.0
-- ammo: 1000
+- ammo: 30
   stay: false
   type: plasma
-  x: 13984.0
-  y: 32.0
+  x: 19168.0
+  y: 352.0
+- ammo: 10
+  stay: false
+  type: rocket
+  x: 20256.0
+  y: -64.0
+- ammo: 2
+  stay: false
+  type: rocket
+  x: 19680.0
+  y: -320.0
+- ammo: 30
+  stay: false
+  type: plasma
+  x: 17728.0
+  y: 352.0
 jump_pads:
 - vel_x: 0.0
   vel_y: 0.6000000238418579
   x: 11776.0
   y: 352.0
+parallax_1: textures/parallax1.png
 player_spawnpoint:
   x: -128.0
   y: 256.0
@@ -67,6 +62,193 @@ portals:
   exit_x: 13280.0
   exit_y: -1472.0
 rectangles:
+- h: 352.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 1504.0
+  wall_type: static
+  x: 13984.0
+  y: 64.0
+  z_index: -42.0
+- h: 64.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 384.0
+  wall_type: static
+  x: 6592.0
+  y: 288.0
+  z_index: -41.0
+- h: 352.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 544.0
+  wall_type: deco
+  x: 19296.0
+  y: -224.0
+  z_index: -40.0
+- h: 256.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 96.0
+  wall_type: deco
+  x: 19744.0
+  y: 128.0
+  z_index: -39.0
+- h: 64.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 19392.0
+  y: 96.0
+  z_index: -37.0
+- h: 192.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 352.0
+  wall_type: deco
+  x: 19072.0
+  y: 0.0
+  z_index: -35.0
+- h: 192.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 19264.0
+  y: 192.0
+  z_index: -34.0
+- h: 192.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 192.0
+  wall_type: deco
+  x: 18976.0
+  y: 192.0
+  z_index: -33.0
+- h: 96.0
+  texture: textures/wall_tl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 128.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 96.0
+  wall_type: wall
+  x: 19360.0
+  y: -192.0
+  z_index: -32.0
+- h: 64.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 160.0
+  wall_type: wall
+  x: 12480.0
+  y: -256.0
+  z_index: -31.0
+- h: 64.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 160.0
+  wall_type: wall
+  x: 11904.0
+  y: 160.0
+  z_index: -30.0
+- h: 128.0
+  texture: textures/wall_t.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 160.0
+  wall_type: wall
+  x: 11904.0
+  y: 32.0
+  z_index: -29.0
+- h: 256.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.05
+  w: 128.0
+  wall_type: deco
+  x: 11936.0
+  y: -32.0
+  z_index: -28.0
+- h: 224.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 160.0
+  wall_type: wall
+  x: 13056.0
+  y: -704.0
+  z_index: -27.0
+- h: 96.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 160.0
+  wall_type: wall
+  x: 12768.0
+  y: -448.0
+  z_index: -26.0
+- h: 64.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 160.0
+  wall_type: wall
+  x: 12192.0
+  y: -64.0
+  z_index: -25.0
+- h: 128.0
+  texture: textures/wall_t.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 160.0
+  wall_type: wall
+  x: 12480.0
+  y: -384.0
+  z_index: -23.0
 - h: 224.0
   texture: textures/wall_tr.png
   texture_offset_x: -32.0
@@ -78,17 +260,6 @@ rectangles:
   x: 1984.0
   y: 224.0
   z_index: -22.0
-- h: 128.0
-  texture: textures/wall_t.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 160.0
-  wall_type: wall
-  x: 11904.0
-  y: 32.0
-  z_index: -21.0
 - h: 192.0
   texture: textures/start.png
   texture_offset_x: 0.0
@@ -139,7 +310,7 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 288.0
+  w: 256.0
   wall_type: static
   x: 13728.0
   y: -2304.0
@@ -161,7 +332,7 @@ rectangles:
   texture_offset_y: 0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 7648.0
+  w: 2528.0
   wall_type: deco
   x: 17536.0
   y: 416.0
@@ -199,17 +370,6 @@ rectangles:
   x: 13344.0
   y: -1280.0
   z_index: -11.0
-- h: 64.0
-  texture: textures/wall.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 160.0
-  wall_type: wall
-  x: 11904.0
-  y: 160.0
-  z_index: -7.0
 - h: 128.0
   texture: textures/wall.png
   texture_offset_x: 0.0
@@ -293,9 +453,9 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 2080.0
+  w: 3104.0
   wall_type: static
-  x: 11904.0
+  x: 11456.0
   y: 512.0
   z_index: 0.0
 - h: 256.0
@@ -397,28 +557,6 @@ rectangles:
   x: 12512.0
   y: -288.0
   z_index: 0.0
-- h: 256.0
-  texture: textures/palm.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.05
-  w: 128.0
-  wall_type: deco
-  x: 11936.0
-  y: -32.0
-  z_index: 0.0
-- h: 64.0
-  texture: textures/stone.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 448.0
-  wall_type: static
-  x: 6560.0
-  y: 288.0
-  z_index: 0.0
 - h: 64.0
   texture: textures/rail_l.png
   texture_offset_x: 0.0
@@ -427,7 +565,7 @@ rectangles:
   texture_scale: 1.0
   w: 129.0
   wall_type: deco
-  x: 8256.0
+  x: 8416.0
   y: 320.0
   z_index: 0.0
 - h: 64.0
@@ -447,9 +585,9 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 128.0
+  w: 64.0
   wall_type: deco
-  x: 6720.0
+  x: 6752.0
   y: 224.0
   z_index: 0.0
 - h: 64.0
@@ -458,9 +596,9 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 129.0
+  w: 128.0
   wall_type: deco
-  x: 6592.0
+  x: 6624.0
   y: 224.0
   z_index: 0.0
 - h: 256.0
@@ -486,17 +624,6 @@ rectangles:
   y: 256.0
   z_index: 0.0
 - h: 64.0
-  texture: textures/rail_m.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 128.0
-  wall_type: deco
-  x: 8384.0
-  y: 320.0
-  z_index: 0.0
-- h: 64.0
   texture: textures/plant.png
   texture_offset_x: 0.0
   texture_offset_y: 0.0
@@ -504,8 +631,8 @@ rectangles:
   texture_scale: 1.0
   w: 192.0
   wall_type: deco
-  x: 4352.0
-  y: 320.0
+  x: 3968.0
+  y: 224.0
   z_index: 0.0
 - h: 64.0
   texture: textures/rail_r.png
@@ -515,7 +642,7 @@ rectangles:
   texture_scale: 1.0
   w: 128.0
   wall_type: deco
-  x: 8512.0
+  x: 8544.0
   y: 320.0
   z_index: 0.0
 - h: 192.0
@@ -548,7 +675,7 @@ rectangles:
   texture_scale: 1.0
   w: 128.0
   wall_type: deco
-  x: 8640.0
+  x: 8736.0
   y: 320.0
   z_index: 0.0
 - h: 192.0
@@ -570,7 +697,7 @@ rectangles:
   texture_scale: 1.0
   w: 128.0
   wall_type: deco
-  x: 6848.0
+  x: 6816.0
   y: 224.0
   z_index: 0.0
 - h: 64.0
@@ -695,17 +822,6 @@ rectangles:
   y: 448.0
   z_index: 0.0
 - h: 128.0
-  texture: textures/driftsand_l.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 128.0
-  wall_type: static
-  x: 9728.0
-  y: 384.0
-  z_index: 0.0
-- h: 128.0
   texture: textures/wall_t.png
   texture_offset_x: 0.0
   texture_offset_y: 0.0
@@ -788,9 +904,9 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 6784.0
+  w: 6656.0
   wall_type: static
-  x: 3040.0
+  x: 3168.0
   y: 384.0
   z_index: 0.0
 - h: 256.0
@@ -854,54 +970,10 @@ rectangles:
   texture_offset_y: 0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 7680.0
+  w: 7296.0
   wall_type: deco
-  x: 25184.0
+  x: 25568.0
   y: 416.0
-  z_index: 0.0
-- h: 64.0
-  texture: textures/wall.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 160.0
-  wall_type: wall
-  x: 12192.0
-  y: -64.0
-  z_index: 0.0
-- h: 64.0
-  texture: textures/wall.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 160.0
-  wall_type: wall
-  x: 12480.0
-  y: -256.0
-  z_index: 0.0
-- h: 96.0
-  texture: textures/wall.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 160.0
-  wall_type: wall
-  x: 12768.0
-  y: -448.0
-  z_index: 0.0
-- h: 224.0
-  texture: textures/wall.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 160.0
-  wall_type: wall
-  x: 13056.0
-  y: -704.0
   z_index: 0.0
 - h: 128.0
   texture: textures/wall_tr.png
@@ -1069,17 +1141,6 @@ rectangles:
   y: 384.0
   z_index: 0.0
 - h: 32.0
-  texture: textures/border_tsfl.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 128.0
-  wall_type: deco
-  x: 13984.0
-  y: 64.0
-  z_index: 0.0
-- h: 32.0
   texture: textures/border_ter.png
   texture_offset_x: 0.0
   texture_offset_y: 0.0
@@ -1221,17 +1282,6 @@ rectangles:
   wall_type: wall
   x: 13856.0
   y: -128.0
-  z_index: 0.0
-- h: 352.0
-  texture: textures/stone.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 1504.0
-  wall_type: static
-  x: 13984.0
-  y: 64.0
   z_index: 0.0
 - h: 992.0
   texture: textures/stone.png
@@ -1536,7 +1586,7 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 608.0
+  w: 480.0
   wall_type: static
   x: 2016.0
   y: 384.0
@@ -1558,9 +1608,9 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 51296.0
+  w: 47456.0
   wall_type: static
-  x: 18592.0
+  x: 22432.0
   y: 384.0
   z_index: 0.0
 - h: 192.0
@@ -1591,7 +1641,7 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 352.0
+  w: 384.0
   wall_type: static
   x: 3872.0
   y: 288.0
@@ -1673,17 +1723,6 @@ rectangles:
   x: 12192.0
   y: -192.0
   z_index: 0.0
-- h: 128.0
-  texture: textures/wall_t.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 160.0
-  wall_type: wall
-  x: 12480.0
-  y: -384.0
-  z_index: 0.0
 - h: 480.0
   texture: textures/wall_l.png
   texture_offset_x: 0.0
@@ -1701,9 +1740,9 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 1664.0
+  w: 1824.0
   wall_type: static
-  x: 9728.0
+  x: 9632.0
   y: 512.0
   z_index: 0.0
 - h: 96.0
@@ -1716,6 +1755,820 @@ rectangles:
   wall_type: static
   x: 1408.0
   y: 512.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 1568.0
+  wall_type: static
+  x: 19648.0
+  y: -256.0
+  z_index: 0.0
+- h: 576.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 96.0
+  wall_type: wall
+  x: 19840.0
+  y: -192.0
+  z_index: 0.0
+- h: 160.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 1120.0
+  wall_type: wall
+  x: 19936.0
+  y: -192.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/wall_l.png
+  texture_offset_x: 0.0
+  texture_offset_y: -32.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: wall
+  x: 19072.0
+  y: 224.0
+  z_index: 0.0
+- h: 352.0
+  texture: textures/wall_r.png
+  texture_offset_x: -32.0
+  texture_offset_y: -32.0
+  texture_rotation: 0.0
+  texture_scale: 0.9975
+  w: 64.0
+  wall_type: wall
+  x: 19936.0
+  y: 32.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_t.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 1568.0
+  wall_type: deco
+  x: 19648.0
+  y: -288.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/rail_m.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 1056.0
+  wall_type: deco
+  x: 19968.0
+  y: -352.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/rail_r.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 21024.0
+  y: -352.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/rail_l.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 19840.0
+  y: -352.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/wall_tl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: wall
+  x: 19104.0
+  y: 96.0
+  z_index: 0.0
+- h: 160.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 192.0
+  wall_type: wall
+  x: 19648.0
+  y: -192.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 192.0
+  wall_type: wall
+  x: 19456.0
+  y: -64.0
+  z_index: 0.0
+- h: 160.0
+  texture: textures/wall_r.png
+  texture_offset_x: 96.0
+  texture_offset_y: -128.0
+  texture_rotation: 0.0
+  texture_scale: 0.9975
+  w: 64.0
+  wall_type: wall
+  x: 19264.0
+  y: 224.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/wall_l.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: wall
+  x: 19232.0
+  y: 0.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/wall_r.png
+  texture_offset_x: -32.0
+  texture_offset_y: 32.0
+  texture_rotation: 0.0
+  texture_scale: 0.9975
+  w: 64.0
+  wall_type: wall
+  x: 19392.0
+  y: 0.0
+  z_index: 0.0
+- h: 160.0
+  texture: textures/wall_l.png
+  texture_offset_x: 0.0
+  texture_offset_y: -32.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: wall
+  x: 19328.0
+  y: -96.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/wall_t.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 192.0
+  wall_type: wall
+  x: 19456.0
+  y: -192.0
+  z_index: 0.0
+- h: 160.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: wall
+  x: 19200.0
+  y: 224.0
+  z_index: 0.0
+- h: 160.0
+  texture: textures/wall_r.png
+  texture_offset_x: 96.0
+  texture_offset_y: -160.0
+  texture_rotation: 0.0
+  texture_scale: 0.9975
+  w: 64.0
+  wall_type: wall
+  x: 19296.0
+  y: 96.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 96.0
+  wall_type: wall
+  x: 19232.0
+  y: 96.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 32.0
+  wall_type: wall
+  x: 19360.0
+  y: 0.0
+  z_index: 0.0
+- h: 352.0
+  texture: textures/wall_l.png
+  texture_offset_x: 0.0
+  texture_offset_y: -96.0
+  texture_rotation: 0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: wall
+  x: 19808.0
+  y: 32.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/plant.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 20096.0
+  y: -96.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/plant.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 20512.0
+  y: -96.0
+  z_index: 0.0
+- h: 192.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: -32.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 19712.0
+  y: -480.0
+  z_index: 0.0
+- h: 288.0
+  texture: textures/palm.png
+  texture_offset_x: 1.0
+  texture_offset_y: -45.0
+  texture_rotation: 0
+  texture_scale: 1.4441
+  w: 192.0
+  wall_type: deco
+  x: 20384.0
+  y: -576.0
+  z_index: 0.0
+- h: 192.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: -32.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 20736.0
+  y: -480.0
+  z_index: 0.0
+- h: 96.0
+  texture: textures/palm.png
+  texture_offset_x: 31.0
+  texture_offset_y: -16.0
+  texture_rotation: 0.0
+  texture_scale: 0.5
+  w: 64.0
+  wall_type: deco
+  x: 15328.0
+  y: -32.0
+  z_index: 0.0
+- h: 96.0
+  texture: textures/palm.png
+  texture_offset_x: 31.0
+  texture_offset_y: -16.0
+  texture_rotation: 0.0
+  texture_scale: 0.5
+  w: 64.0
+  wall_type: deco
+  x: 16480.0
+  y: 128.0
+  z_index: 0.0
+- h: 96.0
+  texture: textures/palm.png
+  texture_offset_x: 31.0
+  texture_offset_y: -16.0
+  texture_rotation: 0.0
+  texture_scale: 0.5
+  w: 64.0
+  wall_type: deco
+  x: 19776.0
+  y: -384.0
+  z_index: 0.0
+- h: 96.0
+  texture: textures/palm.png
+  texture_offset_x: 31.0
+  texture_offset_y: -16.0
+  texture_rotation: 0.0
+  texture_scale: 0.5
+  w: 64.0
+  wall_type: deco
+  x: 20736.0
+  y: -384.0
+  z_index: 0.0
+- h: 96.0
+  texture: textures/palm.png
+  texture_offset_x: 31.0
+  texture_offset_y: -16.0
+  texture_rotation: 0.0
+  texture_scale: 0.5
+  w: 64.0
+  wall_type: deco
+  x: 20384.0
+  y: -384.0
+  z_index: 0.0
+- h: 192.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: -32.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 17056.0
+  y: 128.0
+  z_index: 0.0
+- h: 192.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: -32.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 15968.0
+  y: -32.0
+  z_index: 0.0
+- h: 288.0
+  texture: textures/palm.png
+  texture_offset_x: 1.0
+  texture_offset_y: -45.0
+  texture_rotation: 0
+  texture_scale: 1.4441
+  w: 192.0
+  wall_type: deco
+  x: 16352.0
+  y: -64.0
+  z_index: 0.0
+- h: 288.0
+  texture: textures/palm.png
+  texture_offset_x: 1.0
+  texture_offset_y: -45.0
+  texture_rotation: 0
+  texture_scale: 1.4441
+  w: 192.0
+  wall_type: deco
+  x: 15872.0
+  y: -128.0
+  z_index: 0.0
+- h: 192.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: -32.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 16544.0
+  y: 64.0
+  z_index: 0.0
+- h: 192.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: -32.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 15328.0
+  y: -128.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 19168.0
+  y: -128.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 19104.0
+  y: -64.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 19232.0
+  y: -192.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 256.0
+  wall_type: deco
+  x: 19392.0
+  y: -256.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 96.0
+  wall_type: deco
+  x: 19648.0
+  y: 128.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 32.0
+  wall_type: deco
+  x: 19392.0
+  y: 256.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 18912.0
+  y: 256.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 19008.0
+  y: 64.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 18848.0
+  y: 320.0
+  z_index: 0.0
+- h: 96.0
+  texture: textures/wall_l.png
+  texture_offset_x: 0.0
+  texture_offset_y: -64.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 96.0
+  wall_type: wall
+  x: 19008.0
+  y: 288.0
+  z_index: 0.0
+- h: 96.0
+  texture: textures/wall.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 96.0
+  wall_type: wall
+  x: 19104.0
+  y: 288.0
+  z_index: 0.0
+- h: 96.0
+  texture: textures/wall_r.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: wall
+  x: 19456.0
+  y: -32.0
+  z_index: 0.0
+- h: 96.0
+  texture: textures/wall_tl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 96.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 96.0
+  wall_type: wall
+  x: 19776.0
+  y: -64.0
+  z_index: 0.0
+- h: 160.0
+  texture: textures/wall_r.png
+  texture_offset_x: -16.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 96.0
+  wall_type: wall
+  x: 21056.0
+  y: -192.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_t.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 1472.0
+  wall_type: static
+  x: 18592.0
+  y: 384.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_tel.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 96.0
+  wall_type: deco
+  x: 18592.0
+  y: 384.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_tel.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 96.0
+  wall_type: deco
+  x: 17536.0
+  y: 384.0
+  z_index: 0.0
+- h: 96.0
+  texture: textures/stone.png
+  texture_offset_x: 0
+  texture_offset_y: 0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 3136.0
+  wall_type: deco
+  x: 22432.0
+  y: 416.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/driftsand_l.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 19936.0
+  y: 384.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/driftsand_r.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 22432.0
+  y: 384.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/driftsand_f1.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 2368.0
+  wall_type: death
+  x: 20064.0
+  y: 448.0
+  z_index: 0.0
+- h: 96.0
+  texture: textures/stone.png
+  texture_offset_x: 0
+  texture_offset_y: 0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 3136.0
+  wall_type: static
+  x: 19648.0
+  y: 512.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_t.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 384.0
+  wall_type: deco
+  x: 3872.0
+  y: 320.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_tsfr.png
+  texture_offset_x: 32.0
+  texture_offset_y: -32.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 3872.0
+  y: 320.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_tsfl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 4192.0
+  y: 320.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_tsl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 3872.0
+  y: 288.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_tsr.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 4128.0
+  y: 288.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/rail_l.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 4384.0
+  y: 320.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/rail_r.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 4576.0
+  y: 320.0
+  z_index: 0.0
+- h: 64.0
+  texture: textures/rail_m.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 4512.0
+  y: 320.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_ter.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: static
+  x: 2496.0
+  y: 384.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_t.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 5920.0
+  wall_type: static
+  x: 3904.0
+  y: 384.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_tsfl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: static
+  x: 3040.0
+  y: 384.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_tsfl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 13856.0
+  y: -288.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_tsfr.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 13728.0
+  y: -288.0
+  z_index: 0.0
+- h: 32.0
+  texture: textures/border_tsfl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 96.0
+  wall_type: deco
+  x: 13504.0
+  y: -1216.0
   z_index: 0.0
 - h: 128.0
   texture: textures/driftsand_l.png
@@ -1756,22 +2609,220 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 1440.0
-  wall_type: deco
-  x: 14048.0
-  y: 64.0
-  z_index: 4.0
+  w: 416.0
+  wall_type: static
+  x: 13536.0
+  y: 384.0
+  z_index: 6.0
+- h: 64.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 1600.0
+  wall_type: static
+  x: 19936.0
+  y: -32.0
+  z_index: 9.0
 - h: 32.0
   texture: textures/border_t.png
   texture_offset_x: 0.0
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 416.0
-  wall_type: static
-  x: 13536.0
+  w: 1568.0
+  wall_type: deco
+  x: 19936.0
+  y: -32.0
+  z_index: 10.0
+- h: 32.0
+  texture: textures/border_tsfl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 19936.0
+  y: -32.0
+  z_index: 13.0
+- h: 32.0
+  texture: textures/border_tsfr.png
+  texture_offset_x: -32.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 21472.0
+  y: -32.0
+  z_index: 14.0
+- h: 32.0
+  texture: textures/border_tsfr.png
+  texture_offset_x: -32.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 21152.0
+  y: -288.0
+  z_index: 15.0
+- h: 32.0
+  texture: textures/border_tsfl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 19648.0
+  y: -288.0
+  z_index: 16.0
+- h: 32.0
+  texture: textures/border_t.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 1536.0
+  wall_type: deco
+  x: 19936.0
+  y: 0.0
+  z_index: 17.0
+- h: 32.0
+  texture: textures/border_tsfl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 21472.0
+  y: 0.0
+  z_index: 18.0
+- h: 32.0
+  texture: textures/border_tsfr.png
+  texture_offset_x: -32.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 19936.0
+  y: 0.0
+  z_index: 19.0
+- h: 32.0
+  texture: textures/border_ter.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 17760.0
   y: 384.0
-  z_index: 6.0
+  z_index: 21.0
+- h: 32.0
+  texture: textures/border_t.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 1568.0
+  wall_type: deco
+  x: 19648.0
+  y: -224.0
+  z_index: 22.0
+- h: 32.0
+  texture: textures/border_tsfl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 21152.0
+  y: -224.0
+  z_index: 23.0
+- h: 32.0
+  texture: textures/border_tsfr.png
+  texture_offset_x: -32.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 19648.0
+  y: -224.0
+  z_index: 24.0
+- h: 32.0
+  texture: textures/border_tsl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 6592.0
+  y: 288.0
+  z_index: 25.0
+- h: 32.0
+  texture: textures/border_t.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 320.0
+  wall_type: deco
+  x: 6624.0
+  y: 320.0
+  z_index: 27.0
+- h: 32.0
+  texture: textures/border_tsr.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 6848.0
+  y: 288.0
+  z_index: 28.0
+- h: 32.0
+  texture: textures/border_tsfl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 6912.0
+  y: 320.0
+  z_index: 29.0
+- h: 32.0
+  texture: textures/border_tsfr.png
+  texture_offset_x: 32.0
+  texture_offset_y: -32.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: deco
+  x: 6592.0
+  y: 320.0
+  z_index: 30.0
+- h: 128.0
+  texture: textures/driftsand_l.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: static
+  x: 9728.0
+  y: 384.0
+  z_index: 31.0
 - h: 128.0
   texture: textures/driftsand_r.png
   texture_offset_x: 0.0
@@ -1782,7 +2833,96 @@ rectangles:
   wall_type: static
   x: 11232.0
   y: 384.0
-  z_index: 7.0
+  z_index: 32.0
+- h: 32.0
+  texture: textures/border_tsl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 12192.0
+  y: 0.0
+  z_index: 33.0
+- h: 32.0
+  texture: textures/border_tsl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 11904.0
+  y: 224.0
+  z_index: 34.0
+- h: 32.0
+  texture: textures/border_tsl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 12480.0
+  y: -192.0
+  z_index: 35.0
+- h: 32.0
+  texture: textures/border_tsl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 12768.0
+  y: -352.0
+  z_index: 36.0
+- h: 32.0
+  texture: textures/border_tsl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 13056.0
+  y: -480.0
+  z_index: 37.0
+- h: 32.0
+  texture: textures/border_tsfl.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 13984.0
+  y: 64.0
+  z_index: 38.0
+- h: 32.0
+  texture: textures/border_t.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 1440.0
+  wall_type: deco
+  x: 14048.0
+  y: 64.0
+  z_index: 39.0
+- h: 32.0
+  texture: textures/border_ter.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 15360.0
+  y: 64.0
+  z_index: 40.0
+sky: textures/sky.png
 start_line:
   x: 160.0
   y: 256.0
@@ -1850,20 +2990,6 @@ triangles:
     y: 384.0
   - x: 67776.0
     y: 320.0
-  texture: textures/stone.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  wall_type: ramp
-  z_index: 0.0
-- points:
-  - x: 3872.0
-    y: 288.0
-  - x: 4224.0
-    y: 288.0
-  - x: 4128.0
-    y: 224.0
   texture: textures/stone.png
   texture_offset_x: 0.0
   texture_offset_y: 0.0

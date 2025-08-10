@@ -1,4 +1,4 @@
-import os, pygame, random, yaml
+import os, pygame, random, yaml, webbrowser
 from src import config
 from src.Game import Game
 from src.Settings import Settings
@@ -617,14 +617,42 @@ class MainMenu(GameScene):
     def get_selected_item(self):
         return self.active_menu.get('items')[self.selected_item] if self.selected_item >= 0 else {'action': 'back'}
 
+    def load_maps_menu(self):
+        return {
+            'menu': {
+                'title': 'MAPS',
+                'action': 'menu',
+                'items': [
+                    {
+                        'action': 'map',
+                        'map': 'egypt',
+                        'text': 'EGYPT (alpha.1)',
+                    },
+                    {
+                        'action': 'web_link',
+                        'link': 'https://github.com/zolex/RAME/blob/alpha.1/README.md',
+                        'text': 'create your own map!',
+                    },
+                ]
+            }
+        }
+
     def menu_ok(self):
         selected_item = self.get_selected_item()
 
         if selected_item.get('action') == 'play':
             self.ok.play()
+            self.activate_menu(self.load_maps_menu())
+
+        elif selected_item.get('action') == 'map':
+            self.ok.play()
             self.stop_music()
-            Game(self.surface, self.clock, self.settings).game_loop(self)
+            Game(selected_item.get('map'), self.surface, self.clock, self.settings).game_loop(self)
             self.play_music()
+
+        elif selected_item.get('action') == 'web_link':
+            self.ok.play()
+            webbrowser.open(selected_item.get('link'))
 
         elif selected_item.get('action') == 'menu':
             self.ok.play()

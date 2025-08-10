@@ -77,7 +77,7 @@ class Camera(SimpleRect):
         if player.vel.y > 0 and player.distance_to_ground > self.settings.height - bottom_threshold_base:
 
             if self.initial_falling_distance is None or self.initial_falling_distance == float("inf"):
-                print("initial fall distance", player.distance_to_ground)
+                #print("initial fall distance", player.distance_to_ground)
                 self.initial_falling_distance = player.distance_to_ground
 
             ## quad ease in-out
@@ -123,7 +123,7 @@ class Camera(SimpleRect):
             if player.vel.y == 0 and distance > 23:
                 # Start settling if not already started or target changed significantly
                 if not self.settling: #abs(self.settling_target_y - desired_target_y) > 100:
-                    print("Settling camera to target Y:", desired_target_y, "dist", distance)
+                    #print("Settling camera to target Y:", desired_target_y, "dist", distance)
                     self.settling = True
                     self.settling_elapsed = 0.0
                     self.settling_start_y = self.pos.y
@@ -153,7 +153,6 @@ class Camera(SimpleRect):
         self.settling_start_y = None
         self.settling_target_y = None
         self.is_looking_ahead = False
-        print("reset settling.")
 
         # --- containment helpers kept as-is (you had them already) ---
     def contains_rect(self, other):

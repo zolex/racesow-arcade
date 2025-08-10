@@ -170,7 +170,7 @@ class Map:
         ### store everything in quadtree ###
         ####################################
 
-        print("min_x:", min_x, "max_x:", max_x, "min_y:", min_y, "max_y:", max_y)
+        #print("min_x:", min_x, "max_x:", max_x, "min_y:", min_y, "max_y:", max_y)
         self.tree = QuadTree(bbox=(min_x, min_y, max_x, max_y))
 
         for item in self.items:
@@ -232,16 +232,40 @@ class Map:
                 height = int(self.parallax_2_width * self.parallax_2.get_height() / self.parallax_2.get_width())
                 self.parallax_2 = pygame.transform.scale(self.parallax_2, (self.parallax_2_width, height))
 
-    #def draw_tree(self, surface: pygame.surface):
-    #    all_bbox = self.tree.get_all_bbox()
-    #    for bbox in all_bbox:
-    #        rect_to_draw = (bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1])
-    #        pygame.draw.rect(surface, (255, 0, 0), rect_to_draw, 1)
-
     def reset(self):
-        self.projectiles = []
-        for item in self.items:
-            item.picked_up = False
+        self.sky: pygame.image = None
+        self.parallax_1: pygame.image = None
+        self.parallax_1_width: int | None = None
+        self.parallax_1_offset: int = 0
+        self.parallax_2: pygame.image = None
+        self.parallax_2_width: int | None = None
+        self.parallax_2_offset: int = 0
+
+        self.static_colliders =  []
+        self.ramp_colliders = []
+        self.wall_colliders = []
+        self.death_colliders = []
+        self.dynamic_colliders = []
+        self.decoration = []
+        self.projectiles: list[Projectile] = []
+        self.decals: list[Decal] = []
+        self.items = []
+        self.last_decal_velocity: int = 0
+        self.player_start: Vector2 = Vector2(70, 70)
+
+        self.portals = []
+        self.jump_pads = []
+
+        self.tree: QuadTree|None = None
+        self.filtered_objects = []
+
+        self.start_line: StartLine|None = None
+        self.finish_line: FinishLine | None = None
+        self.timer: int = 0
+        self.timer_start = None
+        self.timer_stop = None
+
+        self.load(self.map_name, self.player)
 
     def start_timer(self):
         self.timer_start = pygame.time.get_ticks()
@@ -301,8 +325,8 @@ class Map:
     def draw(self):
         self.surface.fill(config.BACKGROUND_COLOR)
         self.draw_sky()
-        self.draw_parallax_1()
         self.draw_parallax_2()
+        self.draw_parallax_1()
 
         for collider in self.static_colliders + self.wall_colliders + self.ramp_colliders + self.death_colliders + self.decoration:
             collider.shape.draw(self.surface, self.camera)
@@ -352,7 +376,7 @@ class Map:
 
     def draw_parallax_2(self):
         if self.parallax_2 is not None:
-            parallax_2_factor = 0.5  # smaller = further away
+            parallax_2_factor = 0.125  # smaller = further away
 
             # Calculate offset based on camera position
             offset_x = -parallax_2_factor * self.camera.pos.x

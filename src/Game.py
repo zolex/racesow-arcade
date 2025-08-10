@@ -17,7 +17,7 @@ from src.Projectile import pre_load_projectiles
 
 class Game(GameScene):
     """Contains main loop and handles the game"""
-    def __init__(self, surface: pygame.Surface, clock: pygame.time.Clock, settings: Settings = None):
+    def __init__(self, map: str, surface: pygame.Surface, clock: pygame.time.Clock, settings: Settings = None):
         super().__init__(surface, clock, settings)
 
         self.quit = False
@@ -30,7 +30,7 @@ class Game(GameScene):
         self.camera = Camera(Vector2(), self.settings)
         self.map = Map(self.surface, self.camera, self.settings)
         self.player = Player(self.surface, self.camera, self.settings)
-        self.map.load('egypt', self.player)
+        self.map.load(map, self.player)
         self.player.set_map(self.map)
         self.last_velocity = 0
         self.start_time = pygame.time.get_ticks()
@@ -121,13 +121,13 @@ class Game(GameScene):
 
         mappings = {
             "left": lambda v: setattr(self.player, "pressed_left", v),
-            "right": lambda v: setattr(self.player, "pressed_right", v),
-            "up": lambda v: setattr(self.player, "pressed_up", v),
-            "down": lambda v: setattr(self.player, "pressed_down", v),
+            "right": lambda v: self.player.input_right(v),
+            "up": lambda v: self.player.input_up(v),
+            "down": lambda v: self.player.input_down(v),
             "jump": lambda v: self.player.input_jump(v),
             "wall_jump": lambda v: self.player.input_wall_jump(v),
             "shoot": lambda v: setattr(self.player, "pressed_shoot", v),
-            "switch_weapon": lambda v: setattr(self.player, "pressed_switch_weapon", v),
+            "switch_weapon": lambda v: self.player.input_switch_weapon(v),
             "back": lambda v: setattr(self, "quit", v),
         }
 
@@ -140,7 +140,6 @@ class Game(GameScene):
                     main.quit = True
                     break
 
-                continue
                 for mapping, callback in mappings.items():
                     if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
                         mapped_key = keyboard.get(mapping, {}).get('key')
