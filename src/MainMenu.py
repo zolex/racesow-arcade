@@ -52,6 +52,15 @@ class MainMenu(GameScene):
             "text_offset": 1.33,
             "mapping_offset": 0.66,
         },
+        "dialog": {
+            "font_path": "assets/console.ttf",
+            "font_size": 9,
+            "item_padding": 3,
+            "item_margin": 2,
+            "font_size_small": 7,
+            "font_size_large": 18,
+            "item_width": "fit_text",
+        },
         "large": {
             "font_path": "assets/console.ttf",
             "font_size": 30,
@@ -71,6 +80,7 @@ class MainMenu(GameScene):
     def __init__(self, surface, clock, settings: Settings):
         super().__init__(surface, clock, settings)
         self.quit = False
+        self.quit_really = False
         self.splash: pygame.Surface = self.load_splash()
         self.selected_item = 0
         self.select = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'menu', 'select.wav'))
@@ -97,7 +107,10 @@ class MainMenu(GameScene):
 
     def play_music(self):
         pygame.mixer.music.load(self.music[random.choice([0, 1])])
-        pygame.mixer.music.play(loops=-1)
+        pygame.mixer.music.play(loops=-1, fade_ms=2000)
+
+    def stop_music(self):
+        pygame.mixer.music.fadeout(2000)
 
     def load_splash(self):
         splash = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'splash.jpg')).convert_alpha()
@@ -243,25 +256,25 @@ class MainMenu(GameScene):
         return None
 
     def draw_mapping_text(self, type, action, current_mapping, back_key, style):
-        """
-        Render multiline text to a surface.
-        If max_width is provided, text is word-wrapped to fit within that width.
-        """
-        rendered_lines = [
+        return self.draw_dialog_text([
             style['font'].render(f"press any {"key" if type == 'keyboard' else "button"} on your {type} to assign", True, MainMenu.ITEM_TEXT_DEFAULT),
             style['font_xlarge'].render(f'ACTION: {action}', True, MainMenu.ITEM_TEXT_ACTIVE),
             style['font_large'].render(f"CURRENT {current_mapping}", True, MainMenu.ITEM_TEXT_DEFAULT),
             style['font_small'].render(f"press {back_key} to abort", True, MainMenu.ITEM_TEXT_DEFAULT),
-        ]
+        ], style)
 
-        max_line_width = max(line.get_width() for line in rendered_lines)
-        surface_width = style.get('item_width', max_line_width)
-        total_height = sum(line.get_height() for line in rendered_lines) + style['item_margin'] * 3 * (len(rendered_lines) - 1) + style['item_padding'] * 8
-
+    def draw_dialog_text(self, lines, style):
+        """
+        Render multiline text to a surface.
+        If max_width is provided, text is word-wrapped to fit within that width.
+        """
+        max_line_width = max(line.get_width() for line in lines)
+        surface_width = self.get_item_width(style, max_line_width)
+        total_height = sum(line.get_height() for line in lines) + style['item_margin'] * 3 * (len(lines) - 1) + style['item_padding'] * 8
         surface = pygame.Surface((surface_width, total_height), pygame.SRCALPHA)
 
         y = style['item_padding'] * 4
-        for line_surf in rendered_lines:
+        for line_surf in lines:
             x = (surface_width - line_surf.get_width()) // 2
             surface.blit(line_surf, (x, y))
             y += line_surf.get_height() + style['item_margin'] * 3
@@ -300,11 +313,44 @@ class MainMenu(GameScene):
         text_y = rect_y + (rect_height - text_height) // 2
         self.surface.blit(text_surface, (text_x, text_y))
 
-    def get_item_width(self, style, text_width):
-        if style['item_width'] == 'fit_text':
-            return text_width + style['item_padding'] * 8
+    def draw_quit_confirmation(self):
+        style = self.scale_style(MainMenu.MENU_STYLES.get('dialog'))
+        back_key = self.settings.mapping.get('keyboard', {}).get('back', {})
+        back_button = self.settings.mapping.get('controller', {}).get('back', {})
+        back_name = self.get_mapping_name(back_key)
+        back_name2 = self.get_mapping_name(back_button)
+        select_key = self.settings.mapping.get('keyboard', {}).get('select', {})
+        select_button = self.settings.mapping.get('controller', {}).get('select', {})
+        select_name = self.get_mapping_name(select_key)
+        select_name2 = self.get_mapping_name(select_button)
+        text_surface = self.draw_dialog_text([
+            style['font'].render('Are you sure, you want to', True, MainMenu.ITEM_TEXT_DEFAULT),
+            style['font_large'].render('QUIT?', True, MainMenu.ITEM_TEXT_ACTIVE),
+            style['font_small'].render(f'press {back_name} or {back_name2} to stay', True, MainMenu.ITEM_TEXT_DEFAULT),
+            style['font_small'].render(f"press {select_name} or {select_name2} to leave", True, MainMenu.ITEM_TEXT_DARK),
+        ], style)
+
+        rect_height = text_surface.get_height()
+        text_width, text_height = text_surface.get_size()
+        rect_width = self.get_item_width(style, text_width)
+        rect_y = self.surface.get_height() / 1.5 - rect_height / 2
+        rect_x = (self.surface.get_width() - rect_width) // 2
+
+        # Draw transparent rectangle
+        rect_surface = pygame.Surface((rect_width, rect_height), pygame.SRCALPHA)
+        rect_surface.fill(MainMenu.ITEM_BACKGROUND_ACTIVE)
+        self.surface.blit(rect_surface, (rect_x, rect_y))
+
+        # Center text on the rectangle
+        text_x = rect_x + (rect_width - text_width) // 2
+        text_y = rect_y + (rect_height - text_height) // 2
+        self.surface.blit(text_surface, (text_x, text_y))
+
+    def get_item_width(self, style, text_width, default=100):
+        if style.get('item_width') == 'fit_text':
+            return text_width + style.get('item_padding') * 8
         else:
-            return style['item_width']
+            return style.get('item_width', default)
 
     def draw(self):
         self.surface.fill((0, 0, 0))
@@ -313,8 +359,18 @@ class MainMenu(GameScene):
         if self.active_menu is None:
             return None
 
+        # menu title
+        title_style = self.scale_style(MainMenu.MENU_STYLES.get('large'))
+        text_surface = title_style['font'].render(self.active_menu.get('title'), True, (255, 255, 255))
+        text_width, text_height = text_surface.get_size()
+        text_x = self.settings.width - text_width - title_style['item_margin']
+        self.surface.blit(text_surface, (text_x, title_style['item_margin']))
+
         if self.active_mapping is not None:
             return self.draw_active_mapping()
+
+        if self.quit:
+            return self.draw_quit_confirmation()
 
 
         style_name = self.active_menu.get('style', 'default')
@@ -329,12 +385,7 @@ class MainMenu(GameScene):
         if self.has_back_button():
             self.draw_back_button(start_y, style)
 
-        # menu title
-        title_style = self.scale_style(MainMenu.MENU_STYLES.get('large'))
-        text_surface = title_style['font'].render(self.active_menu.get('title'), True, (255, 255, 255))
-        text_width, text_height = text_surface.get_size()
-        text_x = self.settings.width - text_width - title_style['item_margin']
-        self.surface.blit(text_surface, (text_x, title_style['item_margin']))
+
 
         menu_index = 0
         for item in menu_items:
@@ -406,10 +457,73 @@ class MainMenu(GameScene):
         text_y = rect_y + back_style['item_margin'] + back_style['item_padding']
         self.surface.blit(text_surface, (text_x, text_y))
 
+    def handle_quit_really(self, keyboard, controller):
+        self.stop_music()
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                back_key = keyboard.get('back', {}).get('key')
+                if event.key == back_key:
+                    self.back.play()
+                    self.play_music()
+                    self.quit = False
+                    return
+
+                select_key = keyboard.get('select', {}).get('key')
+                if event.key == select_key:
+                    self.quit_really = True
+                    return
+
+            elif event.type  == pygame.JOYBUTTONDOWN:
+                back_button = controller.get('back', {}).get('button')
+                if event.button == back_button:
+                    self.back.play()
+                    self.play_music()
+                    self.quit = False
+                    return
+
+                select_button = controller.get('select', {}).get('key')
+                if event.button == select_button:
+                    self.quit_really = True
+                    return
+
+            elif event.type == pygame.JOYAXISMOTION:
+                back_axis = controller.get('back', {}).get('axis')
+                back_value = controller.get('back', {}).get('value')
+                if event.axis == back_axis and round(event.value) == back_value:
+                    self.back.play()
+                    self.play_music()
+                    self.quit = False
+                    return
+
+                select_axis = controller.get('select', {}).get('axis')
+                select_value = controller.get('select', {}).get('value')
+                if event.axis == select_axis and round(event.value) == select_value:
+                    self.quit_really = True
+                    return
+
+            elif event.type == pygame.JOYHATMOTION:
+                back_hat = controller.get('back', {}).get('hat')
+                back_value = controller.get('back', {}).get('value')
+                if event.hat == back_hat and event.value == back_value:
+                    self.back.play()
+                    self.play_music()
+                    self.quit = False
+                    return
+
+                select_hat = controller.get('select', {}).get('hat')
+                select_value = controller.get('select', {}).get('value')
+                if event.hat == select_hat and event.value == select_value:
+                    self.quit_really = True
+                    return
+
     def handle_inputs(self):
 
         keyboard = self.settings.mapping.get('keyboard', {})
         controller = self.settings.mapping.get('controller', {})
+
+        if self.quit:
+            self.handle_quit_really(keyboard, controller)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.quit = True
@@ -457,7 +571,6 @@ class MainMenu(GameScene):
                     self.menu_ok()
 
             elif event.type == pygame.JOYAXISMOTION:
-
                 if self.active_mapping is not None:
                     back_axis = controller.get('back', {}).get('axis')
                     back_value = controller.get('back', {}).get('value')
@@ -509,8 +622,8 @@ class MainMenu(GameScene):
 
         if selected_item.get('action') == 'play':
             self.ok.play()
-            pygame.mixer.music.stop()
-            Game(self.surface, self.clock, self.settings).game_loop()
+            self.stop_music()
+            Game(self.surface, self.clock, self.settings).game_loop(self)
             self.play_music()
 
         elif selected_item.get('action') == 'menu':
@@ -610,10 +723,9 @@ class MainMenu(GameScene):
     def game_loop(self):
         while True:
             self.handle_inputs()
-            if self.quit:
-                break
-
             self.tick()
             self.update()
             self.draw()
             pygame.display.update()
+            if self.quit_really:
+                break

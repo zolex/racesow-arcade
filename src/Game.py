@@ -132,19 +132,23 @@ class Game(GameScene):
                 config.INPUT_BUTTONS[event.button] = False
 
             if event.type == pygame.QUIT:
-                return False
+                return 2
 
         if config.keys[pygame.K_ESCAPE] or config.INPUT_BUTTONS[8]:
-            return False
+            return 1
 
-        return True
+        return 0
 
-    def game_loop(self):
+    def game_loop(self, main):
         while True:
             config.delta_time = self.tick()
             config.keys = pygame.key.get_pressed()
             config.mods = pygame.key.get_mods()
-            if not self.handle_pygame_events():
+            code = self.handle_pygame_events()
+            if code == 1:
+                break
+            if code == 2:
+                main.quit = True
                 break
 
             self.update()
