@@ -1,6 +1,6 @@
 import os, pygame, math
 
-from src.GameScene import GameScene
+from src.Scene import GameScene
 from src.Map import Map
 from src.Player import Player
 from src import config
@@ -20,6 +20,8 @@ class Game(GameScene):
     def __init__(self, surface: pygame.Surface, clock: pygame.time.Clock, settings: Settings = None):
         super().__init__(surface, clock, settings)
 
+        self.quit = False
+
         SCALE = settings.get_scale()
         pre_load_decals(SCALE)
         pre_load_items(SCALE)
@@ -31,7 +33,7 @@ class Game(GameScene):
         self.map.load('egypt', self.player)
         self.player.set_map(self.map)
         self.last_velocity = 0
-
+        self.start_time = pygame.time.get_ticks()
 
         scale = self.settings.get_scale()
         self.font = pygame.font.Font('assets/console.ttf', int(8 * scale))
@@ -41,13 +43,11 @@ class Game(GameScene):
         hud = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'hud.png')).convert_alpha()
         self.hud = pygame.transform.scale(hud, (hud.get_width() / 2 * scale, hud.get_height() / 2 * scale))
 
+        self.controllers: list[pygame.joystick.Joystick] = []
         pygame.joystick.init()
-        if pygame.joystick.get_count():
-            self.joystick = pygame.joystick.Joystick(0)
-            self.joystick.init()
-
-        self.start_time = pygame.time.get_ticks()
-
+        for i in range(0, pygame.joystick.get_count()):
+            controller = pygame.joystick.Joystick(i)
+            self.controllers.append(controller)
 
     def draw(self):
         """Draw all GameObjects and sprites that are currently on screen"""
@@ -115,40 +115,65 @@ class Game(GameScene):
         self.camera.update(self.player)
         self.map.update(self.player)
 
-    def handle_pygame_events(self):
-        for event in pygame.event.get():
-            if event.type == pygame.JOYAXISMOTION:
-                axis0 = self.joystick.get_axis(0)
-                axis1 = self.joystick.get_axis(1)
-                config.INPUT_DOWN = axis1 > 0.5
-                config.INPUT_UP = axis1 < -0.5
-                config.INPUT_LEFT = axis0 < -0.5
-                config.INPUT_RIGHT = axis0 > 0.5
-
-            if event.type == pygame.JOYBUTTONDOWN:
-                config.INPUT_BUTTONS[event.button] = True
-
-            if event.type == pygame.JOYBUTTONUP:
-                config.INPUT_BUTTONS[event.button] = False
-
-            if event.type == pygame.QUIT:
-                return 2
-
-        if config.keys[pygame.K_ESCAPE] or config.INPUT_BUTTONS[8]:
-            return 1
-
-        return 0
-
     def game_loop(self, main):
+        keyboard = self.settings.mapping.get('keyboard', {})
+        controller = self.settings.mapping.get('controller', {})
+
+        mappings = {
+            "left": lambda v: setattr(self.player, "pressed_left", v),
+            "right": lambda v: setattr(self.player, "pressed_right", v),
+            "up": lambda v: setattr(self.player, "pressed_up", v),
+            "down": lambda v: setattr(self.player, "pressed_down", v),
+            "jump": lambda v: self.player.input_jump(v),
+            "wall_jump": lambda v: self.player.input_wall_jump(v),
+            "shoot": lambda v: setattr(self.player, "pressed_shoot", v),
+            "switch_weapon": lambda v: setattr(self.player, "pressed_switch_weapon", v),
+            "back": lambda v: setattr(self, "quit", v),
+        }
+
         while True:
             config.delta_time = self.tick()
-            config.keys = pygame.key.get_pressed()
-            config.mods = pygame.key.get_mods()
-            code = self.handle_pygame_events()
-            if code == 1:
-                break
-            if code == 2:
-                main.quit = True
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.quit = True
+                    main.quit = True
+                    break
+
+                continue
+                for mapping, callback in mappings.items():
+                    if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
+                        mapped_key = keyboard.get(mapping, {}).get('key')
+                        if event.key == mapped_key:
+                            callback(event.type == pygame.KEYDOWN)
+                            break
+
+                        mapped_mod = keyboard.get(mapping, {}).get('mod')
+                        if mapped_mod and event.mod & mapped_mod:
+                            callback(event.type == pygame.KEYDOWN)
+                            break
+
+                    elif event.type == pygame.JOYBUTTONDOWN or event.type == pygame.JOYBUTTONUP:
+                        mapped_button = controller.get(mapping, {}).get('button')
+                        if event.button == mapped_button:
+                            callback(event.type == pygame.JOYBUTTONDOWN)
+                            break
+
+                    elif event.type == pygame.JOYAXISMOTION:
+                        mapped_axis = controller.get(mapping, {}).get('axis')
+                        mapped_value = controller.get(mapping, {}).get('value')
+                        if event.axis == mapped_axis:
+                            callback(round(event.value) == mapped_value)
+                            break
+
+                    elif event.type == pygame.JOYHATMOTION:
+                        mapped_hat = controller.get(mapping, {}).get('hat')
+                        mapped_value = controller.get(mapping, {}).get('value')
+                        if event.hat == mapped_hat:
+                            callback(event.value == mapped_value)
+                            break
+
+            if self.quit:
                 break
 
             self.update()

@@ -2,7 +2,7 @@ import os, pygame, random, yaml
 from src import config
 from src.Game import Game
 from src.Settings import Settings
-from src.GameScene import GameScene
+from src.Scene import GameScene
 
 class MainMenu(GameScene):
 

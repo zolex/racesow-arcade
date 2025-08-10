@@ -18,7 +18,7 @@ class GameScene(ABC):
         return self.delta_time
 
     @abstractmethod
-    def game_loop(self):
+    def game_loop(self, main=None):
         pass
 
     @abstractmethod

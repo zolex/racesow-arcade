@@ -48,8 +48,9 @@ class Player(Entity):
         self.pressed_up = False
         self.pressed_left = False
         self.pressed_right = False
-        self.lifted_right = False
+        self.released_right = False
         self.pressed_jump = False
+        self.released_jump = True
         self.pressed_shoot = False
         self.pressed_down = False
         self.crouching = False
@@ -100,7 +101,7 @@ class Player(Entity):
         self.pressed_up = False
         self.pressed_left = False
         self.pressed_right = False
-        self.lifted_right = False
+        self.released_right = False
         self.jump_pressed_at = None
         self.pressed_jump = False
         self.crouching = False
@@ -178,31 +179,31 @@ class Player(Entity):
         if self.freeze_input:
             return
 
-        if config.INPUT_UP or config.keys[pygame.K_w]:
-            self.pressed_up = True
-        elif not config.INPUT_UP and not config.keys[pygame.K_w]:
-            self.pressed_up = False
+        #if config.INPUT_UP or config.keys[pygame.K_w]:
+        #    self.pressed_up = True
+        #elif not config.INPUT_UP and not config.keys[pygame.K_w]:
+        #    self.pressed_up = False
 
-        if config.keys[pygame.K_s] or config.INPUT_DOWN:
-            self.pressed_down = True
-        elif not config.keys[pygame.K_s] and not config.INPUT_DOWN:
-            self.pressed_down = False
+        #if config.keys[pygame.K_s] or config.INPUT_DOWN:
+        #    self.pressed_down = True
+        #elif not config.keys[pygame.K_s] and not config.INPUT_DOWN:
+        #    self.pressed_down = False
 
-        if config.INPUT_RIGHT or config.keys[pygame.K_d]:
-            self.pressed_right = True
-        elif not config.INPUT_RIGHT and not config.keys[pygame.K_d]:
-            self.lifted_right = True
-            self.pressed_right = False
+        #if config.INPUT_RIGHT or config.keys[pygame.K_d]:
+        #    self.pressed_right = True
+        #elif not config.INPUT_RIGHT and not config.keys[pygame.K_d]:
+        #    self.released_right = True
+        #    self.pressed_right = False
 
-        if config.INPUT_LEFT or config.keys[pygame.K_a]:
-            self.pressed_left = True
-        elif not config.INPUT_LEFT and not config.keys[pygame.K_a]:
-            self.pressed_left = False
+        #if config.INPUT_LEFT or config.keys[pygame.K_a]:
+        #    self.pressed_left = True
+        #elif not config.INPUT_LEFT and not config.keys[pygame.K_a]:
+        #    self.pressed_left = False
 
 
-        if (config.INPUT_BUTTONS[1] or config.mods & pygame.KMOD_ALT) and (pygame.time.get_ticks() - self.last_walljump > 1000) and self.walljump_collisions():
-            self.last_walljump = pygame.time.get_ticks()
-            self.action_states.on_event('walljump')
+        #if (config.INPUT_BUTTONS[1] or config.mods & pygame.KMOD_ALT) and (pygame.time.get_ticks() - self.last_walljump > 1000) and self.walljump_collisions():
+        #    self.last_walljump = pygame.time.get_ticks()
+        #    self.action_states.on_event('walljump')
 
         if (config.INPUT_BUTTONS[3] or config.mods & pygame.KMOD_CTRL) and self.last_weapon_switch + 666 < pygame.time.get_ticks():
             if self.active_weapon == 'rocket' and self.has_plasma:
@@ -230,6 +231,26 @@ class Player(Entity):
             self.pressed_jump = False
 
 
+    def input_wall_jump(self, v):
+        self.pressed_wall_jump = v
+        if v:
+            if pygame.time.get_ticks() - self.last_walljump > 1000 and self.walljump_collisions():
+                self.last_walljump = pygame.time.get_ticks()
+                self.action_states.on_event('walljump')
+
+    def input_jump(self, v):
+        self.pressed_jump = v
+        if v:
+            self.released_jump = False
+            if self.jump_pressed_at is None:
+                self.jump_pressed_at = pygame.time.get_ticks()
+                if not self.jump_action_distance and not self.last_ramp_radians:
+                    self.jump_action_distance = self.distance_to_ground / self.settings.get_scale()
+        else:
+            self.jump_pressed_at = None
+            self.pressed_jump = False
+            self.released_jump = True
+
     def update(self):
 
         self.can_uncrouch = self.crouching and self.check_can_uncrouch()
@@ -238,7 +259,7 @@ class Player(Entity):
         self.plasma_timer = min(self.plasma_timer + config.delta_time, self.plasma_cooldown)
         self.rocket_timer = min(self.rocket_timer + config.delta_time, self.rocket_cooldown)
 
-        self.handle_inputs()
+        #self.handle_inputs()
 
         # Handle state transitions
         if self.vel.y > 0 and self.current_action_state != 'Plasma_State':
@@ -1018,9 +1039,9 @@ class Player(Entity):
 
         def update(self, owner_object):
             owner_object.acceleration = 0
-            if owner_object.vel.x == 0 and owner_object.pressed_right and owner_object.lifted_right:
+            if owner_object.vel.x == 0 and owner_object.pressed_right and owner_object.released_right:
                 owner_object.vel.x = 0.1 * owner_object.settings.get_scale()
-                owner_object.lifted_right = False
+                owner_object.released_right = False
 
         def on_exit(self, owner_object):
             scale = owner_object.settings.get_scale()
