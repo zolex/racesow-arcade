@@ -67,12 +67,11 @@ class Projectile(Vector2):
             colliders = []
             for list in self.collide_with:
                 if list == 'static':
-                    collider_list = map.static_colliders
+                    colliders += map.static_colliders
                 elif list == 'ramp':
-                    collider_list = map.static_colliders
+                    colliders += map.ramp_colliders
                 elif list == 'wall':
-                    collider_list = map.wall_colliders
-                colliders += collider_list
+                    colliders += map.wall_colliders
 
             collider = self.check_collisions(colliders)
             if collider is not None:

@@ -26,7 +26,6 @@ class Item:
         self.width = width
         self.height = height
 
-        print(type)
         self.sprite = Item.types[type]
 
         self.bbox = (self.pos.x, self.pos.y, self.pos.x + self.width, self.pos.y + self.height)

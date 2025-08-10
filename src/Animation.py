@@ -5,7 +5,7 @@ class Animation:
 
     def __init__(self, player):
         
-        self.DEAD_PLAYER = (0 * player.P_SCALE, 0 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S)
+        self.DEAD_PLAYER = (640 * player.P_SCALE, 1280 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S)
         self.IDLE = (128 * player.P_SCALE, 256 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S)
         self.IDLE_PLASMA = (128 * player.P_SCALE, 640 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S)
         self.IDLE_ROCKET = (128 * player.P_SCALE, 1024 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S)
@@ -24,7 +24,7 @@ class Animation:
             (384 * player.P_SCALE, 0 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
             (512 * player.P_SCALE, 0 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
             (640 * player.P_SCALE, 0 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
-            (0 * player.P_SCALE, 128 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (0 * player.P_SCALE,   128 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
             (128 * player.P_SCALE, 128 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
             (256 * player.P_SCALE, 128 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
             (384 * player.P_SCALE, 128 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
@@ -39,7 +39,7 @@ class Animation:
             (384 * player.P_SCALE, 384 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
             (512 * player.P_SCALE, 384 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
             (640 * player.P_SCALE, 384 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
-            (0 * player.P_SCALE, 512 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
+            (0 * player.P_SCALE,   512 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
             (128 * player.P_SCALE, 512 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
             (256 * player.P_SCALE, 512 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
             (384 * player.P_SCALE, 512 * player.P_SCALE, player.P_WIDTH_S, player.P_HEIGHT_S),
@@ -142,11 +142,14 @@ class Animation:
 
     def reset_anim(self):
         """Reset animation variables"""
+        """Reset animation variables"""
         self.anim_frame = 0
         self.anim_timer = config.INITIAL_TIMER_VALUE
 
     def animate(self):
-        if self.player.current_action_state == 'Idle_State':
+        if self.player.current_action_state == 'Dead_State':
+            self.current_sprite = self.DEAD_PLAYER
+        elif self.player.current_action_state == 'Idle_State':
             self.idle_anim()
         elif self.player.current_action_state == 'Move_State':
             self.run_anim()
@@ -155,13 +158,11 @@ class Animation:
         elif self.player.current_action_state == 'Jump_State':
             self.jump_anim()
         elif self.player.current_action_state == 'Fall_State':
-            self.jump_anim()
+            self.fall_anim()
         elif self.player.current_action_state == 'Walljump_State':
             self.walljump_anim()
         elif self.player.current_action_state == 'Crouch_State':
             self.crouch_anim()
-        elif self.player.current_action_state == 'Rocket_State':
-            self.rocket_anim()
         elif self.player.current_action_state == 'Plasma_State':
             self.plasma_anim()
 
@@ -170,40 +171,51 @@ class Animation:
         self.current_sprite = self.active_idle_anim
 
     def crouch_anim(self):
-        if self.player.pressed_right and self.player.vel.x > 0:
+        #print(self.player.distance_to_ground)
+        if self.player.pressed_right and self.player.ground_touch_pos is not None:
             self.current_sprite = self.active_slide_anim
         else:
             self.current_sprite = self.active_crouch_anim
 
     def run_anim(self):
-        frame_time = 50 / max(0.7, self.player.vel.x * 2.5 / self.player.settings.get_scale())
-        self.current_sprite = self.active_run_anim[self.anim_frame]
-        self.anim_timer += config.delta_time
-        if self.anim_timer > frame_time:
-            self.anim_timer = 0
-            self.anim_frame += 1
-            if self.anim_frame > len(self.active_run_anim) - 1:
-                self.anim_frame = 0
+        if self.player.pressed_down:
+            self.crouch_anim()
+        else:
+            frame_time = 50 / max(0.7, self.player.vel.x * 2.5 / self.player.settings.get_scale())
+            self.current_sprite = self.active_run_anim[self.anim_frame]
+            self.anim_timer += config.delta_time
+            if self.anim_timer > frame_time:
+                self.anim_timer = 0
+                self.anim_frame += 1
+                if self.anim_frame > len(self.active_run_anim) - 1:
+                    self.anim_frame = 0
 
     def begin_jump(self):
         current_frame = self.anim_frame
         self.end_frame = 5 if current_frame < 5 or current_frame == 11 else 11
 
+    def fall_anim(self):
+        if self.player.pressed_down:
+            if self.player.active_weapon == 'rocket':
+                self.rocket_anim()
+            else:
+                self.crouch_anim()
+        else:
+            self.jump_anim()
+
     def jump_anim(self):
         if self.player.active_weapon == 'rocket' and self.player.pressed_down :
-            self.current_sprite = self.SHOOT_ROCKET[2]
-            return
-
-
-        frame_time = 50
-        self.anim_timer += config.delta_time
-        self.current_sprite = self.active_run_anim[self.anim_frame]
-        if self.anim_timer > frame_time and self.anim_frame != self.end_frame:
-            self.anim_timer = 0
-            if self.anim_frame == len(self.active_run_anim) - 1:
-                self.anim_frame = 0
-            else:
-                self.anim_frame += 1
+            self.rocket_anim()
+        else:
+            frame_time = 50
+            self.anim_timer += config.delta_time
+            self.current_sprite = self.active_run_anim[self.anim_frame]
+            if self.anim_timer > frame_time and self.anim_frame != self.end_frame:
+                self.anim_timer = 0
+                if self.anim_frame == len(self.active_run_anim) - 1:
+                    self.anim_frame = 0
+                else:
+                    self.anim_frame += 1
 
     def walljump_anim(self):
         frame_time = 50
@@ -216,14 +228,7 @@ class Animation:
             self.anim_frame += 1
 
     def rocket_anim(self):
-        frame_time = 50
-        if self.anim_frame > len(self.SHOOT_ROCKET) - 1:
-            return
-        self.current_sprite = self.SHOOT_ROCKET[self.anim_frame]
-        self.anim_timer += config.delta_time
-        if self.anim_timer > frame_time:
-            self.anim_timer = 0
-            self.anim_frame += 1
+        self.current_sprite = self.SHOOT_ROCKET[2]
 
     def plasma_anim(self):
         self.current_sprite = self.SHOOT_PLASMA[0]

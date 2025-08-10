@@ -1,8 +1,10 @@
-import os, pygame, random, yaml
+import os, pygame, random, yaml, webbrowser
 from src import config
 from src.Game import Game
 from src.Settings import Settings
-from src.GameScene import GameScene
+from src.Scene import GameScene
+from src.utils import resource_path
+
 
 class MainMenu(GameScene):
 
@@ -12,37 +14,39 @@ class MainMenu(GameScene):
     ITEM_TEXT_ACTIVE = (255, 128, 16)
     ITEM_TEXT_DARK = (168, 92, 0)
 
+    font_path = resource_path(os.path.join('assets', 'console.ttf'))
+
     MENU_SCALE = 256
     MENU_STYLES = {
         "default": {
-            "font_path": "assets/console.ttf",
+            "font_path": font_path,
             "font_size": 16,
             "item_padding": 8,
             "item_margin": 10,
             "text_offset": 1.66
         },
         "small": {
-            "font_path": "assets/console.ttf",
+            "font_path": font_path,
             "font_size": 11,
             "item_padding": 3,
             "item_margin": 4,
             "text_offset": 1.66
         },
         "back": {
-            "font_path": "assets/console.ttf",
+            "font_path": font_path,
             "font_size": 10,
             "item_padding": 1,
             "item_margin": 1,
             "item_width": "fit_text"
         },
         "spacer": {
-            "font_path": "assets/console.ttf",
+            "font_path": font_path,
             "font_size": 5,
             "item_padding": 0,
             "item_margin": 0,
         },
         "mapping": {
-            "font_path": "assets/console.ttf",
+            "font_path": font_path,
             "font_size": 9,
             "item_padding": 3,
             "item_margin": 2,
@@ -53,7 +57,7 @@ class MainMenu(GameScene):
             "mapping_offset": 0.66,
         },
         "dialog": {
-            "font_path": "assets/console.ttf",
+            "font_path": font_path,
             "font_size": 9,
             "item_padding": 3,
             "item_margin": 2,
@@ -62,7 +66,7 @@ class MainMenu(GameScene):
             "item_width": "fit_text",
         },
         "large": {
-            "font_path": "assets/console.ttf",
+            "font_path": font_path,
             "font_size": 30,
             "item_padding": 4,
             "item_margin": 8,
@@ -257,7 +261,7 @@ class MainMenu(GameScene):
 
     def draw_mapping_text(self, type, action, current_mapping, back_key, style):
         return self.draw_dialog_text([
-            style['font'].render(f"press any {"key" if type == 'keyboard' else "button"} on your {type} to assign", True, MainMenu.ITEM_TEXT_DEFAULT),
+            style['font'].render(f"press any {'key' if type == 'keyboard' else 'button'} on your {type} to assign", True, MainMenu.ITEM_TEXT_DEFAULT),
             style['font_xlarge'].render(f'ACTION: {action}', True, MainMenu.ITEM_TEXT_ACTIVE),
             style['font_large'].render(f"CURRENT {current_mapping}", True, MainMenu.ITEM_TEXT_DEFAULT),
             style['font_small'].render(f"press {back_key} to abort", True, MainMenu.ITEM_TEXT_DEFAULT),
@@ -617,14 +621,42 @@ class MainMenu(GameScene):
     def get_selected_item(self):
         return self.active_menu.get('items')[self.selected_item] if self.selected_item >= 0 else {'action': 'back'}
 
+    def load_maps_menu(self):
+        return {
+            'menu': {
+                'title': 'MAPS',
+                'action': 'menu',
+                'items': [
+                    {
+                        'action': 'map',
+                        'map': 'egypt',
+                        'text': 'EGYPT (alpha.1)',
+                    },
+                    {
+                        'action': 'web_link',
+                        'link': 'https://github.com/zolex/RAME/blob/alpha.1/README.md',
+                        'text': 'create your own map!',
+                    },
+                ]
+            }
+        }
+
     def menu_ok(self):
         selected_item = self.get_selected_item()
 
         if selected_item.get('action') == 'play':
             self.ok.play()
+            self.activate_menu(self.load_maps_menu())
+
+        elif selected_item.get('action') == 'map':
+            self.ok.play()
             self.stop_music()
-            Game(self.surface, self.clock, self.settings).game_loop(self)
+            Game(selected_item.get('map'), self.surface, self.clock, self.settings).game_loop(self)
             self.play_music()
+
+        elif selected_item.get('action') == 'web_link':
+            self.ok.play()
+            webbrowser.open(selected_item.get('link'))
 
         elif selected_item.get('action') == 'menu':
             self.ok.play()
