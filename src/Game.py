@@ -1,7 +1,7 @@
 import os, pygame, math
 
 from src.GameScene import GameScene
-from src.Level import Level
+from src.Map import Map
 from src.Player import Player
 from src import config
 from src.Camera import Camera
@@ -26,16 +26,20 @@ class Game(GameScene):
         pre_load_projectiles(SCALE)
 
         self.camera = Camera(Vector2(), self.settings)
-        self.level = Level(self.surface, self.camera, self.settings)
+        self.map = Map(self.surface, self.camera, self.settings)
         self.player = Player(self.surface, self.camera, self.settings)
-        self.level.load('egypt', self.player)
-        self.player.set_level(self.level)
+        self.map.load('egypt', self.player)
+        self.player.set_map(self.map)
         self.last_velocity = 0
-        self.font = pygame.font.Font(None, 16)
-        self.font_small = pygame.font.Font(None, 14)
-        self.font_big = pygame.font.Font(None, 20)
 
-        self.hud = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'hud.png')).convert_alpha()
+
+        scale = self.settings.get_scale()
+        self.font = pygame.font.Font('assets/console.ttf', int(8 * scale))
+        self.font_small = pygame.font.Font('assets/console.ttf', int(6 * scale))
+        self.font_big = pygame.font.Font('assets/console.ttf', int(12 * scale))
+
+        hud = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'hud.png')).convert_alpha()
+        self.hud = pygame.transform.scale(hud, (hud.get_width() / 2 * scale, hud.get_height() / 2 * scale))
 
         pygame.joystick.init()
         if pygame.joystick.get_count():
@@ -47,65 +51,69 @@ class Game(GameScene):
 
     def draw(self):
         """Draw all GameObjects and sprites that are currently on screen"""
-        self.level.draw()
+        self.map.draw()
         self.player.draw()
-        self.level.draw_front()
+        self.map.draw_front()
         self.draw_hud()
 
     def draw_hud(self):
         hud_center = self.settings.width / 2
         hud_x = hud_center - self.hud.get_width() / 2
-        hud_y = self.settings.height - self.hud.get_height() / 2 - 20
+        hud_y = self.settings.height - self.hud.get_height()
 
         self.surface.blit(self.hud, (hud_x, hud_y))
+
+        scale = self.settings.get_scale()
 
         fps = self.clock.get_fps()
         fpss = f"{0 if math.isinf(fps) else round(fps)}".rjust(3, "0")
         fps_text = self.font.render(f"FPS: {fpss}", True, (255, 255, 255))
-        self.surface.blit(fps_text, (hud_center - 240, hud_y + 17))
+        self.surface.blit(fps_text, (hud_center - 197 * scale, hud_y + 12 * scale))
 
-        acc = f"{self.player.last_boost}".rjust(4, "0")
-        acc_text = self.font.render(f"ACC: {acc}", True, color_gradient(self.player.last_boost, 0, 200))
-        self.surface.blit(acc_text, (hud_center - 65, hud_y + 14))
-
+        ups = f"{round(self.player.vel.x * 1000 / self.settings.get_scale())}".rjust(5, "0")
+        fps_text = self.font_big.render(f"UPS: {ups}", True, color_gradient(self.player.vel.x, 0, 2))
+        self.surface.blit(fps_text, (hud_center -75 * scale, hud_y + 10 * scale))
 
         if self.player.jump_timing is not None:
             if self.player.jump_timing < 0:
                 early = f"{round(self.player.jump_timing, 2)}".rjust(4, "0")
-                early_text = self.font_small.render(f"early: {early} ms", True, color_gradient(self.player.jump_timing, -20, 0))
-                self.surface.blit(early_text, (hud_center - 65, hud_y + 24))
+                timing_text = self.font_big.render(f"DELTA: {early}", True, color_gradient(self.player.jump_timing, -20, 0))
             elif self.player.jump_timing > 0:
                 late = f"{round(self.player.jump_timing, 2)}".rjust(4, "0")
-                late_text = self.font_small.render(f"late: {late} ms", True, color_gradient(self.player.jump_timing, 20, 0))
-                self.surface.blit(late_text, (hud_center - 65, hud_y + 24))
+                timing_text = self.font_big.render(f"DELTA: {late}", True, color_gradient(self.player.jump_timing, 20, 0))
+            else:
+                timing_text = self.font_big.render(f"DELTA:", True, (255, 255, 255))
+        else:
+            timing_text = self.font_big.render(f"DELTA:", True, (255, 255, 255))
+        self.surface.blit(timing_text, (hud_center + 17 * scale, hud_y + 29 * scale))
 
-        ups = f"{round(self.player.vel.x * 1000 / self.settings.get_scale())}".rjust(5, "0")
-        fps_text = self.font_big.render(f"UPS: {ups}", True, color_gradient(self.player.vel.x, 0, 2))
-        self.surface.blit(fps_text, (hud_center + 30, hud_y + 15))
+        acc = f"{self.player.last_boost}".rjust(4, "0")
+        acc_text = self.font_big.render(f"ACC: {acc}", True, color_gradient(self.player.last_boost, 0, 200))
+        self.surface.blit(acc_text, (hud_center - 76 * scale, hud_y + 30 * scale))
 
-        time_text = self.font.render(f"Time: {self.level.timer / 1000}", True, (255, 255, 255))
-        self.surface.blit(time_text, (hud_center + 160, hud_y + 16))
+        time_text = self.font_big.render(f"Time: {self.map.timer / 1000}", True, (255, 255, 255))
+        self.surface.blit(time_text, (hud_center + 17 * scale, hud_y + 10 * scale))
 
         if self.player.has_plasma:
-            self.surface.blit(Item.types['plasma'], (self.settings.width - 45, self.settings.height - 20))
+            self.surface.blit(Item.types['plasma'], (self.settings.width - 105, hud_y + 15 * scale))
             fps_text = self.font.render(f"{self.player.plasma_ammo}", True, (255, 255, 255))
-            self.surface.blit(fps_text, (self.settings.width - 20, self.settings.height - 15))
+            self.surface.blit(fps_text, (self.settings.width - 83 * scale, hud_y + 21 * scale))
 
         if self.player.has_rocket:
-            self.surface.blit(Item.types['rocket'], (self.settings.width - 90, self.settings.height - 20))
+            self.surface.blit(Item.types['rocket'], (self.settings.width - 65, hud_y + 15 * scale))
             fps_text = self.font.render(f"{self.player.rocket_ammo}", True, (255, 255, 255))
-            self.surface.blit(fps_text, (self.settings.width - 60, self.settings.height - 15))
+            self.surface.blit(fps_text, (self.settings.width - 43 * scale, hud_y + 21 * scale))
 
     def update(self):
 
         # let it "load" a few milliseconds to avoid missing out collision checks
-        # causing the player to fall out of the level at higher screen resolutions
+        # causing the player to fall out of the map at higher screen resolutions
         if self.start_time + 100 > pygame.time.get_ticks():
             return
 
         self.player.update()
         self.camera.update(self.player)
-        self.level.update(self.player)
+        self.map.update(self.player)
 
     def handle_pygame_events(self):
         for event in pygame.event.get():

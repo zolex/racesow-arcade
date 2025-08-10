@@ -38,7 +38,7 @@ class Player(Entity):
         self.acceleration = 0
         self.camera = camera
         self.surface = surface
-        self.level = None
+        self.map = None
         self.last_walljump = 0
         self.last_ramp_radians = 0
         self.animation = Animation(self)
@@ -129,9 +129,9 @@ class Player(Entity):
 
         print("player reset")
 
-    def set_level(self, level):
-        self.level = level
-        self.shape.pos = level.player_start
+    def set_map(self, map):
+        self.map = map
+        self.shape.pos = map.player_start
 
     def __getattr__(self, name):
         if name == 'current_action_state':
@@ -284,9 +284,9 @@ class Player(Entity):
                 sounds.rocket_launch.play()
                 channel = sounds.rocket_fly.play(loops=-1)
                 if self.pressed_down:
-                    self.level.projectiles.append(Projectile('rocket', 1337000, self.pos.x + config.ROCKET_DOWN_OFFSET_X * scale, self.pos.y + config.ROCKET_DOWN_OFFSET_Y * scale, self.vel.x, self.vel.y + 1 * scale, 0.7 * scale, -0.0015 * scale, channel))
+                    self.map.projectiles.append(Projectile('rocket', 1337000, self.pos.x + config.ROCKET_DOWN_OFFSET_X * scale, self.pos.y + config.ROCKET_DOWN_OFFSET_Y * scale, self.vel.x, self.vel.y + 1 * scale, 0.7 * scale, -0.0015 * scale, channel))
                 else:
-                    self.level.projectiles.append(Projectile('rocket', 1337000, self.pos.x + 30 * scale, self.pos.y + 5 * scale, self.vel.x + 1 * scale, 0, 1.1 * scale, -0.00075 * scale, channel))
+                    self.map.projectiles.append(Projectile('rocket', 1337000, self.pos.x + 30 * scale, self.pos.y + 5 * scale, self.vel.x + 1 * scale, 0, 1.1 * scale, -0.00075 * scale, channel))
 
     def shoot_plasma(self):
         scale = self.settings.get_scale()
@@ -306,7 +306,7 @@ class Player(Entity):
                         decal_offset = 14 * scale
 
                     self.action_states.on_event('plasma')
-                    self.level.decals.append(Decal('plasma', 1000, self.pos.x + decal_offset * scale, self.pos.y + 5 * scale, center=True, fade_out=True))
+                    self.map.decals.append(Decal('plasma', 1000, self.pos.x + decal_offset * scale, self.pos.y + 5 * scale, center=True, fade_out=True))
 
                     if self.pressed_down:
                         if self.pressed_left or self.pressed_right:
@@ -324,7 +324,7 @@ class Player(Entity):
                     elif self.pressed_right:
                         self.vel.x -= 0.04 * scale
                 else:
-                    self.level.projectiles.append(Projectile('plasma', 10000, self.pos.x + 30 * scale, self.pos.y + 2 * scale, 1 + self.vel.x))
+                    self.map.projectiles.append(Projectile('plasma', 10000, self.pos.x + 30 * scale, self.pos.y + 2 * scale, 1 + self.vel.x))
 
     def get_distance_to_collider_below(self):
         """
@@ -341,7 +341,7 @@ class Player(Entity):
         min_distance = float('inf')
 
         # Check static colliders
-        for collider in self.level.static_colliders:
+        for collider in self.map.static_colliders:
             # Only check colliders that are horizontally aligned with the player
             if collider.pos.x <= player_x <= collider.pos.x + collider.shape.w:
                 # Only check colliders that are below the player
@@ -352,7 +352,7 @@ class Player(Entity):
 
 
         # Check ramp colliders
-        for collider in self.level.ramp_colliders:
+        for collider in self.map.ramp_colliders:
             triangle = collider.shape
             vertices = [triangle.p1, triangle.p2, triangle.p3]
 
@@ -535,7 +535,7 @@ class Player(Entity):
         if self.last_ramp_radians != 0:
             return
 
-        other_collider = self.shape.check_collisions(self.level.static_colliders)
+        other_collider = self.shape.check_collisions(self.map.static_colliders)
 
         if other_collider is None:
             return
@@ -574,7 +574,7 @@ class Player(Entity):
     def ramp_collisions(self):
 
         # Get the line of the ramp we collided with (up or down)
-        ramp_collider = self.shape.check_triangle_top_sides_collision(self.level.ramp_colliders)
+        ramp_collider = self.shape.check_triangle_top_sides_collision(self.map.ramp_colliders)
 
         if ramp_collider is None:
             # launch when leaving a ramp
@@ -633,7 +633,7 @@ class Player(Entity):
         self.action_states.on_event('ramp')
 
     def item_collisions(self):
-        for item in self.level.items:
+        for item in self.map.items:
             if item.picked_up:
                 if item.stay and item.respawn_at is not None and pygame.time.get_ticks() > item.respawn_at:
                     item.picked_up = False
@@ -657,35 +657,35 @@ class Player(Entity):
 
         scale = self.settings.get_scale()
 
-        portal = self.shape.check_center_collisions(self.level.portals, 20 * scale, 10 * scale)
+        portal = self.shape.check_center_collisions(self.map.portals, 20 * scale, 10 * scale)
         if portal is not None:
             portal.teleport(self)
 
-        jump_pad = self.shape.check_center_collisions(self.level.jump_pads, 10 * scale, -20 * scale)
+        jump_pad = self.shape.check_center_collisions(self.map.jump_pads, 10 * scale, -20 * scale)
         if jump_pad is not None:
             jump_pad.jump(self)
 
-        death = self.shape.check_collisions(self.level.death_colliders)
+        death = self.shape.check_collisions(self.map.death_colliders)
         if death is not None:
             self.player_states.on_event('dead')
 
-        if self.level.timer == 0 and self.level.start_line is not None:
-            start_line = self.shape.check_collisions([self.level.start_line])
+        if self.map.timer == 0 and self.map.start_line is not None:
+            start_line = self.shape.check_collisions([self.map.start_line])
             if start_line is not None:
-                self.level.start_timer()
+                self.map.start_timer()
 
-        if self.level.timer != 0 and self.level.finish_line is not None:
-            finish_line = self.shape.check_collisions([self.level.finish_line])
+        if self.map.timer != 0 and self.map.finish_line is not None:
+            finish_line = self.shape.check_collisions([self.map.finish_line])
             if finish_line is not None:
-                self.level.stop_timer()
+                self.map.stop_timer()
 
     def walljump_collisions(self):
-        wall_collider = self.shape.check_collisions(self.level.wall_colliders)
+        wall_collider = self.shape.check_collisions(self.map.wall_colliders)
 
         return wall_collider is not None
 
     def plasma_climb_collisions(self):
-        wall_collider = self.shape.check_center_collisions(self.level.wall_colliders)
+        wall_collider = self.shape.check_center_collisions(self.map.wall_colliders)
 
         return wall_collider is not None
 
@@ -695,7 +695,7 @@ class Player(Entity):
         stand_rect.pos = copy.copy(self.shape.pos)
         stand_rect.pos.y -= (height - self.shape.h)
         stand_rect.h = height
-        for collider in self.level.static_colliders:
+        for collider in self.map.static_colliders:
             if collider.shape.overlaps(stand_rect):
                 return False
 
@@ -834,7 +834,7 @@ class Player(Entity):
 
 
             owner_object.camera.stop_settling()
-            owner_object.level.decals.append(Decal(f'dash{random.choice([1, 2])}', 666, owner_object.pos.x, owner_object.pos.y + owner_object.shape.h, bottom=True, fade_out=True))
+            owner_object.map.decals.append(Decal(f'dash{random.choice([1, 2])}', 666, owner_object.pos.x, owner_object.pos.y + owner_object.shape.h, bottom=True, fade_out=True))
             owner_object.add_jump_velocity()
 
         def update(self, owner_object):
@@ -1055,6 +1055,6 @@ class Player(Entity):
             owner_object.vel.y = 0.1
             if self.death_timer > 300 * config.delta_time:
                 self.death_timer = float("-inf")
-                owner_object.level.reset()
+                owner_object.map.reset()
                 owner_object.reset()
                 owner_object.action_states.on_event('idle')
