@@ -747,13 +747,12 @@ class Player(Entity):
         # Fix jumping while colliding with a ramp by warping the player upwards
         # depending on the ramp angle and player speed.
         if self.last_ramp_radians > 0:
-            self.pos.y -= 100 * self.vel.x * math.tan(self.last_ramp_radians)
+            eps = 10  # adjust so it's not infinite at 0
+            self.pos.y -= 400 * scale * (1 / (abs(self.vel.x) + eps)) * math.tan(self.last_ramp_radians)
             self.last_ramp_radians = 0
         elif self.last_ramp_radians < 0:
-            self.pos.y -= 3
+            self.pos.y -= 3 * scale
             self.last_ramp_radians = 0
-
-
 
 
         self.vel.x += boost * scale
