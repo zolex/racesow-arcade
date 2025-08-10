@@ -762,7 +762,7 @@ class Player(Entity):
         if distance is not None:
             scale = self.settings.get_scale()
             print(f'distance: {distance}, angle: {angle_rad}')
-            vel_magnitude = 1 * scale / (1 * scale + 0.013 * scale * (distance / scale) ** 1.33)
+            vel_magnitude = 1 * scale / (1 * scale + 0.01 * scale * (distance / scale) ** 1.33)
 
             # Calculate x and y components of velocity
             vel_x = vel_magnitude * math.cos(angle_rad)
