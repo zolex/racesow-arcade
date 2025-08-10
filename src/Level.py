@@ -29,9 +29,12 @@ class Level:
 
         self.player: Player|None = None
         self.sky: pygame.image = None
-        self.overlay: pygame.image = None
-        self.overlay_width: int | None = None
-        self.overlay_offset: int = 0
+        self.parallax_1: pygame.image = None
+        self.parallax_1_width: int | None = None
+        self.parallax_1_offset: int = 0
+        self.parallax_2: pygame.image = None
+        self.parallax_2_width: int | None = None
+        self.parallax_2_offset: int = 0
 
         self.static_colliders =  []
         self.ramp_colliders = []
@@ -211,14 +214,23 @@ class Level:
                 height = int(width * self.sky.get_height() / self.sky.get_width())
                 self.sky = pygame.transform.scale(self.sky, (width, height))
 
-        overlay = data.get('overlay', None)
-        if overlay is not None:
-            overlay1_path = os.path.join(self.map_folder, overlay)
-            if os.path.isfile(overlay1_path):
-                self.overlay = pygame.image.load(overlay1_path).convert_alpha()
-                self.overlay_width = self.settings.width
-                height = int(self.overlay_width * self.overlay.get_height() / self.overlay.get_width())
-                self.overlay = pygame.transform.scale(self.overlay, (self.overlay_width, height))
+        parallax_1 = data.get('parallax_1', None)
+        if parallax_1 is not None:
+            parallax_1_path = os.path.join(self.map_folder, parallax_1)
+            if os.path.isfile(parallax_1_path):
+                self.parallax_1 = pygame.image.load(parallax_1_path).convert_alpha()
+                self.parallax_1_width = self.settings.width
+                height = int(self.parallax_1_width * self.parallax_1.get_height() / self.parallax_1.get_width())
+                self.parallax_1 = pygame.transform.scale(self.parallax_1, (self.parallax_1_width, height))
+
+        parallax_2 = data.get('parallax_2', None)
+        if parallax_2 is not None:
+            parallax_2_path = os.path.join(self.map_folder, parallax_2)
+            if os.path.isfile(parallax_2_path):
+                self.parallax_2 = pygame.image.load(parallax_2_path).convert_alpha()
+                self.parallax_2_width = self.settings.width
+                height = int(self.parallax_2_width * self.parallax_2.get_height() / self.parallax_2.get_width())
+                self.parallax_2 = pygame.transform.scale(self.parallax_2, (self.parallax_2_width, height))
 
     #def draw_tree(self, surface: pygame.surface):
     #    all_bbox = self.tree.get_all_bbox()
@@ -289,7 +301,8 @@ class Level:
     def draw(self):
         self.surface.fill(config.BACKGROUND_COLOR)
         self.draw_sky()
-        self.draw_overlay()
+        self.draw_parallax_1()
+        self.draw_parallax_2()
 
         for collider in self.static_colliders + self.wall_colliders + self.ramp_colliders + self.death_colliders + self.decoration:
             collider.shape.draw(self.surface, self.camera)
@@ -323,13 +336,34 @@ class Level:
         if self.sky is not None:
             self.surface.blit(self.sky, (0, 0))
 
-    def draw_overlay(self):
-        if self.overlay is not None:
-            offset = -1.05 / self.overlay_width * self.camera.pos.x
-            x = self.settings.width + offset * self.overlay_width + self.overlay_offset
-            if x < -self.overlay_width:
-                self.overlay_offset += self.overlay_width * 2
-            self.surface.blit(self.overlay, (x, self.settings.height / 2.5 - self.camera.pos.y * 1.2))
+    def draw_parallax_1(self):
+        if self.parallax_1 is not None:
+            parallax_1_factor = 0.25  # smaller = further away
+
+            offset_x = -parallax_1_factor / self.parallax_1_width * self.camera.pos.x
+            x = self.settings.width + offset_x * self.parallax_1_width + self.parallax_1_offset
+
+            y = -parallax_1_factor * self.camera.pos.y
+
+            if x < -self.parallax_1_width:
+                self.parallax_1_offset += self.parallax_1_width * 2
+
+            self.surface.blit(self.parallax_1, (x, y))
+
+    def draw_parallax_2(self):
+        if self.parallax_2 is not None:
+            parallax_2_factor = 0.5  # smaller = further away
+
+            # Calculate offset based on camera position
+            offset_x = -parallax_2_factor * self.camera.pos.x
+            offset_y = -parallax_2_factor * self.camera.pos.y
+
+            # Wrap offset so it always stays within the texture width
+            x = (offset_x % self.parallax_2_width)
+
+            # Draw two instances to cover the gap
+            self.surface.blit(self.parallax_2, (x - self.parallax_2_width, offset_y))
+            self.surface.blit(self.parallax_2, (x, offset_y))
 
     def draw_projectiles(self):
         for projectiles in self.projectiles:

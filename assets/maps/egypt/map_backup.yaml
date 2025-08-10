@@ -32,7 +32,7 @@ jump_pads:
   vel_y: 0.6000000238418579
   x: 11776.0
   y: 352.0
-overlay: textures/overlay.png
+overlay: textures/parallax1.png
 player_spawnpoint:
   x: 0.0
   y: 256.0
