@@ -1,6 +1,7 @@
-import os, pygame, random, yaml, webbrowser
+import copy, math, os, pygame, random, yaml, webbrowser
 from src import config
 from src.Game import Game
+from src.Input import Input
 from src.Settings import Settings
 from src.Scene import GameScene
 from src.utils import resource_path
@@ -10,9 +11,11 @@ class MainMenu(GameScene):
 
     ITEM_BACKGROUND_DEFAULT = (255, 255, 255, 128)  # semi-transparent white
     ITEM_BACKGROUND_ACTIVE = (255, 0, 0, 192)  # semi-transparent red
+    ITEM_BACKGROUND_DISABLED = (66, 66, 66, 192)  # semi-transparent red
     ITEM_TEXT_DEFAULT = (0, 0, 0)
     ITEM_TEXT_ACTIVE = (255, 128, 16)
     ITEM_TEXT_DARK = (168, 92, 0)
+    ITEM_TEXT_DISABLED = (11, 11, 11)
 
     font_path = resource_path(os.path.join('assets', 'console.ttf'))
 
@@ -90,24 +93,33 @@ class MainMenu(GameScene):
         self.select = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'menu', 'select.wav'))
         self.back = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'menu', 'back.wav'))
         self.ok = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'menu', 'ok.wav'))
+        self.next_scene: GameScene|None = None
+        self.active_mapping = None
+        self.input_mappings = None
         self.parent_menus = []
         self.active_menu = None
         self.load_menu()
-
-        self.active_mapping = None
-
+        self.quit_handler: callable = None
+        self.entrypoint = None
+        self.mouse_down_item = None
+        self.mouse_down_pos = None
+        self.back_button = None
         self.music = [
             os.path.join(config.assets_folder, 'sounds', 'menu_1.ogg'),
             os.path.join(config.assets_folder, 'sounds', 'menu_2.ogg'),
         ]
 
-        self.play_music()
-
-        self.controllers: list[pygame.joystick.Joystick] = []
-        pygame.joystick.init()
-        for i in range(0, pygame.joystick.get_count()):
-            controller = pygame.joystick.Joystick(i)
-            self.controllers.append(controller)
+    def reset(self):
+        self.quit = False
+        self.quit_really = False
+        self.selected_item = 0
+        self.next_scene: GameScene | None = None
+        self.active_mapping = None
+        self.input_mappings = None
+        self.parent_menus = []
+        self.active_menu = None
+        self.load_menu()
+        self.init_input_mappings()
 
     def play_music(self):
         pygame.mixer.music.load(self.music[random.choice([0, 1])])
@@ -169,8 +181,7 @@ class MainMenu(GameScene):
         return scaled
 
     def extract_input(self, event: pygame.event.Event, type: str):
-
-        if type == 'keyboard':
+        if type == Input.KEYBOARD:
             if event.type == pygame.KEYDOWN:
                 if event.mod & pygame.KMOD_CTRL:
                     return {'mod': pygame.KMOD_CTRL}
@@ -183,7 +194,7 @@ class MainMenu(GameScene):
 
                 return {'key': event.key}
 
-        if type == 'controller':
+        if type == Input.CONTROLLER:
             if event.type in (pygame.JOYBUTTONDOWN, pygame.JOYBUTTONUP):
                 return {'button': event.button}
 
@@ -219,7 +230,6 @@ class MainMenu(GameScene):
 
         self.ok.play()
         self.active_mapping = None
-
 
     def get_mapping(self, mapping):
         type = mapping.get('type')
@@ -317,14 +327,14 @@ class MainMenu(GameScene):
         text_y = rect_y + (rect_height - text_height) // 2
         self.surface.blit(text_surface, (text_x, text_y))
 
-    def draw_quit_confirmation(self):
+    def draw_quit_really(self):
         style = self.scale_style(MainMenu.MENU_STYLES.get('dialog'))
-        back_key = self.settings.mapping.get('keyboard', {}).get('back', {})
-        back_button = self.settings.mapping.get('controller', {}).get('back', {})
+        back_key = self.settings.mapping.get(Input.KEYBOARD, {}).get(Input.BACK, {})
+        back_button = self.settings.mapping.get(Input.CONTROLLER, {}).get(Input.BACK, {})
         back_name = self.get_mapping_name(back_key)
         back_name2 = self.get_mapping_name(back_button)
-        select_key = self.settings.mapping.get('keyboard', {}).get('select', {})
-        select_button = self.settings.mapping.get('controller', {}).get('select', {})
+        select_key = self.settings.mapping.get(Input.KEYBOARD, {}).get(Input.SELECT, {})
+        select_button = self.settings.mapping.get(Input.CONTROLLER, {}).get(Input.SELECT, {})
         select_name = self.get_mapping_name(select_key)
         select_name2 = self.get_mapping_name(select_button)
         text_surface = self.draw_dialog_text([
@@ -340,9 +350,9 @@ class MainMenu(GameScene):
         rect_y = self.surface.get_height() / 1.5 - rect_height / 2
         rect_x = (self.surface.get_width() - rect_width) // 2
 
-        # Draw transparent rectangle
+        # Draw the dialog background
         rect_surface = pygame.Surface((rect_width, rect_height), pygame.SRCALPHA)
-        rect_surface.fill(MainMenu.ITEM_BACKGROUND_ACTIVE)
+        rect_surface.fill(MainMenu.ITEM_BACKGROUND_ACTIVE if self.selected_item == -1 else MainMenu.ITEM_BACKGROUND_DEFAULT)
         self.surface.blit(rect_surface, (rect_x, rect_y))
 
         # Center text on the rectangle
@@ -350,11 +360,23 @@ class MainMenu(GameScene):
         text_y = rect_y + (rect_height - text_height) // 2
         self.surface.blit(text_surface, (text_x, text_y))
 
+        self.back_button = {
+            'action': 'quit_really',
+            'text': '',
+            'bbox': pygame.Rect(rect_x, rect_y, rect_width, rect_height)
+        }
+
     def get_item_width(self, style, text_width, default=100):
         if style.get('item_width') == 'fit_text':
             return text_width + style.get('item_padding') * 8
         else:
             return style.get('item_width', default)
+
+    def find_sibling_by_action(self, action):
+        for item in self.active_menu.get('items'):
+            if item.get('action') == action:
+                return item
+        return None
 
     def draw(self):
         self.surface.fill((0, 0, 0))
@@ -374,8 +396,7 @@ class MainMenu(GameScene):
             return self.draw_active_mapping()
 
         if self.quit:
-            return self.draw_quit_confirmation()
-
+            return self.draw_quit_really()
 
         style_name = self.active_menu.get('style', 'default')
         style = self.scale_style(MainMenu.MENU_STYLES.get(style_name))
@@ -388,8 +409,8 @@ class MainMenu(GameScene):
 
         if self.has_back_button():
             self.draw_back_button(start_y, style)
-
-
+        else:
+            self.back_button = None
 
         menu_index = 0
         for item in menu_items:
@@ -397,14 +418,27 @@ class MainMenu(GameScene):
                 menu_index += 1
                 continue
 
-            if menu_index == self.selected_item:
+            if item.get('action') == 'switch':
+                text = f'{item.get('text')} ({'ON' if self.settings.get(item.get('setting')) else 'OFF'})'
+            elif item.get('action') == 'setting':
+                text = f'{item.get('text')} ({self.settings.get(item.get('setting'))})'
+            else:
+                text = item.get('text')
+
+            if item.get('depends'):
+                item['disabled'] = not self.settings.get(item.get('depends'))
+
+            if item.get('disabled'):
+                background_color = MainMenu.ITEM_BACKGROUND_DISABLED
+                text_color = MainMenu.ITEM_TEXT_DISABLED
+            elif menu_index == self.selected_item:
                 background_color = MainMenu.ITEM_BACKGROUND_ACTIVE
                 text_color = MainMenu.ITEM_TEXT_ACTIVE
             else:
                 background_color = MainMenu.ITEM_BACKGROUND_DEFAULT
                 text_color = MainMenu.ITEM_TEXT_DEFAULT
 
-            text_surface = style['font'].render(item.get('text'), True, text_color)
+            text_surface = style['font'].render(text, True, text_color)
             text_width, text_height = text_surface.get_size()
             rect_height = item_height
             rect_x = (self.surface.get_width() - style['item_width']) // 2
@@ -428,7 +462,14 @@ class MainMenu(GameScene):
 
             self.surface.blit(text_surface, (text_x, text_y + style['text_offset']))
 
+            if item.get('action') == 'setting':
+                self.surface.blit(style['font'].render('<', True, MainMenu.ITEM_TEXT_DEFAULT), (rect_x + style['item_padding'], text_y + style['text_offset'] * 2))
+                self.surface.blit(style['font'].render('>', True, MainMenu.ITEM_TEXT_DEFAULT),(rect_x + item_width - style['item_padding'] - 10 * scale, text_y + style['text_offset'] * 2))
+
+            item['bbox'] = pygame.Rect(rect_x, rect_y, item_width, rect_height)
+
             menu_index += 1
+
 
         return None
 
@@ -436,10 +477,9 @@ class MainMenu(GameScene):
         pass
 
     def has_back_button(self):
-        return len(self.parent_menus) > 0
+        return len(self.parent_menus) > 0 or self.entrypoint is not None
 
     def draw_back_button(self, menu_y, active_style):
-
         if self.selected_item == -1:
             text_color = MainMenu.ITEM_TEXT_ACTIVE
             background_color = MainMenu.ITEM_BACKGROUND_ACTIVE
@@ -461,165 +501,45 @@ class MainMenu(GameScene):
         text_y = rect_y + back_style['item_margin'] + back_style['item_padding']
         self.surface.blit(text_surface, (text_x, text_y))
 
-    def handle_quit_really(self, keyboard, controller):
+        self.back_button = {
+            'action': Input.BACK,
+            'text': '',
+            'bbox': pygame.Rect(rect_x, rect_y, item_width, rect_height)
+        }
+
+    def abort_quit(self, key_down):
+        if key_down:
+            self.quit = False
+
+    def handle_quit_really(self):
         self.stop_music()
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                back_key = keyboard.get('back', {}).get('key')
-                if event.key == back_key:
-                    self.back.play()
-                    self.play_music()
-                    self.quit = False
-                    return
+        self.handle_events({
+            Input.BACK: lambda v, e: self.abort_quit(v),
+            Input.SELECT: lambda v, e: setattr(self, 'quit_really', True),
+            pygame.MOUSEBUTTONDOWN: lambda e: self.handle_click(e),
+            pygame.MOUSEBUTTONUP: lambda e: self.handle_click(e),
+            pygame.MOUSEMOTION: lambda e: self.handle_mouse_motion(e),
+        })
 
-                select_key = keyboard.get('select', {}).get('key')
-                if event.key == select_key:
-                    self.quit_really = True
-                    return
+    def handle_set_mapping(self):
+        self.handle_events({
+            Input.BACK: lambda v, e: self.abort_mapping(v),
+            Input.ANY: lambda e: self.set_mapping(self.active_mapping, e),
+        })
 
-            elif event.type  == pygame.JOYBUTTONDOWN:
-                back_button = controller.get('back', {}).get('button')
-                if event.button == back_button:
-                    self.back.play()
-                    self.play_music()
-                    self.quit = False
-                    return
-
-                select_button = controller.get('select', {}).get('key')
-                if event.button == select_button:
-                    self.quit_really = True
-                    return
-
-            elif event.type == pygame.JOYAXISMOTION:
-                back_axis = controller.get('back', {}).get('axis')
-                back_value = controller.get('back', {}).get('value')
-                if event.axis == back_axis and round(event.value) == back_value:
-                    self.back.play()
-                    self.play_music()
-                    self.quit = False
-                    return
-
-                select_axis = controller.get('select', {}).get('axis')
-                select_value = controller.get('select', {}).get('value')
-                if event.axis == select_axis and round(event.value) == select_value:
-                    self.quit_really = True
-                    return
-
-            elif event.type == pygame.JOYHATMOTION:
-                back_hat = controller.get('back', {}).get('hat')
-                back_value = controller.get('back', {}).get('value')
-                if event.hat == back_hat and event.value == back_value:
-                    self.back.play()
-                    self.play_music()
-                    self.quit = False
-                    return
-
-                select_hat = controller.get('select', {}).get('hat')
-                select_value = controller.get('select', {}).get('value')
-                if event.hat == select_hat and event.value == select_value:
-                    self.quit_really = True
-                    return
-
-    def handle_inputs(self):
-
-        keyboard = self.settings.mapping.get('keyboard', {})
-        controller = self.settings.mapping.get('controller', {})
-
-        if self.quit:
-            self.handle_quit_really(keyboard, controller)
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.quit = True
-
-            if event.type == pygame.KEYDOWN:
-                if self.active_mapping is not None:
-                    back_key = keyboard.get('back', {}).get('key')
-                    if event.key == back_key:
-                        self.active_mapping = None
-                        self.back.play()
-                        return
-                    self.set_mapping(self.active_mapping, event)
-
-                elif event.key == keyboard.get('back', {}).get('key'):
-                    self.menu_back_or_quit()
-
-                elif event.key == keyboard.get('up', {}).get('key') or event.key == pygame.K_UP:
-                    self.menu_up()
-
-                elif event.key == keyboard.get('down', {}).get('key') or event.key == pygame.K_DOWN:
-                    self.menu_down()
-
-                elif event.key == keyboard.get('select', {}).get('key') or event.key == pygame.K_RETURN:
-                    self.menu_ok()
-
-            elif event.type  == pygame.JOYBUTTONDOWN:
-                if self.active_mapping is not None:
-                    back_button = controller.get('back', {}).get('button')
-                    if event.button == back_button:
-                        self.active_mapping = None
-                        self.back.play()
-                        return
-                    self.set_mapping(self.active_mapping, event)
-
-                elif event.button == controller.get('back', {}).get('button'):
-                    self.menu_back_or_quit()
-
-                elif event.button == controller.get('up', {}).get('button'):
-                    self.menu_up()
-
-                elif event.button == controller.get('down', {}).get('button'):
-                    self.menu_down()
-
-                elif event.button == controller.get('select', {}).get('button'):
-                    self.menu_ok()
-
-            elif event.type == pygame.JOYAXISMOTION:
-                if self.active_mapping is not None:
-                    back_axis = controller.get('back', {}).get('axis')
-                    back_value = controller.get('back', {}).get('value')
-                    if event.axis == back_axis and round(event.value) == back_value:
-                        self.active_mapping = None
-                        self.back.play()
-                        return
-                    self.set_mapping(self.active_mapping, event)
-
-                elif event.axis == controller.get('back', {}).get('axis') and round(event.value) == controller.get('back', {}).get('value'):
-                    self.menu_back_or_quit()
-
-                elif event.axis == controller.get('up', {}).get('axis') and round(event.value) == controller.get('up', {}).get('value'):
-                    self.menu_up()
-
-                elif event.axis == controller.get('down', {}).get('axis') and round(event.value) == controller.get('down', {}).get('value'):
-                    self.menu_down()
-
-                elif event.axis == controller.get('down', {}).get('axis') and round(event.value) == controller.get('select', {}).get('value'):
-                    self.menu_ok()
-
-            elif event.type == pygame.JOYHATMOTION:
-                if self.active_mapping is not None:
-                    back_hat = controller.get('back', {}).get('hat')
-                    back_value = controller.get('back', {}).get('value')
-                    if event.hat == back_hat and event.value == back_value:
-                        self.active_mapping = None
-                        self.back.play()
-                        return
-                    self.set_mapping(self.active_mapping, event)
-
-                elif event.hat == controller.get('back', {}).get('hat') and event.value == controller.get('back', {}).get('value'):
-                    self.menu_back_or_quit()
-
-                elif event.hat == controller.get('up', {}).get('hat') and event.value == controller.get('up', {}).get('value'):
-                    self.menu_up()
-
-                elif event.hat == controller.get('down', {}).get('hat') and event.value == controller.get('select', {}).get('value'):
-                    self.menu_down()
-
-                elif event.hat == controller.get('down', {}).get('hat') and event.value == controller.get('select', {}).get('value'):
-                    self.menu_ok()
+    def abort_mapping(self, key_down):
+        if key_down:
+            self.active_mapping = None
+            self.back.play()
 
     def get_selected_item(self):
-        return self.active_menu.get('items')[self.selected_item] if self.selected_item >= 0 else {'action': 'back'}
+        if self.active_menu is None or self.selected_item is None:
+            return None
+
+        try:
+            return self.active_menu.get('items')[self.selected_item] if self.selected_item >= 0 else self.back_button
+        except IndexError or TypeError:
+            return None
 
     def load_maps_menu(self):
         return {
@@ -641,18 +561,42 @@ class MainMenu(GameScene):
             }
         }
 
-    def menu_ok(self):
-        selected_item = self.get_selected_item()
+    def set_item_enabled(self, item_name, enabled):
+        for item in self.active_menu.get('items'):
+            if item.get('action') == item_name:
+                item['disabled'] = not enabled
+                break
 
+    def switch_music(self):
+        if self.settings.music_enabled:
+            self.play_music()
+        else:
+            self.stop_music()
+
+    def menu_ok(self, key_down):
+        if not key_down:
+            return
+
+        selected_item = self.get_selected_item()
         if selected_item.get('action') == 'play':
             self.ok.play()
             self.activate_menu(self.load_maps_menu())
 
+        elif selected_item.get('action') == 'switch':
+            self.ok.play()
+            setting = selected_item.get('setting')
+            enabled = not self.settings.get(setting)
+            self.settings.set(setting, enabled)
+            callback = selected_item.get('callback')
+            if callback is not None:
+                method = getattr(self, callback)
+                if callback is not None and method is not None:
+                    method()
+
         elif selected_item.get('action') == 'map':
             self.ok.play()
             self.stop_music()
-            Game(selected_item.get('map'), self.surface, self.clock, self.settings).game_loop(self)
-            self.play_music()
+            self.next_scene = Game(selected_item.get('map'), self.surface, self.clock, self.settings)
 
         elif selected_item.get('action') == 'web_link':
             self.ok.play()
@@ -692,6 +636,7 @@ class MainMenu(GameScene):
         self.active_menu = menu_item.get('menu')
         self.selected_item = menu_item.get('selected_item', 0)
 
+        # pre-select items that are saved in the settings
         if menu_item.get('action') == 'menu':
             items = menu_item.get('menu').get('items')
             for item in items:
@@ -713,10 +658,6 @@ class MainMenu(GameScene):
     def show_mapping(self, menu_item):
         self.active_mapping = menu_item
 
-    def switch_fullscreen(self):
-        self.settings.fullscreen = not self.settings.fullscreen
-        self.reload()
-
     def change_resolution(self, width, height):
         self.settings.width = int(width)
         self.settings.height = int(height)
@@ -726,7 +667,10 @@ class MainMenu(GameScene):
         self.settings.max_fps = int(fps)
         self.reload()
 
-    def menu_back_or_quit(self):
+    def menu_back_or_quit(self, key_down = True):
+        if not key_down:
+            return
+
         if self.active_mapping is not None:
             self.active_mapping = None
             return
@@ -736,28 +680,169 @@ class MainMenu(GameScene):
             self.active_menu = self.parent_menus.pop()
             self.selected_item = self.active_menu.get('selected_item', 0)
         else:
-            self.quit = True
+            self.quit_handler()
 
-    def menu_up(self):
+    def menu_up(self, key_down = True):
+        if not key_down:
+            return
+
         if self.selected_item > (-1 if self.has_back_button() else 0):
             self.selected_item -= 1
-            if self.get_selected_item().get('spacer'):
+            if self.get_selected_item().get('spacer') or self.get_selected_item().get('disabled'):
                 self.selected_item -= 1
             self.select.play()
 
-    def menu_down(self):
+    def menu_down(self, key_down = True):
+        if not key_down:
+            return
+
         if self.selected_item < len(self.active_menu.get('items')) - 1:
             self.selected_item += 1
-            if self.get_selected_item().get('spacer'):
+            if self.get_selected_item().get('spacer') or self.get_selected_item().get('disabled'):
                 self.selected_item += 1
             self.select.play()
 
-    def game_loop(self):
+    def menu_left(self, key_down = True):
+        if not key_down:
+            return
+
+        item = self.get_selected_item()
+        if item.get('action') == 'setting':
+            self.settings.reduce(item.get('setting'))
+
+    def menu_right(self, key_down = True):
+        if not key_down:
+            return
+
+        item = self.get_selected_item()
+        if item.get('action') == 'setting':
+            self.settings.increase(item.get('setting'))
+
+    def get_distance(self, p1, p2):
+        """Calculates the Euclidean distance between two tuples."""
+        # Unpack the tuples
+        x1, y1 = p1
+        x2, y2 = p2
+
+        # Calculate the squared differences
+        dx = x2 - x1
+        dy = y2 - y1
+
+        # Apply the Pythagorean theorem
+        return math.sqrt(dx ** 2 + dy ** 2)
+
+    def create_split_rects(self, bbox_tuple, percentage=0.25):
+        """
+        Creates two pygame.Rect objects from a bbox tuple (x, y, w, h).
+        One rect represents the left percentage width, and the other the right percentage width.
+        """
+        x, y, w, h = bbox_tuple
+        quarter_width = w * percentage
+        left_rect = pygame.Rect(x, y, quarter_width, h)
+        right_rect = pygame.Rect(x + (w - quarter_width), y, quarter_width, h)
+
+        return left_rect, right_rect
+
+    def handle_click(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            item = self.get_selected_item()
+            if item is not None and item['bbox'].collidepoint(event.pos):
+                self.mouse_down_item = item
+                self.mouse_down_pos = event.pos
+            else:
+                self.mouse_down_item = None
+                self.mouse_down_pos = None
+        elif event.type == pygame.MOUSEBUTTONUP:
+            item = self.get_selected_item()
+            if item is not None and not item.get('disabled'):
+                if item == self.mouse_down_item:
+                    if isinstance(self.mouse_down_pos, tuple):
+                        if self.get_distance(event.pos, self.mouse_down_pos) < 10 * self.settings.get_scale():
+                            if item.get('action') == 'setting':
+                                left, right = self.create_split_rects(item['bbox'])
+                                if left.collidepoint(event.pos):
+                                    self.menu_left(True)
+                                elif right.collidepoint(event.pos):
+                                    self.menu_right(True)
+                                return
+                            elif item.get('action') == 'quit_really':
+                                self.quit_really = True
+                                return
+                            else:
+                                self.menu_ok(True)
+
+    def init_input_mappings(self):
+        self.input_mappings = {
+            Input.UP: lambda v, e: self.menu_up(v),
+            Input.DOWN: lambda v, e: self.menu_down(v),
+            Input.LEFT: lambda v, e: self.menu_left(v),
+            Input.RIGHT: lambda v, e: self.menu_right(v),
+            Input.SELECT: lambda v, e: self.menu_ok(v),
+            Input.BACK: lambda v, e: self.menu_back_or_quit(v),
+            pygame.MOUSEMOTION: lambda e: self.handle_mouse_motion(e),
+            pygame.MOUSEBUTTONDOWN: lambda e: self.handle_click(e),
+            pygame.MOUSEBUTTONUP: lambda e: self.handle_click(e),
+            pygame.K_UP: lambda v, e: self.menu_up(v),
+            pygame.K_DOWN: lambda v, e: self.menu_down(v),
+            pygame.K_LEFT: lambda v, e: self.menu_left(v),
+            pygame.K_RIGHT: lambda v, e: self.menu_right(v),
+            pygame.K_RETURN: lambda v, e: self.menu_ok(v),
+            pygame.K_ESCAPE: lambda v, e: self.menu_back_or_quit(v),
+        }
+
+    def handle_mouse_motion(self, event):
+        for item in self.active_menu.get('items'):
+            if item.get('bbox') and item.get('bbox').collidepoint(event.pos):
+                self.selected_item = self.active_menu.get('items', []).index(item)
+
+        if self.back_button is not None and self.back_button.get('bbox'):
+            if self.back_button.get('bbox').collidepoint(event.pos):
+                self.selected_item = -1
+
+    def set_quit_really(self):
+        self.quit_really = True
+
+    def game_loop(self, entrypoint: list[str] = None, force_quit = False):
+
+        if force_quit:
+            self.quit_handler = lambda: self.set_quit_really()
+        else:
+            self.quit_handler = lambda: self.set_quit()
+
+        if entrypoint is not None:
+            self.entrypoint = entrypoint
+            self.reset()
+            for action in entrypoint:
+                for item in self.active_menu.get('items'):
+                    if item.get('text') == action:
+                        self.activate_menu(item)
+                        break
+            self.parent_menus = []
+            self.selected_item = 0
+
+        if self.settings.music_enabled:
+            self.play_music()
+
         while True:
-            self.handle_inputs()
-            self.tick()
-            self.update()
+
+            # draw first because we need the positions to handle mouse events
+            self.clock.tick(self.settings.max_fps)
             self.draw()
+
             pygame.display.update()
+
+            if self.quit:
+                self.handle_quit_really()
+            elif self.active_mapping is not None:
+                self.handle_set_mapping()
+            else:
+                self.handle_events(self.input_mappings, self.quit_handler)
+
+            if self.next_scene is not None and entrypoint is None:
+                next_scene = copy.copy(self.next_scene)
+                next_scene.set_next_scene(self)
+                self.next_scene = None
+                return next_scene
+
             if self.quit_really:
                 break

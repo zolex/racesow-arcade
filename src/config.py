@@ -13,13 +13,6 @@ mods = None
 delta_time = None
 final_count_down = False
 
-#Controller Inputs
-INPUT_DOWN = False
-INPUT_UP = False
-INPUT_LEFT = False
-INPUT_RIGHT = False
-INPUT_BUTTONS = {0: False, 1: False, 2: False, 3: False, 4: False, 5: False, 6: False, 7: False, 8: False, 9: False}
-
 #Colors for map loading
 BLACK = (0, 0, 0, 255)
 BLUE = (0, 0, 255, 255)

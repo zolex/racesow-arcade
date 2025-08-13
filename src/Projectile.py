@@ -61,7 +61,7 @@ class Projectile(Vector2):
             if self.vel_y > self.target_vel:
                 self.vel_y += self.acc * config.delta_time
             if self.sound is not None:
-                distance = self.get_distance(map.player.pos)
+                distance = self.get_distance(map.game.player.pos)
                 self.sound.set_volume(self.volume_for_distance(distance))
 
             colliders = []
@@ -76,14 +76,14 @@ class Projectile(Vector2):
             collider = self.check_collisions(colliders)
             if collider is not None:
                 if self.type == 'rocket':
-                    distance = self.get_distance(map.player.pos)
+                    distance = self.get_distance(map.game.player.pos)
                     sounds.rocket.set_volume(self.volume_for_distance(distance))
                     sounds.rocket.play()
-                    map.player.add_rocket_velocity(distance, math.atan2(map.player.pos.y - self.y, map.player.pos.x - self.x + config.ROCKET_DOWN_OFFSET_X))
+                    map.game.player.add_rocket_velocity(distance, math.atan2(map.game.player.pos.y - self.y, map.game.player.pos.x - self.x + config.ROCKET_DOWN_OFFSET_X))
                     return Decal('rocket', 500, self.x, self.y, center=True, fade_out=True)
 
                 elif self.type == 'plasma':
-                    #map.player.add_plasma_velocity(distance, angle)
+                    #map.game.player.add_plasma_velocity(distance, angle)
                     return Decal('plasma', 1000, self.x + random.randrange(-3, 3), self.y + random.randrange(-3, 3), center=False, fade_out=True)
 
         return False

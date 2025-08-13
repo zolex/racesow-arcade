@@ -1,11 +1,9 @@
 import os.path, pygame, yaml
 from pyqtree import Index as QuadTree
-
 from src.Decal import Decal
 from src.FinishLine import FinishLine
 from src.JumpPad import JumpPad
 from src.Portal import Portal
-from src.Settings import Settings
 from src.StartLine import StartLine
 from src.Vector2 import Vector2
 from src.Triangle import Triangle
@@ -13,21 +11,17 @@ from src.Rectangle import Rectangle
 from src.Collider import Collider
 from src.Item import Item
 from src.Projectile import Projectile
-from src.Camera import Camera
 from src.Texture import Texture
 from src.Player import Player
-from src import config, sounds
+from src import config
 
 class Map:
-    def __init__(self, surface: pygame.surface, camera: Camera, settings: Settings):
+    def __init__(self, game):
 
-        self.settings = settings
+        self.game = game
         self.map_folder = None
         self.map_name: str|None = None
-        self.surface: pygame.surface = surface
-        self.camera: Camera = camera
 
-        self.player: Player|None = None
         self.sky: pygame.image = None
         self.parallax_1: pygame.image = None
         self.parallax_1_width: int | None = None
@@ -60,9 +54,8 @@ class Map:
         self.timer_start = None
         self.timer_stop = None
 
-    def load(self, map_name: str, player: Player):
+    def load(self, map_name: str):
 
-        self.player = player
         self.map_name = map_name
 
         self.static_colliders = []
@@ -76,7 +69,7 @@ class Map:
 
         self.map_folder = os.path.join(config.assets_folder, 'maps', self.map_name)
 
-        SCALE = self.settings.get_scale()
+        SCALE = self.game.settings.get_scale()
 
         map_file = os.path.join(self.map_folder, 'map.yaml')
         with open(map_file, 'r') as file:
@@ -115,7 +108,7 @@ class Map:
                 max_x = max(portal['entry_x'] * SCALE, portal['entry_x'] * SCALE, max_x)
                 min_y = min(portal['entry_y'] * SCALE, portal['entry_y'] * SCALE, min_y)
                 max_y = max(portal['entry_y'] * SCALE, portal['entry_y'] * SCALE, max_y)
-                self.portals.append(Portal(Vector2(portal['entry_x'] * SCALE, portal['entry_y'] * SCALE), Vector2(portal['exit_x'] * SCALE, portal['exit_y'] * SCALE), self.settings))
+                self.portals.append(Portal(Vector2(portal['entry_x'] * SCALE, portal['entry_y'] * SCALE), Vector2(portal['exit_x'] * SCALE, portal['exit_y'] * SCALE), self.game.settings))
 
         jump_pads = data.get('jump_pads', None)
         if jump_pads is not None:
@@ -210,7 +203,7 @@ class Map:
             sky_path = os.path.join(self.map_folder, sky)
             if os.path.isfile(sky_path):
                 self.sky = pygame.image.load(sky_path).convert()
-                width = self.settings.width
+                width = self.game.settings.width
                 height = int(width * self.sky.get_height() / self.sky.get_width())
                 self.sky = pygame.transform.scale(self.sky, (width, height))
 
@@ -219,7 +212,7 @@ class Map:
             parallax_1_path = os.path.join(self.map_folder, parallax_1)
             if os.path.isfile(parallax_1_path):
                 self.parallax_1 = pygame.image.load(parallax_1_path).convert_alpha()
-                self.parallax_1_width = self.settings.width
+                self.parallax_1_width = self.game.settings.width
                 height = int(self.parallax_1_width * self.parallax_1.get_height() / self.parallax_1.get_width())
                 self.parallax_1 = pygame.transform.scale(self.parallax_1, (self.parallax_1_width, height))
 
@@ -228,7 +221,7 @@ class Map:
             parallax_2_path = os.path.join(self.map_folder, parallax_2)
             if os.path.isfile(parallax_2_path):
                 self.parallax_2 = pygame.image.load(parallax_2_path).convert_alpha()
-                self.parallax_2_width = self.settings.width
+                self.parallax_2_width = self.game.settings.width
                 height = int(self.parallax_2_width * self.parallax_2.get_height() / self.parallax_2.get_width())
                 self.parallax_2 = pygame.transform.scale(self.parallax_2, (self.parallax_2_width, height))
 
@@ -265,7 +258,7 @@ class Map:
         self.timer_start = None
         self.timer_stop = None
 
-        self.load(self.map_name, self.player)
+        self.load(self.map_name)
 
     def start_timer(self):
         self.timer_start = pygame.time.get_ticks()
@@ -289,7 +282,7 @@ class Map:
         self.jump_pads = []
 
         # extend the boundary to the bottom extremely (42) so we can always find the distance to the collider below
-        boundary = (self.camera.pos.x, self.camera.pos.y, self.camera.pos.x + self.camera.w, self.camera.pos.y + self.camera.h * 42)
+        boundary = (self.game.camera.pos.x, self.game.camera.pos.y, self.game.camera.pos.x + self.game.camera.w, self.game.camera.pos.y + self.game.camera.h * 42)
         self.filtered_objects = self.tree.intersect(boundary)
         for object in self.filtered_objects:
             if isinstance(object, Collider):
@@ -323,27 +316,27 @@ class Map:
                 del self.decals[i]
 
     def draw(self):
-        self.surface.fill(config.BACKGROUND_COLOR)
+        self.game.surface.fill(config.BACKGROUND_COLOR)
         self.draw_sky()
         self.draw_parallax_2()
         self.draw_parallax_1()
 
         for collider in self.static_colliders + self.wall_colliders + self.ramp_colliders + self.death_colliders + self.decoration:
-            collider.shape.draw(self.surface, self.camera)
+            collider.shape.draw(self.game.surface, self.game.camera)
 
         for item in self.items:
-            item.draw(self.surface, self.camera)
+            item.draw(self.game.surface, self.game.camera)
 
         for portal in self.portals:
-            portal.draw(self.surface, self.camera)
+            portal.draw(self.game.surface, self.game.camera)
 
         for jump_pad in self.jump_pads:
-            jump_pad.draw(self.surface, self.camera)
+            jump_pad.draw(self.game.surface, self.game.camera)
 
         if self.start_line:
-            self.start_line.draw_back(self.surface, self.camera)
+            self.start_line.draw_back(self.game.surface, self.game.camera)
         if self.finish_line:
-            self.finish_line.draw_back(self.surface, self.camera)
+            self.finish_line.draw_back(self.game.surface, self.game.camera)
 
         #print("num objects", len(self.filtered_objects))
 
@@ -352,47 +345,47 @@ class Map:
 
     def draw_front(self):
         if self.start_line:
-            self.start_line.draw_front(self.surface, self.camera)
+            self.start_line.draw_front(self.game.surface, self.game.camera)
         if self.finish_line:
-            self.finish_line.draw_front(self.surface, self.camera)
+            self.finish_line.draw_front(self.game.surface, self.game.camera)
 
     def draw_sky(self):
         if self.sky is not None:
-            self.surface.blit(self.sky, (0, 0))
+            self.game.surface.blit(self.sky, (0, 0))
 
     def draw_parallax_1(self):
         if self.parallax_1 is not None:
             parallax_1_factor = 0.25  # smaller = further away
 
-            offset_x = -parallax_1_factor / self.parallax_1_width * self.camera.pos.x
-            x = self.settings.width + offset_x * self.parallax_1_width + self.parallax_1_offset
+            offset_x = -parallax_1_factor / self.parallax_1_width * self.game.camera.pos.x
+            x = self.game.settings.width + offset_x * self.parallax_1_width + self.parallax_1_offset
 
-            y = -parallax_1_factor * self.camera.pos.y
+            y = -parallax_1_factor * self.game.camera.pos.y
 
             if x < -self.parallax_1_width:
                 self.parallax_1_offset += self.parallax_1_width * 2
 
-            self.surface.blit(self.parallax_1, (x, y))
+            self.game.surface.blit(self.parallax_1, (x, y))
 
     def draw_parallax_2(self):
         if self.parallax_2 is not None:
             parallax_2_factor = 0.125  # smaller = further away
 
             # Calculate offset based on camera position
-            offset_x = -parallax_2_factor * self.camera.pos.x
-            offset_y = -parallax_2_factor * self.camera.pos.y
+            offset_x = -parallax_2_factor * self.game.camera.pos.x
+            offset_y = -parallax_2_factor * self.game.camera.pos.y
 
             # Wrap offset so it always stays within the texture width
             x = (offset_x % self.parallax_2_width)
 
             # Draw two instances to cover the gap
-            self.surface.blit(self.parallax_2, (x - self.parallax_2_width, offset_y))
-            self.surface.blit(self.parallax_2, (x, offset_y))
+            self.game.surface.blit(self.parallax_2, (x - self.parallax_2_width, offset_y))
+            self.game.surface.blit(self.parallax_2, (x, offset_y))
 
     def draw_projectiles(self):
         for projectiles in self.projectiles:
-            projectiles.draw(self.surface, self.camera)
+            projectiles.draw(self.game.surface, self.game.camera)
 
     def draw_decals(self):
         for decal in self.decals:
-            decal.draw(self.surface, self.camera)
+            decal.draw(self.game.surface, self.game.camera)

@@ -1,59 +1,114 @@
-import os, tempfile, yaml
-
-import pygame
+import os, pygame, random, tempfile, yaml
+from pygame._sdl2 import Window
+from src import config
+from src.Input import DEFAULT_INPUT
 
 
 class Settings:
+
+
+
     def __init__(self):
         self.settings_file = os.path.join(tempfile.gettempdir(), 'racesow_acrade.yaml')
         self.width = 640
         self.height = 320
         self.fullscreen = False
         self.max_fps = 120
+        self.music_enabled = True
+        self.music_volume = 7
+        self.volume = 10
+        self.max_volume = 10
 
-        self.mapping = {
-            'controller': {
-                'up': {'axis': 1, 'value': -1},
-                'down': {'axis': 1, 'value': 1},
-                'left': {'axis': 0, 'value': -1},
-                'right': {'axis': 0, 'value': 1},
-                'shoot': {'button': 2},
-                'jump': {'button': 0},
-                'wall_jump': {'button': 1},
-                'switch_weapon': {'button': 3},
-                'select': {'button': 2},
-                'back': {'button': 8},
-                'menu': {'button': 7},
-            },
-            'keyboard': {
-                'up': {'key': pygame.K_w},
-                'down': {'key': pygame.K_s},
-                'left': {'key': pygame.K_a},
-                'right': {'key': pygame.K_d},
-                'shoot': {'key': pygame.K_RETURN},
-                'jump': {'key': pygame.K_SPACE},
-                'wall_jump': {'mod': pygame.KMOD_ALT},
-                'switch_weapon': {'mod': pygame.KMOD_CTRL},
-                'select': {'key': pygame.K_RETURN},
-                'back': {'key': pygame.K_ESCAPE},
-                'menu': {'key': pygame.K_F1},
-            },
-        }
+        self.game_sounds = [
+            pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'player', 'jump_1.ogg')),
+            pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'player', 'jump_2.ogg')),
+            pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'player', 'wj_1.ogg')),
+            pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'player', 'wj_2.ogg')),
+            pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'player', 'death.ogg')),
+            pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'items', 'pickup.ogg')),
+            pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'items', 'rocket.ogg')),
+            pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'items', 'empty_shot.mp3')),
+        ]
+
+        self.mapping = DEFAULT_INPUT
+
+    def get_volume(self):
+        return self.volume / self.max_volume
+
+    def play_game_sound(self):
+        sound = self.game_sounds[random.randint(0, len(self.game_sounds) - 1)]
+        sound.set_volume(self.get_volume())
+        sound.play()
+
+    def increase_volume(self):
+        new_vol = min(self.max_volume, self.volume + 1)
+        if new_vol == self.volume:
+            return
+        self.volume = new_vol
+        self.play_game_sound()
+
+    def reduce_volume(self):
+        new_vol = max(1, self.volume - 1)
+        if new_vol == self.volume:
+            return
+        self.volume = new_vol
+        self.play_game_sound()
+
+    def increase_music_volume(self):
+        self.music_volume = min(self.max_volume, self.music_volume + 1)
+        self.update_music_volume()
+
+    def reduce_music_volume(self):
+        self.music_volume = max(1, self.music_volume - 1)
+        self.update_music_volume()
+
+    def update_music_volume(self):
+        pygame.mixer.music.set_volume(self.music_volume / self.max_volume)
 
     def get_scale(self):
         return self.height / 320
+
+    def get(self, setting):
+        return getattr(self, setting, None)
+
+    def set(self, setting, value):
+        return setattr(self, setting, value)
+
+    def reduce(self, setting):
+        if setting == 'volume':
+            self.reduce_volume()
+        elif setting == 'music_volume':
+            self.reduce_music_volume()
+
+    def increase(self, setting):
+        if setting == 'volume':
+            self.increase_volume()
+        elif setting == 'music_volume':
+            self.increase_music_volume()
 
     def load(self):
         if not os.path.isfile(self.settings_file):
             return
 
         with open(self.settings_file, 'r') as file:
-            data = yaml.safe_load(file)
+            try:
+                data = yaml.safe_load(file)
+            except:
+                data = {}
 
-        self.width = data.get('resolution', {}).get('width', 640)
-        self.height = data.get('resolution', {}).get('height', 320)
-        self.fullscreen = data.get('fullscreen', False)
-        self.max_fps = data.get('max_fps', 120)
+        self.width = data.get('resolution', {}).get('width', self.width)
+        self.height = data.get('resolution', {}).get('height', self.height)
+        self.fullscreen = data.get('fullscreen', self.fullscreen)
+        self.max_fps = data.get('max_fps', self.max_fps)
+        self.volume = data.get('volume', self.volume)
+        self.music_volume = data.get('music_volume', self.music_volume)
+        self.music_enabled = data.get('music_enabled', self.music_enabled)
+
+        window = Window.from_display_module()
+        position = data.get('window', {}).get('position', {'x': 0, 'y': 0})
+        window.position = (position.get('x', 0), position.get('y', 0))
+
+        pygame.mixer.music.set_volume(self.music_volume / (self.max_volume / self.volume))
 
         mapping = data.get('mapping', {})
         controller = mapping.get('controller', {})
@@ -65,6 +120,10 @@ class Settings:
             self.mapping['keyboard'][input] = keyboard[input]
 
     def save(self):
+
+        window = Window.from_display_module()
+        x, y = window.position
+
         settings = {
             "resolution": {
                 "width": self.width,
@@ -73,6 +132,12 @@ class Settings:
             "fullscreen": self.fullscreen,
             "max_fps": self.max_fps,
             "mapping": self.mapping,
+            "volume": self.volume,
+            "music_volume": self.music_volume,
+            "music_enabled": self.music_enabled,
+            "window": {
+                "position": {'x': x, 'y': y},
+            }
         }
 
         with open(self.settings_file, "w") as file:

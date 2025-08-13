@@ -4,27 +4,30 @@ from src.MainMenu import MainMenu
 from src.Settings import Settings
 from src.config import assets_folder
 
-if __name__ == '__main__':
+from profilehooks import profile
 
+@profile
+def main():
     settings = Settings()
     settings.load()
 
-    is_fullscreen = False
     display_options = pygame.SCALED
     if os.getenv("WINDOWED") or settings.fullscreen:
         display_options += pygame.FULLSCREEN
-        is_fullscreen = True
-    
+
     pygame.init()
     pygame.mixer.init()
     pygame.mixer.set_num_channels(64)
     pygame.display.set_caption("Racesow Arcade")
-    pygame.mouse.set_visible(False)
+    pygame.mouse.set_visible(True)
 
     screen = pygame.display.set_mode((settings.width, settings.height), display_options)
     clock = pygame.time.Clock()
 
-    MainMenu(screen, clock, settings).game_loop()
+    scene = MainMenu(screen, clock, settings)
+    while scene is not None:
+        scene.init_input_mappings()
+        scene = scene.game_loop()
 
     settings.save()
 
@@ -34,3 +37,7 @@ if __name__ == '__main__':
 
     pygame.mixer.quit()
     pygame.quit()
+
+
+if __name__ == '__main__':
+    main()
