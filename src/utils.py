@@ -1,4 +1,5 @@
-import os, sys
+import math, os, pygame, sys
+from datetime import date
 from src import config
 from src.Vector2 import Vector2
 
@@ -65,3 +66,36 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
+def get_distance(p1, p2):
+    """Calculates the Euclidean distance between two tuples."""
+    x1, y1 = p1
+    x2, y2 = p2
+    dx = x2 - x1
+    dy = y2 - y1
+
+    return math.sqrt(dx ** 2 + dy ** 2)
+
+def create_split_rects(rect, percentage=0.25):
+    x, y, w, h = rect
+    quarter_width = w * percentage
+    left_rect = pygame.Rect(x, y, quarter_width, h)
+    right_rect = pygame.Rect(x + (w - quarter_width), y, quarter_width, h)
+
+    return left_rect, right_rect
+
+def get_easter_date(year: int = None):
+    if year is None:
+        year = date.today().year
+
+    a = year % 19
+    b, c = divmod(year, 100)
+    d, e = divmod(b, 4)
+    g = (8 * b + 13) // 25
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = divmod(c, 4)
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month = (h + l - 7 * m + 114) // 31
+    day = ((h + l - 7 * m + 114) % 31) + 1
+    return month, day

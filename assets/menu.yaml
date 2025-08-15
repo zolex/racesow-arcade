@@ -68,23 +68,30 @@ menu:
                   menu:
                     title: RESOLUTION
                     style: small
+                    type: select
+                    setting: resolution
+                    callback: reload
                     items:
-                      - { text: 320x240, action: resolution, width: 320, height: 240 }
-                      - { text: 640x320 (standard), action: resolution, width: 640, height: 320 }
-                      - { text: 1024x512, action: resolution, width: 1024, height: 512 }
-                      - { text: 1280x640, action: resolution, width: 1280, height: 640 }
-                      - { text: 1920x960, action: resolution, width: 1920, height: 960 }
-                      - { text: 3840x1600, action: resolution, width: 3840, height: 1600 }
+                      - { text: 320x240, action: select_option, value: [320, 240] }
+                      - { text: 640x320, action: select_option, value: [640, 320] }
+                      - { text: 1024x512, action: select_option, value: [1024, 512] }
+                      - { text: 1280x640, action: select_option, value: [1280, 640] }
+                      - { text: 1920x960, action: select_option, value: [1920, 960] }
+                      - { text: 3840x1600, action: select_option, value: [3840, 1600] }
                 - text: MAX FPS
                   action: menu
                   menu:
                     title: MAX FPS
                     style: small
+                    type: select
+                    setting: max_fps
                     items:
-                      - { text: "30", action: fps, fps: 30 }
-                      - { text: "60", action: fps, fps: 60 }
-                      - { text: "120", action: fps, fps: 120 }
-                      - { text: unlimited, action: fps, fps: 0 }
+                      - { text: "30", action: select_option, value: 30 }
+                      - { text: "60", action: select_option, value: 60 }
+                      - { text: "90", action: select_option, value: 90 }
+                      - { text: "120", action: select_option, value: 120 }
+                      - { text: "144", action: select_option, value: 144 }
+                      - { text: unlimited, action: select_option, value: 0 }
           - text: SOUND
             action: menu
             menu:

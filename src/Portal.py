@@ -85,6 +85,6 @@ class Portal(GameObject):
         scale = self.settings.get_scale()
         if player.vel.x < 0.3 * scale:
             player.vel.x = 0.3 * scale
-        player.camera.stop_settling()
-        player.camera.pos.x = self.exit.x - 30
-        player.camera.pos.y = self.exit.y - self.settings.height // 2
+        player.game.camera.stop_settling()
+        player.game.camera.pos.x = self.exit.x - 30
+        player.game.camera.pos.y = self.exit.y - self.settings.resolution[1] // 2

@@ -6,7 +6,7 @@ from src.Vector2 import Vector2
 
 class Camera(SimpleRect):
     def __init__(self, pos, settings: Settings):
-        super(Camera, self).__init__(pos, settings.width, settings.height)
+        super(Camera, self).__init__(pos, settings.resolution[0], settings.resolution[1])
 
         self.settings = settings
 
@@ -74,7 +74,7 @@ class Camera(SimpleRect):
             self.initial_falling_distance = None
 
         fall_lookahead_px = 0.0
-        if player.vel.y > 0 and player.distance_to_ground > self.settings.height - bottom_threshold_base:
+        if player.vel.y > 0 and player.distance_to_ground > self.settings.resolution[1] - bottom_threshold_base:
 
             if self.initial_falling_distance is None or self.initial_falling_distance == float("inf"):
                 #print("initial fall distance", player.distance_to_ground)

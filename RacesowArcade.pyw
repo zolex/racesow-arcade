@@ -4,9 +4,8 @@ from src.MainMenu import MainMenu
 from src.Settings import Settings
 from src.config import assets_folder
 
-from profilehooks import profile
-
-@profile
+#from profilehooks import profile
+#@profile
 def main():
     settings = Settings()
     settings.load()
@@ -19,9 +18,9 @@ def main():
     pygame.mixer.init()
     pygame.mixer.set_num_channels(64)
     pygame.display.set_caption("Racesow Arcade")
-    pygame.mouse.set_visible(True)
+    pygame.mouse.set_visible(settings.cursor is None)
 
-    screen = pygame.display.set_mode((settings.width, settings.height), display_options)
+    screen = pygame.display.set_mode((settings.resolution[0], settings.resolution[1]), display_options)
     clock = pygame.time.Clock()
 
     scene = MainMenu(screen, clock, settings)

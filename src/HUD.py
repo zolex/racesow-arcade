@@ -38,11 +38,11 @@ class HUD:
     def draw(self):
 
         if self.intro_text is not None:
-            self.game.surface.blit(self.intro_text, (self.game.settings.width / 2 - self.intro_text.get_width() / 2, self.game.settings.height / 2 - self.intro_text.get_height() / 2), area=(0, 0, self.game.camera.w, self.game.camera.h))
+            self.game.surface.blit(self.intro_text, (self.game.settings.resolution[0] / 2 - self.intro_text.get_width() / 2, self.game.settings.resolution[1] / 2 - self.intro_text.get_height() / 2), area=(0, 0, self.game.camera.w, self.game.camera.h))
 
-        hud_center = self.game.settings.width / 2
+        hud_center = self.game.settings.resolution[0] / 2
         hud_x = hud_center - self.hud.get_width() / 2
-        hud_y = self.game.settings.height - self.hud.get_height()
+        hud_y = self.game.settings.resolution[1] - self.hud.get_height()
 
         self.game.surface.blit(self.hud, (hud_x, hud_y))
         game_scale = self.game.settings.get_scale()

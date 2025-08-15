@@ -1,10 +1,11 @@
-import copy, math, os, pygame, random, yaml, webbrowser
+import copy, os, pygame, random, yaml, webbrowser
+from datetime import date
 from src import config
 from src.Game import Game
 from src.Input import Input
 from src.Settings import Settings
 from src.Scene import GameScene
-from src.utils import resource_path
+from src.utils import resource_path, get_distance, create_split_rects, get_easter_date
 
 
 class MainMenu(GameScene):
@@ -31,7 +32,7 @@ class MainMenu(GameScene):
         "small": {
             "font_path": font_path,
             "font_size": 11,
-            "item_padding": 3,
+            "item_padding": 4,
             "item_margin": 4,
             "text_offset": 1.66
         },
@@ -88,7 +89,6 @@ class MainMenu(GameScene):
         super().__init__(surface, clock, settings)
         self.quit = False
         self.quit_really = False
-        self.splash: pygame.Surface = self.load_splash()
         self.selected_item = 0
         self.select = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'menu', 'select.wav'))
         self.back = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'menu', 'back.wav'))
@@ -98,16 +98,23 @@ class MainMenu(GameScene):
         self.input_mappings = None
         self.parent_menus = []
         self.active_menu = None
-        self.load_menu()
         self.quit_handler: callable = None
         self.entrypoint = None
         self.mouse_down_item = None
         self.mouse_down_pos = None
+        self.last_mouse_motion = 0
         self.back_button = None
+        self.using_mouse = False
+        self.root_menu = None
+        self.cursor = None
         self.music = [
             os.path.join(config.assets_folder, 'sounds', 'menu_1.ogg'),
             os.path.join(config.assets_folder, 'sounds', 'menu_2.ogg'),
         ]
+
+        self.splash: pygame.Surface = self.load_splash()
+        self.load_menu()
+        self.load_cursor()
 
     def reset(self):
         self.quit = False
@@ -121,12 +128,49 @@ class MainMenu(GameScene):
         self.load_menu()
         self.init_input_mappings()
 
+    def load_cursor(self):
+        today = date.today()
+        easter_month, easter_day = get_easter_date()
+        if today.month == easter_month and easter_day - 7 <= today.day <= easter_day + 3:
+            self.settings.cursor = 'easter'
+        elif today.month == 12 and 18 <= today.day <= 31:
+            self.settings.cursor = 'xmas'
+
+        if self.settings.cursor is not None:
+            cursor_file = os.path.join(config.assets_folder, 'graphics', 'cursor', f'{self.settings.cursor}.png')
+            cursor = pygame.image.load(cursor_file).convert_alpha()
+            scale = self.settings.get_scale()
+            width = cursor.get_width() / 7 * scale
+            height = cursor.get_height() / 7 * scale
+            self.cursor = pygame.transform.scale(cursor, (width, height))
+
+    def draw_cursor(self):
+        if self.cursor is None:
+            return
+
+        ticks = pygame.time.get_ticks()
+        fade_start_time = self.last_mouse_motion + 1337
+        fade_duration = 2000  # 2 seconds for fading
+
+        if ticks < fade_start_time:
+            self.cursor.set_alpha(255)
+        elif fade_start_time <= ticks < fade_start_time + fade_duration:
+            time_since_fade_start = ticks - fade_start_time
+            alpha = 255 - int((time_since_fade_start / fade_duration) * 255)
+            self.cursor.set_alpha(alpha)
+        else:
+            return
+
+        self.surface.blit(self.cursor, pygame.mouse.get_pos())
+
     def play_music(self):
-        pygame.mixer.music.load(self.music[random.choice([0, 1])])
-        pygame.mixer.music.play(loops=-1, fade_ms=2000)
+        if self.settings.music_enabled:
+            pygame.mixer.music.load(self.music[random.choice([0, 1])])
+            pygame.mixer.music.play(loops=-1, fade_ms=3886)
 
     def stop_music(self):
-        pygame.mixer.music.fadeout(2000)
+        if self.settings.music_enabled:
+            pygame.mixer.music.fadeout(1337)
 
     def load_splash(self):
         splash = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'splash.jpg')).convert_alpha()
@@ -145,6 +189,7 @@ class MainMenu(GameScene):
         menu_file = os.path.join(config.assets_folder, 'menu.yaml')
         with open(menu_file, 'r') as file:
             menu = yaml.safe_load(file)
+            self.root_menu = menu
             self.activate_menu(menu)
 
     def scale_style(self, style):
@@ -338,7 +383,7 @@ class MainMenu(GameScene):
         select_name = self.get_mapping_name(select_key)
         select_name2 = self.get_mapping_name(select_button)
         text_surface = self.draw_dialog_text([
-            style['font'].render('Are you sure, you want to', True, MainMenu.ITEM_TEXT_DEFAULT),
+            style['font'].render('Do you really want to', True, MainMenu.ITEM_TEXT_DEFAULT),
             style['font_large'].render('QUIT?', True, MainMenu.ITEM_TEXT_ACTIVE),
             style['font_small'].render(f'press {back_name} or {back_name2} to stay', True, MainMenu.ITEM_TEXT_DEFAULT),
             style['font_small'].render(f"press {select_name} or {select_name2} to leave", True, MainMenu.ITEM_TEXT_DARK),
@@ -362,7 +407,6 @@ class MainMenu(GameScene):
 
         self.back_button = {
             'action': 'quit_really',
-            'text': '',
             'bbox': pygame.Rect(rect_x, rect_y, rect_width, rect_height)
         }
 
@@ -382,14 +426,12 @@ class MainMenu(GameScene):
         self.surface.fill((0, 0, 0))
         self.surface.blit(self.splash, (0, 0))
 
-        if self.active_menu is None:
-            return None
-
         # menu title
+        title = self.active_menu.get('title') if self.active_menu is not None else 'WHY SO SERIOUS?'
         title_style = self.scale_style(MainMenu.MENU_STYLES.get('large'))
-        text_surface = title_style['font'].render(self.active_menu.get('title'), True, (255, 255, 255))
+        text_surface = title_style['font'].render(title, True, (255, 255, 255))
         text_width, text_height = text_surface.get_size()
-        text_x = self.settings.width - text_width - title_style['item_margin']
+        text_x = self.settings.resolution[0] - text_width - title_style['item_margin']
         self.surface.blit(text_surface, (text_x, title_style['item_margin']))
 
         if self.active_mapping is not None:
@@ -397,6 +439,9 @@ class MainMenu(GameScene):
 
         if self.quit:
             return self.draw_quit_really()
+
+        if self.active_menu is None:
+            return None
 
         style_name = self.active_menu.get('style', 'default')
         style = self.scale_style(MainMenu.MENU_STYLES.get(style_name))
@@ -418,25 +463,37 @@ class MainMenu(GameScene):
                 menu_index += 1
                 continue
 
+            text_color = None
+            text_offset = 0
             if item.get('action') == 'switch':
-                text = f'{item.get('text')} ({'ON' if self.settings.get(item.get('setting')) else 'OFF'})'
+                text_offset = 1.25 * scale
+                text = f'{item.get('text')} [{'ON' if self.settings.get(item.get('setting')) else 'OFF'}]'
             elif item.get('action') == 'setting':
                 text = f'{item.get('text')} ({self.settings.get(item.get('setting'))})'
+            elif item.get('action') == 'select_option' and item.get('value') == self.settings.get(self.active_menu.get('setting')):
+                text_color = MainMenu.ITEM_TEXT_DARK
+                text_offset = 1.25 * scale
+                text = f'[{item.get('text')}]'
             else:
                 text = item.get('text')
 
             if item.get('depends'):
-                item['disabled'] = not self.settings.get(item.get('depends'))
+                depends = item.get('depends')
+                if depends.startswith('!'):
+                    depends = depends[1:]
+                    item['disabled'] = self.settings.get(depends)
+                else:
+                    item['disabled'] = not self.settings.get(depends)
 
             if item.get('disabled'):
                 background_color = MainMenu.ITEM_BACKGROUND_DISABLED
                 text_color = MainMenu.ITEM_TEXT_DISABLED
             elif menu_index == self.selected_item:
                 background_color = MainMenu.ITEM_BACKGROUND_ACTIVE
-                text_color = MainMenu.ITEM_TEXT_ACTIVE
+                text_color = text_color or MainMenu.ITEM_TEXT_ACTIVE
             else:
                 background_color = MainMenu.ITEM_BACKGROUND_DEFAULT
-                text_color = MainMenu.ITEM_TEXT_DEFAULT
+                text_color = text_color or MainMenu.ITEM_TEXT_DEFAULT
 
             text_surface = style['font'].render(text, True, text_color)
             text_width, text_height = text_surface.get_size()
@@ -460,11 +517,12 @@ class MainMenu(GameScene):
             else:
                 text_x = rect_x + (item_width - text_width) // 2
 
-            self.surface.blit(text_surface, (text_x, text_y + style['text_offset']))
+            self.surface.blit(text_surface, (text_x, text_y + style['text_offset'] - text_offset))
 
             if item.get('action') == 'setting':
                 self.surface.blit(style['font'].render('<', True, MainMenu.ITEM_TEXT_DEFAULT), (rect_x + style['item_padding'], text_y + style['text_offset'] * 2))
                 self.surface.blit(style['font'].render('>', True, MainMenu.ITEM_TEXT_DEFAULT),(rect_x + item_width - style['item_padding'] - 10 * scale, text_y + style['text_offset'] * 2))
+
 
             item['bbox'] = pygame.Rect(rect_x, rect_y, item_width, rect_height)
 
@@ -507,20 +565,6 @@ class MainMenu(GameScene):
             'bbox': pygame.Rect(rect_x, rect_y, item_width, rect_height)
         }
 
-    def abort_quit(self, key_down):
-        if key_down:
-            self.quit = False
-
-    def handle_quit_really(self):
-        self.stop_music()
-        self.handle_events({
-            Input.BACK: lambda v, e: self.abort_quit(v),
-            Input.SELECT: lambda v, e: setattr(self, 'quit_really', True),
-            pygame.MOUSEBUTTONDOWN: lambda e: self.handle_click(e),
-            pygame.MOUSEBUTTONUP: lambda e: self.handle_click(e),
-            pygame.MOUSEMOTION: lambda e: self.handle_mouse_motion(e),
-        })
-
     def handle_set_mapping(self):
         self.handle_events({
             Input.BACK: lambda v, e: self.abort_mapping(v),
@@ -533,7 +577,7 @@ class MainMenu(GameScene):
             self.back.play()
 
     def get_selected_item(self):
-        if self.active_menu is None or self.selected_item is None:
+        if (self.active_menu is None and self.back_button is None) or self.selected_item is None:
             return None
 
         try:
@@ -573,11 +617,25 @@ class MainMenu(GameScene):
         else:
             self.stop_music()
 
-    def menu_ok(self, key_down):
+    def set_setting(self, item, value):
+        setting = item.get('setting')
+        self.settings.set(setting, value)
+        callback = item.get('callback')
+        if callback is not None:
+            method = getattr(self, callback)
+            if callback is not None and method is not None:
+                method()
+
+    def menu_ok(self, key_down, using_mouse = False):
         if not key_down:
             return
 
+        self.using_mouse = using_mouse
+
         selected_item = self.get_selected_item()
+        if selected_item is None:
+            return
+
         if selected_item.get('action') == 'play':
             self.ok.play()
             self.activate_menu(self.load_maps_menu())
@@ -585,13 +643,16 @@ class MainMenu(GameScene):
         elif selected_item.get('action') == 'switch':
             self.ok.play()
             setting = selected_item.get('setting')
-            enabled = not self.settings.get(setting)
-            self.settings.set(setting, enabled)
-            callback = selected_item.get('callback')
-            if callback is not None:
-                method = getattr(self, callback)
-                if callback is not None and method is not None:
-                    method()
+            self.set_setting(selected_item, not self.settings.get(setting))
+
+        elif selected_item.get('action') == 'select_option':
+            last = len(self.parent_menus) - 1
+            try:
+                if self.active_menu.get('type') != 'select':
+                    return
+                self.set_setting(self.active_menu, selected_item.get('value'))
+            except IndexError:
+                return
 
         elif selected_item.get('action') == 'map':
             self.ok.play()
@@ -609,18 +670,6 @@ class MainMenu(GameScene):
         elif selected_item.get('action') == 'back':
             self.menu_back_or_quit()
 
-        elif selected_item.get('action') == 'resolution':
-            self.ok.play()
-            self.change_resolution(selected_item.get('width'), selected_item.get('height'))
-
-        elif selected_item.get('action') == 'fps':
-            self.ok.play()
-            self.change_max_fps(selected_item.get('fps'))
-
-        elif selected_item.get('action') == 'switch_fullscreen':
-            self.ok.play()
-            self.switch_fullscreen()
-
         elif selected_item.get('action') == 'mapping':
             self.ok.play()
             self.show_mapping(selected_item)
@@ -634,56 +683,56 @@ class MainMenu(GameScene):
             self.parent_menus.append(self.active_menu)
 
         self.active_menu = menu_item.get('menu')
-        self.selected_item = menu_item.get('selected_item', 0)
+
+        if self.using_mouse:
+            self.selected_item = None
+            self.mouse_down_pos = None
+            self.mouse_down_item = None
+            event = pygame.event.Event(pygame.MOUSEMOTION, {'pos': pygame.mouse.get_pos()})
+            self.handle_mouse_motion(event)
+        else:
+            self.selected_item = menu_item.get('selected_item', 0)
 
         # pre-select items that are saved in the settings
-        if menu_item.get('action') == 'menu':
-            items = menu_item.get('menu').get('items')
-            for item in items:
-                if item.get('action') == 'resolution' and self.settings.width == int(item.get('width')) and self.settings.height == int(item.get('height')):
-                    self.selected_item = items.index(item)
-                    break
-                elif item.get('action') == 'fps' and self.settings.max_fps == int(item.get('fps')):
-                    self.selected_item = items.index(item)
-                    break
+        #if menu_item.get('action') == 'menu':
+        #    items = menu_item.get('menu').get('items')
+        #    for item in items:
+        #        if item.get('action') == 'resolution' and self.settings.resolution[0] == int(item.get('width')) and self.settings.resolution[1] == int(item.get('height')):
+        #            self.selected_item = items.index(item)
+        #            break
+        #        elif item.get('action') == 'fps' and self.settings.max_fps == int(item.get('fps')):
+        #            self.selected_item = items.index(item)
+        #            break
 
     def reload(self):
         display_options = pygame.SCALED
         if self.settings.fullscreen:
             display_options += pygame.FULLSCREEN
 
-        self.surface = pygame.display.set_mode((self.settings.width, self.settings.height), display_options)
+        self.surface = pygame.display.set_mode((self.settings.resolution[0], self.settings.resolution[1]), display_options)
         self.splash = self.load_splash()
+        self.load_cursor()
 
     def show_mapping(self, menu_item):
         self.active_mapping = menu_item
 
     def change_resolution(self, width, height):
-        self.settings.width = int(width)
-        self.settings.height = int(height)
+        self.settings.resolution[0] = int(width)
+        self.settings.resolution[1] = int(height)
         self.reload()
 
     def change_max_fps(self, fps):
         self.settings.max_fps = int(fps)
         self.reload()
 
-    def menu_back_or_quit(self, key_down = True):
+    def menu_up(self, key_down = True, using_mouse = False):
         if not key_down:
             return
 
-        if self.active_mapping is not None:
-            self.active_mapping = None
-            return
+        self.using_mouse = using_mouse
 
-        if len(self.parent_menus) > 0:
-            self.back.play()
-            self.active_menu = self.parent_menus.pop()
-            self.selected_item = self.active_menu.get('selected_item', 0)
-        else:
-            self.quit_handler()
-
-    def menu_up(self, key_down = True):
-        if not key_down:
+        if self.selected_item is None and self.active_menu is not None:
+            self.selected_item = len(self.active_menu.get('items')) - 1
             return
 
         if self.selected_item > (-1 if self.has_back_button() else 0):
@@ -692,8 +741,14 @@ class MainMenu(GameScene):
                 self.selected_item -= 1
             self.select.play()
 
-    def menu_down(self, key_down = True):
+    def menu_down(self, key_down = True, using_mouse = False):
         if not key_down:
+            return
+
+        self.using_mouse = using_mouse
+
+        if self.selected_item is None:
+            self.selected_item = 0
             return
 
         if self.selected_item < len(self.active_menu.get('items')) - 1:
@@ -702,46 +757,55 @@ class MainMenu(GameScene):
                 self.selected_item += 1
             self.select.play()
 
-    def menu_left(self, key_down = True):
+    def menu_left(self, key_down = True, using_mouse = False):
         if not key_down:
             return
 
+        self.using_mouse = using_mouse
+
         item = self.get_selected_item()
-        if item.get('action') == 'setting':
+        if item is not None and item.get('action') == 'setting':
             self.settings.reduce(item.get('setting'))
 
-    def menu_right(self, key_down = True):
+    def menu_right(self, key_down = True, using_mouse = False):
         if not key_down:
             return
 
+        self.using_mouse = using_mouse
+
         item = self.get_selected_item()
-        if item.get('action') == 'setting':
+        if item is not None and item.get('action') == 'setting':
             self.settings.increase(item.get('setting'))
 
-    def get_distance(self, p1, p2):
-        """Calculates the Euclidean distance between two tuples."""
-        # Unpack the tuples
-        x1, y1 = p1
-        x2, y2 = p2
+    def handle_mouse_motion(self, event):
+        try:
+            if event.rel[0] == 0 and event.rel[1] == 0:
+                return
+        except AttributeError:
+            pass
 
-        # Calculate the squared differences
-        dx = x2 - x1
-        dy = y2 - y1
+        self.last_mouse_motion = pygame.time.get_ticks()
 
-        # Apply the Pythagorean theorem
-        return math.sqrt(dx ** 2 + dy ** 2)
+        self.using_mouse = True
+        if self.mouse_down_pos is not None:
+            return
 
-    def create_split_rects(self, bbox_tuple, percentage=0.25):
-        """
-        Creates two pygame.Rect objects from a bbox tuple (x, y, w, h).
-        One rect represents the left percentage width, and the other the right percentage width.
-        """
-        x, y, w, h = bbox_tuple
-        quarter_width = w * percentage
-        left_rect = pygame.Rect(x, y, quarter_width, h)
-        right_rect = pygame.Rect(x + (w - quarter_width), y, quarter_width, h)
+        selected = False
+        if self.active_menu is not None:
+            for item in self.active_menu.get('items'):
+                if item.get('bbox') and item.get('bbox').collidepoint(event.pos):
+                    selected = True
+                    self.selected_item = self.active_menu.get('items', []).index(item)
+                    break
 
-        return left_rect, right_rect
+        if not selected and self.back_button is not None and self.back_button.get('bbox'):
+            if self.back_button.get('bbox').collidepoint(event.pos):
+                selected = True
+                self.selected_item = -1
+
+        if not selected:
+            self.selected_item = None
+
 
     def handle_click(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -753,23 +817,30 @@ class MainMenu(GameScene):
                 self.mouse_down_item = None
                 self.mouse_down_pos = None
         elif event.type == pygame.MOUSEBUTTONUP:
+
+            if self.mouse_down_pos is not None and get_distance(event.pos, self.mouse_down_pos) > 10 * self.settings.get_scale():
+                self.mouse_down_item = None
+                self.mouse_down_pos = None
+                self.handle_mouse_motion(event)
+                return
+
             item = self.get_selected_item()
-            if item is not None and not item.get('disabled'):
-                if item == self.mouse_down_item:
-                    if isinstance(self.mouse_down_pos, tuple):
-                        if self.get_distance(event.pos, self.mouse_down_pos) < 10 * self.settings.get_scale():
-                            if item.get('action') == 'setting':
-                                left, right = self.create_split_rects(item['bbox'])
-                                if left.collidepoint(event.pos):
-                                    self.menu_left(True)
-                                elif right.collidepoint(event.pos):
-                                    self.menu_right(True)
-                                return
-                            elif item.get('action') == 'quit_really':
-                                self.quit_really = True
-                                return
-                            else:
-                                self.menu_ok(True)
+            if item is not None and not item.get('disabled') and item == self.mouse_down_item and item.get('bbox').collidepoint(event.pos):
+                if item.get('action') == 'setting':
+                    left, right = create_split_rects(item.get('bbox'))
+                    if left.collidepoint(event.pos):
+                        self.menu_left(True, True)
+                    elif right.collidepoint(event.pos):
+                        self.menu_right(True, True)
+                elif item.get('action') == 'quit_really':
+                    self.quit_really = True
+                else:
+                    self.menu_ok(True, True)
+            elif self.back_button is not None and self.back_button.get('action') == 'quit_really' and not self.back_button.get('bbox').collidepoint(event.pos):
+                self.abort_quit(True)
+
+            self.mouse_down_item = None
+            self.mouse_down_pos = None
 
     def init_input_mappings(self):
         self.input_mappings = {
@@ -790,17 +861,43 @@ class MainMenu(GameScene):
             pygame.K_ESCAPE: lambda v, e: self.menu_back_or_quit(v),
         }
 
-    def handle_mouse_motion(self, event):
-        for item in self.active_menu.get('items'):
-            if item.get('bbox') and item.get('bbox').collidepoint(event.pos):
-                self.selected_item = self.active_menu.get('items', []).index(item)
-
-        if self.back_button is not None and self.back_button.get('bbox'):
-            if self.back_button.get('bbox').collidepoint(event.pos):
-                self.selected_item = -1
+    def set_quit(self, key_down: bool = True):
+        super().set_quit(key_down)
+        self.active_menu = None
 
     def set_quit_really(self):
         self.quit_really = True
+
+    def menu_back_or_quit(self, key_down=True):
+        if not key_down:
+            return
+
+        if self.active_mapping is not None:
+            self.active_mapping = None
+            return
+
+        if len(self.parent_menus) > 0:
+            self.back.play()
+            self.active_menu = self.parent_menus.pop()
+            self.selected_item = None if self.using_mouse else self.active_menu.get('selected_item', 0)
+        else:
+            self.quit_handler()
+
+    def abort_quit(self, key_down):
+        if key_down:
+            self.quit = False
+            self.activate_menu(self.root_menu)
+            self.play_music()
+
+    def handle_quit_really(self):
+        self.stop_music()
+        self.handle_events({
+            Input.BACK: lambda v, e: self.abort_quit(v),
+            Input.SELECT: lambda v, e: setattr(self, 'quit_really', True),
+            pygame.MOUSEBUTTONDOWN: lambda e: self.handle_click(e),
+            pygame.MOUSEBUTTONUP: lambda e: self.handle_click(e),
+            pygame.MOUSEMOTION: lambda e: self.handle_mouse_motion(e),
+        })
 
     def game_loop(self, entrypoint: list[str] = None, force_quit = False):
 
@@ -828,6 +925,7 @@ class MainMenu(GameScene):
             # draw first because we need the positions to handle mouse events
             self.clock.tick(self.settings.max_fps)
             self.draw()
+            self.draw_cursor()
 
             pygame.display.update()
 

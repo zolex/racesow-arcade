@@ -3,21 +3,17 @@ from pygame._sdl2 import Window
 from src import config
 from src.Input import DEFAULT_INPUT
 
-
 class Settings:
-
-
-
     def __init__(self):
         self.settings_file = os.path.join(tempfile.gettempdir(), 'racesow_acrade.yaml')
-        self.width = 640
-        self.height = 320
+        self.resolution = [640, 320]
         self.fullscreen = False
         self.max_fps = 120
         self.music_enabled = True
         self.music_volume = 7
         self.volume = 10
         self.max_volume = 10
+        self.cursor = 'corn'
 
         self.game_sounds = [
             pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'player', 'jump_1.ogg')),
@@ -66,7 +62,7 @@ class Settings:
         pygame.mixer.music.set_volume(self.music_volume / self.max_volume)
 
     def get_scale(self):
-        return self.height / 320
+        return self.resolution[1] / 320
 
     def get(self, setting):
         return getattr(self, setting, None)
@@ -96,13 +92,30 @@ class Settings:
             except:
                 data = {}
 
-        self.width = data.get('resolution', {}).get('width', self.width)
-        self.height = data.get('resolution', {}).get('height', self.height)
-        self.fullscreen = data.get('fullscreen', self.fullscreen)
-        self.max_fps = data.get('max_fps', self.max_fps)
-        self.volume = data.get('volume', self.volume)
-        self.music_volume = data.get('music_volume', self.music_volume)
-        self.music_enabled = data.get('music_enabled', self.music_enabled)
+
+        resolution = data.get('resolution', self.resolution)
+        if isinstance(resolution, list):
+            self.resolution = resolution
+
+        fullscreen = data.get('fullscreen', self.fullscreen)
+        if isinstance(fullscreen, bool):
+            self.fullscreen = fullscreen
+
+        max_fps = data.get('max_fps', self.max_fps)
+        if isinstance(max_fps, int):
+            self.max_fps = max_fps
+
+        volume = data.get('volume', self.volume)
+        if isinstance(volume, int):
+            self.volume = volume
+
+        music_volume = data.get('music_volume', self.music_volume)
+        if isinstance(music_volume, int):
+            self.music_volume = music_volume
+
+        music_enabled = data.get('music_enabled', self.music_enabled)
+        if isinstance(music_enabled, bool):
+            self.music_enabled = music_enabled
 
         window = Window.from_display_module()
         position = data.get('window', {}).get('position', {'x': 0, 'y': 0})
@@ -125,10 +138,7 @@ class Settings:
         x, y = window.position
 
         settings = {
-            "resolution": {
-                "width": self.width,
-                "height": self.height,
-            },
+            "resolution": self.resolution,
             "fullscreen": self.fullscreen,
             "max_fps": self.max_fps,
             "mapping": self.mapping,

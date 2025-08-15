@@ -203,7 +203,7 @@ class Map:
             sky_path = os.path.join(self.map_folder, sky)
             if os.path.isfile(sky_path):
                 self.sky = pygame.image.load(sky_path).convert()
-                width = self.game.settings.width
+                width = self.game.settings.resolution[0]
                 height = int(width * self.sky.get_height() / self.sky.get_width())
                 self.sky = pygame.transform.scale(self.sky, (width, height))
 
@@ -212,7 +212,7 @@ class Map:
             parallax_1_path = os.path.join(self.map_folder, parallax_1)
             if os.path.isfile(parallax_1_path):
                 self.parallax_1 = pygame.image.load(parallax_1_path).convert_alpha()
-                self.parallax_1_width = self.game.settings.width
+                self.parallax_1_width = self.game.settings.resolution[0]
                 height = int(self.parallax_1_width * self.parallax_1.get_height() / self.parallax_1.get_width())
                 self.parallax_1 = pygame.transform.scale(self.parallax_1, (self.parallax_1_width, height))
 
@@ -221,7 +221,7 @@ class Map:
             parallax_2_path = os.path.join(self.map_folder, parallax_2)
             if os.path.isfile(parallax_2_path):
                 self.parallax_2 = pygame.image.load(parallax_2_path).convert_alpha()
-                self.parallax_2_width = self.game.settings.width
+                self.parallax_2_width = self.game.settings.resolution[0]
                 height = int(self.parallax_2_width * self.parallax_2.get_height() / self.parallax_2.get_width())
                 self.parallax_2 = pygame.transform.scale(self.parallax_2, (self.parallax_2_width, height))
 
@@ -358,7 +358,7 @@ class Map:
             parallax_1_factor = 0.25  # smaller = further away
 
             offset_x = -parallax_1_factor / self.parallax_1_width * self.game.camera.pos.x
-            x = self.game.settings.width + offset_x * self.parallax_1_width + self.parallax_1_offset
+            x = self.game.settings.resolution[0] + offset_x * self.parallax_1_width + self.parallax_1_offset
 
             y = -parallax_1_factor * self.game.camera.pos.y
 

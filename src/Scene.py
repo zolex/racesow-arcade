@@ -1,6 +1,8 @@
 import pygame
 from abc import ABC, abstractmethod
 from typing import final
+
+from src.Input import Input
 from src.Settings import Settings
 
 
@@ -38,7 +40,6 @@ class GameScene(ABC):
     def draw(self):
         pass
 
-    @final
     def set_quit(self, key_down: bool = True):
         if key_down:
             self.quit = True
@@ -56,7 +57,11 @@ class GameScene(ABC):
 
             for mapping, callback in mappings.items():
 
-                if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
+                if Input.ANY == mapping and event.type in (pygame.KEYDOWN, pygame.JOYBUTTONDOWN, pygame.JOYAXISMOTION, pygame.JOYHATMOTION):
+                    callback(event)
+                    break
+
+                elif event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
                     mapped_key = self.keyboard.get(mapping, {}).get('key')
                     if event.key == mapped_key or event.key == mapping:
                         callback(event.type == pygame.KEYDOWN, event)
@@ -92,7 +97,3 @@ class GameScene(ABC):
                     or mapping == pygame.MOUSEWHEEL and event.type == pygame.MOUSEWHEEL
                     or mapping == pygame.MOUSEMOTION and event.type == pygame.MOUSEMOTION):
                     callback(event)
-
-                elif '*' == mapping and event.type in (pygame.KEYDOWN, pygame.JOYBUTTONDOWN, pygame.JOYAXISMOTION, pygame.JOYHATMOTION):
-                    callback(event)
-                    break
