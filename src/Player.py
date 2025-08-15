@@ -633,7 +633,7 @@ class Player(Entity):
 
         scale = self.game.settings.get_scale()
 
-        portal = self.shape.check_center_collisions(self.map.portals, 20 * scale, 10 * scale)
+        portal = self.shape.check_center_collisions(self.map.portals, 20 * scale, -40)
         if portal is not None:
             portal.teleport(self)
 
