@@ -14,6 +14,8 @@ class Settings:
         self.volume = 10
         self.max_volume = 10
         self.cursor = 'corn'
+        self.camera_style = 'default'
+        self.new_plasma = False
 
         self.game_sounds = [
             pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'player', 'jump_1.ogg')),

@@ -1,5 +1,4 @@
 import copy, math, pygame, random, os
-
 from src.Animation import Animation
 from src.Decal import Decal
 from src.Entity import Entity
@@ -7,10 +6,8 @@ from src.Rectangle import Rectangle
 from src.StateMachine import StateMachine
 from src.State import State
 from src.Vector2 import Vector2
-from src.utils import accelerate
 from src.Projectile import Projectile
 from src import sounds, config
-
 
 class Player(Entity):
     def __init__(self, game):
@@ -36,6 +33,9 @@ class Player(Entity):
         super(Player, self).__init__(Vector2(0, 0), Rectangle(Vector2(0, 0), self.WIDTH * scale, self.HEIGHT * scale))
         self.distance_to_ground = 0
         self.last_boost = 0
+        self.last_boost_time = None
+        self.num_boost_ghosts = None
+        self.boost_blur_elapsed = 0.0
         self.acceleration = 0
         self.map = None
         self.last_walljump = 0
@@ -51,14 +51,13 @@ class Player(Entity):
         self.pressed_down = False
         self.crouching = False
 
+        self.was_flipped = False
         self.freeze_movement = False
         self.freeze_input = False
         self.can_uncrouch = False
         self.flip_sprites = False
         self.jump_diff = float("inf")
 
-
-        self.start_height = 0
         self.jump_pressed_at = None
         self.jump_action_distance = None
         self.jump_timing = float("-inf")
@@ -89,6 +88,8 @@ class Player(Entity):
     def reset(self):
         self.distance_to_ground = 0
         self.last_boost = 0
+        self.num_boost_ghosts = None
+        self.boost_blur_elapsed = 0.0
         self.acceleration = 0
         self.last_walljump = 0
         self.last_ramp_radians = 0
@@ -111,7 +112,6 @@ class Player(Entity):
         self.flip_sprites = False
         self.jump_diff = float("inf")
 
-        self.start_height = 0
         self.jump_pressed_at = None
         self.jump_action_distance = None
         self.jump_timing = float("-inf")
@@ -163,26 +163,38 @@ class Player(Entity):
             )
         )
 
+        blur_factor = self.last_boost / 64 * scale * self.direction
         if self.last_ramp_radians == 0:
+            self.motion_blur(view_pos_sprite, self.animation.current_sprite, blur_factor)
             self.game.surface.blit(self.animation.current_sprite, (view_pos_sprite.x, view_pos_sprite.y))
+
         else:
-
             rotation = math.degrees(self.last_ramp_radians)
-            if self.direction == -1:
-                rotation -= 180
+            #if self.direction == -1:
+            #    rotation -= 180
 
-
-            # 2. Rotate the sprite
             rotated_sprite = pygame.transform.rotate(self.animation.current_sprite, rotation)
-
-            # 3. Center the rotated sprite on the position
             rect = rotated_sprite.get_rect(center=(view_pos_sprite.x + self.animation.current_sprite.get_width() // 2, view_pos_sprite.y + self.animation.current_sprite.get_height() // 2))
-
-            # 4. Blit the rotated sprite
+            self.motion_blur(Vector2(rect.topleft[0], rect.topleft[1]), rotated_sprite, blur_factor)
             self.game.surface.blit(rotated_sprite, rect.topleft)
 
         # debug draw rect around player
         #self.shape.draw(self.game.surface, self.game.camera, 1)
+
+    def motion_blur(self, view_pos, sprite, blur_factor):
+        if self.num_boost_ghosts is not None:
+            self.boost_blur_elapsed += config.delta_time
+            duration = 420
+            remaining_time = max(0.0, duration - self.boost_blur_elapsed)
+            inverse_percentage = remaining_time / duration
+            for i in range(self.num_boost_ghosts):
+                ghost = sprite.copy()
+                alpha = 92 / (i + 1) * inverse_percentage
+                ghost.set_alpha(alpha)
+                self.game.surface.blit(ghost, (view_pos.x - i * blur_factor, view_pos.y))
+            if self.boost_blur_elapsed >= duration:
+                self.num_boost_ghosts = None
+                self.boost_blur_elapsed = 0
 
     def input_wall_jump(self, key_pressed):
         if key_pressed:
@@ -193,14 +205,18 @@ class Player(Entity):
     def input_right(self, key_pressed):
         self.pressed_right = key_pressed
         min_vel = 0.1 * self.game.settings.get_scale()
-        if key_pressed and self.current_action_state == 'Crouch_State' and self.vel.x < min_vel:
-            self.vel.x = min_vel
+        if key_pressed:
+            self.was_flipped = False
+            if self.current_action_state == 'Crouch_State' and self.vel.x < min_vel and self.direction == 1:
+                self.vel.x = min_vel
 
     def input_left(self, key_pressed):
         self.pressed_left = key_pressed
         min_vel = -0.1 * self.game.settings.get_scale()
-        if key_pressed and self.current_action_state == 'Crouch_State' and self.vel.x > min_vel:
-            self.vel.x = min_vel
+        if key_pressed:
+            self.was_flipped = False
+            if self.current_action_state == 'Crouch_State' and self.vel.x > min_vel and self.direction == -1:
+                self.vel.x = min_vel
 
     def input_down(self, key_pressed):
         self.pressed_down = key_pressed
@@ -293,34 +309,49 @@ class Player(Entity):
             else:
                 sounds.plasma.play()
                 self.plasma_ammo -= 1
-                if (self.pressed_down or self.pressed_left or self.pressed_up or self.pressed_right) and self.plasma_climb_collisions():
-                    if self.pressed_left:
-                        decal_offset = 5
-                    elif self.pressed_right:
-                        decal_offset = 30
+                if (self.pressed_down or self.pressed_up or self.pressed_left or self.pressed_right) and self.plasma_climb_collisions():
+                    if self.game.settings.new_plasma:
+                        x_offset = 0
+                        if self.pressed_left:
+                            x_offset = -3 * scale
+                        elif self.pressed_right:
+                            x_offset = 3 * scale
+
+                        y_offset = 0
+                        if self.pressed_up:
+                            y_offset = -3 * scale
+                        elif self.pressed_down:
+                            y_offset = 3 * scale
+
+                        self.action_states.on_event('plasma')
+                        self.map.projectiles.append(Projectile('plasma', 1000, self.pos.x - 0.5 * scale + x_offset, self.pos.y + y_offset, self.vel.x, self.vel.y, collide_with=['wall']))
                     else:
-                        decal_offset = 15
-
-                    self.action_states.on_event('plasma')
-                    self.map.decals.append(Decal('plasma', 1000, self.pos.x + decal_offset * scale, self.pos.y + 5 * scale, center=True, fade_out=True))
-
-                    if self.pressed_down:
-                        if self.pressed_left or self.pressed_right:
-                            self.vel.y -= 0.07 * scale
+                        if self.pressed_left:
+                            decal_offset = 5
+                        elif self.pressed_right:
+                            decal_offset = 30
                         else:
-                            self.vel.y -= 0.103 * scale
-                        # add some extra velocity if climbing very slow
-                        if self.vel.y > -0.15 * scale:
-                            self.vel.y -= 0.015 * scale
-                    elif self.pressed_up:
-                        self.vel.y += 0.02 * scale
+                            decal_offset = 15
 
-                    if self.pressed_left:
-                        self.vel.x += 0.04 * scale
-                    elif self.pressed_right:
-                        self.vel.x -= 0.04 * scale
+                        self.action_states.on_event('plasma')
+                        self.map.decals.append(Decal('plasma', 1000, self.pos.x + decal_offset * scale, self.pos.y + 5 * scale, center=True, fade_out=True))
+                        if self.pressed_down:
+                            if self.pressed_left or self.pressed_right:
+                                self.vel.y -= 0.07 * scale
+                            else:
+                                self.vel.y -= 0.103 * scale
+                            # add some extra velocity if climbing very slow
+                            if self.vel.y > -0.15 * scale:
+                                self.vel.y -= 0.015 * scale
+                        elif self.pressed_up:
+                            self.vel.y += 0.02 * scale
+                        if self.pressed_left:
+                            self.vel.x += 0.04 * scale
+                        elif self.pressed_right:
+                            self.vel.x -= 0.04 * scale
                 else:
-                    self.map.projectiles.append(Projectile('plasma', 10000, self.pos.x + 30 * scale, self.pos.y + 2 * scale, 1 + self.vel.x))
+                    self.map.projectiles.append(Projectile('plasma', 10000, self.pos.x + 30 * scale * self.direction, self.pos.y + 2 * scale, self.vel.x + 3 * scale * self.direction))
+
 
     def get_distance_to_collider_below(self):
         """
@@ -472,40 +503,25 @@ class Player(Entity):
 
         return self.get_friction_factor(self.vel.x, self.last_ramp_radians, gravity_effect / self.game.settings.get_scale(), base_factor * brake_factor, velocity_scaling / self.game.settings.get_scale())
 
+
     def movement(self):
-        # pow() ensures friction to be applied independent of framerate
-        friction_factor = pow(self.get_friction(), config.delta_time)
-        self.vel.x *= friction_factor
-
-
-        if self.current_action_state == 'Plasma_State':
-            if self.pressed_left and self.vel.x >= 0:
-                self.direction = 1
-            elif self.pressed_right and self.vel.x <= 0:
-                self.direction = -1
-        else:
-            if self.pressed_right and self.vel.x >= 0:
-                self.direction = 1
-            elif self.pressed_left and self.vel.x <= 0:
-                self.direction = -1
-
-
-        print(self.direction)
-
         scale = self.game.settings.get_scale()
+
         # Cap vertical velocity
         if self.vel.y > config.MAX_FALL_VEL * scale:
             self.vel.y = config.MAX_FALL_VEL * scale
 
-        # Now call the movement and acceleration functions
-        scale = self.game.settings.get_scale()
-        accelerate(self, self.acceleration * scale, config.GRAVITY * scale, config.MAX_OVERAL_VEL * scale)
+        # Accelerate
+        self.vel.x += self.acceleration * scale * config.delta_time
+        self.vel.y += config.GRAVITY * scale * config.delta_time
 
-        self.move_player()
+        # Apply friction
+        self.vel.x *= pow(self.get_friction(), config.delta_time)
 
-    def move_player(self):
+        # Move axes individually for proper collision detection
         if self.vel.x != 0:
             self.move_single_axis(self.vel.x, 0)
+
         if self.vel.y != 0:
             self.move_single_axis(0, self.vel.y)
 
@@ -519,8 +535,17 @@ class Player(Entity):
         self.functional_collisions()
 
     def state_events(self):
-        if any(self.current_action_state == state for state in ['Move_State', 'Decel_State', 'Idle_State', 'Crouch_State']):
-            self.start_height = self.pos.y
+        if not self.was_flipped:
+            if self.current_action_state == 'Plasma_State':
+                if self.pressed_left and self.vel.x >= 0:
+                    self.direction = 1
+                elif self.pressed_right and self.vel.x <= 0:
+                    self.direction = -1
+            else:
+                if self.pressed_right and self.vel.x >= 0:
+                    self.direction = 1
+                elif self.pressed_left and self.vel.x <= 0:
+                    self.direction = -1
 
         if self.vel.y == 0 and (not self.crouching or self.can_uncrouch):
 
@@ -543,7 +568,6 @@ class Player(Entity):
             if (self.vel.x >= 0 and self.pressed_right and not self.pressed_left) or (self.vel.x <= 0 and self.pressed_left and not self.pressed_right):
                 scaling_factor = max(0.0, 1.0 - (abs(self.vel.x) / 0.3))
                 acceleration_x = config.PLAYER_AIR_ACCEL * scaling_factor
-                print("air accel", acceleration_x * config.delta_time * self.direction)
                 self.vel.x += acceleration_x * config.delta_time * self.direction
 
             # air brake
@@ -572,8 +596,9 @@ class Player(Entity):
         if other_collider is None:
             return
 
-        if self.current_action_state == 'Plasma_State':
-         self.vel.x -= 0.1 * self.direction
+        # PLASMA ????
+        #if self.current_action_state == 'Plasma_State':
+        # self.vel.x -= 0.1 * self.direction
 
         if dx > 0:
             if self.current_action_state == 'Move_State' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
@@ -596,18 +621,22 @@ class Player(Entity):
             self.pos.y = other_collider.pos.y + other_collider.shape.h
             self.vel.y = config.BOUNCE_VEL
 
-    def launch_from_ramp(self):
-        self.vel.y = -abs(self.vel.x) * math.tan(self.last_ramp_radians)
-        self.action_states.on_event('fall')
+    def launch_from_ramp(self, y_offset = 0):
+        self.pos.y -= y_offset
+        self.vel.y = -abs(self.vel.x) * math.tan(self.last_ramp_radians * self.direction)
+        self.action_states.on_event('launch')
 
     def ramp_collisions(self):
+
+        if self.current_action_state == 'Launch_State':
+            return
 
         # Get the line of the ramp we collided with (up or down)
         ramp_collider = self.shape.check_triangle_top_sides_collision(self.map.ramp_colliders)
 
         if ramp_collider is None:
             # launch when leaving a ramp
-            if self.last_ramp_radians > 0:
+            if (self.direction == 1 and self.last_ramp_radians > 0) or (self.direction == -1 and self.last_ramp_radians < 0):
                 self.launch_from_ramp()
 
             # no ramp collision
@@ -628,21 +657,19 @@ class Player(Entity):
             left_point = point1
             right_point = point0
 
-        if self.direction == 1:
-            x_start, y_start = left_point.x, left_point.y
-            x_end, y_end = right_point.x, right_point.y
-        else:
-            x_start, y_start = right_point.x, right_point.y
-            x_end, y_end = left_point.x, left_point.y
+        x_start, y_start = left_point.x, left_point.y
+        x_end, y_end = right_point.x, right_point.y
 
         # get the angle from proper start and end points
         dy = y_end - y_start
         dx = x_end - x_start
 
-        next_rad = -math.atan2(dy, dx)
+        next_rad = -math.atan2(dy, dx) # WHY - ???
+
+        print(self.last_ramp_radians, next_rad)
 
         # launch when sliding over the peak of a two-sided ramp
-        if self.last_ramp_radians > 0 > next_rad:
+        if (self.direction == 1 and self.last_ramp_radians > 0 > next_rad) or (self.direction == - 1 and self.last_ramp_radians < 0 < next_rad):
             self.launch_from_ramp()
             return
 
@@ -775,6 +802,8 @@ class Player(Entity):
 
         self.acceleration = 0
         self.last_boost = round(boost * 1000)
+        self.num_boost_ghosts = math.ceil(11 * self.last_boost / 256)
+        self.boost_blur_elapsed = 0
 
         y_boost = config.JUMP_VELOCITY
 
@@ -790,6 +819,14 @@ class Player(Entity):
 
         self.vel.x += boost * scale * self.direction
         self.vel.y += y_boost * scale
+
+    def add_plasma_velocity(self, distance, angle_rad):
+        scale = self.game.settings.get_scale()
+        vel_magnitude = 0.1
+        vel_x = vel_magnitude * math.cos(angle_rad)
+        vel_y = vel_magnitude * math.sin(angle_rad)
+        self.vel.x += vel_x * scale
+        self.vel.y += vel_y * scale
 
     def add_rocket_velocity(self, distance, angle_rad):
         if distance is not None:
@@ -834,7 +871,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             return
 
         def update(self, owner_object):
@@ -858,7 +895,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
 
             owner_object.last_walljump = 0
             owner_object.animation.begin_jump()
@@ -892,7 +929,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
 
             if random.choice([True, False]):
                 sounds.walljump1.play()
@@ -919,7 +956,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             owner_object.animation.reset_anim()
 
         def update(self, owner_object):
@@ -948,14 +985,47 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
-            owner_object.last_ramp_radians = 0
-            # allows moving forward when stuck in front of a wall
-            #if owner_object.vel.x == 0:
-            #    owner_object.vel.x = 0.02
+            #print(__class__, pygame.time.get_ticks())
+            pass
 
         def update(self, owner_object):
             owner_object.acceleration = 0
+
+    class Launch_State(State):
+        def __init__(self):
+            self.launch_time = 0
+
+        def on_event(self, event):
+            if event == 'idle':
+                return Player.Idle_State()
+            elif event == 'decel':
+                return Player.Decel_State()
+            elif event == 'move':
+                return Player.Move_State()
+            elif event == 'crouch':
+                return Player.Crouch_State()
+            elif event == 'walljump':
+                return Player.Walljump_State()
+            elif event == 'ramp':
+                return Player.Move_State()
+            elif event == 'fall':
+                return Player.Fall_State()
+            elif event == 'plasma':
+                return Player.Plasma_State()
+            elif event == 'dead':
+                return Player.Dead_State()
+            return self
+
+        def on_enter(self, owner_object):
+            #print(__class__, pygame.time.get_ticks())
+            owner_object.last_ramp_radians = 0
+            self.launch_time = 0
+
+        def update(self, owner_object):
+            owner_object.acceleration = 0
+            self.launch_time += config.delta_time
+            if self.launch_time > 100:
+                owner_object.action_states.on_event('fall')
 
     class Move_State(State):
         """State when moving on the ground and not breaking or decelerating"""
@@ -966,6 +1036,8 @@ class Player(Entity):
                 return Player.Fall_State()
             elif event == 'jump':
                 return Player.Jump_State()
+            elif event == 'launch':
+                return Player.Launch_State()
             elif event == 'crouch':
                 return Player.Crouch_State()
             elif event == 'idle':
@@ -977,7 +1049,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             return
 
         def update(self, owner_object):
@@ -994,6 +1066,8 @@ class Player(Entity):
                 return Player.Move_State()
             elif event == 'fall':
                 return Player.Fall_State()
+            elif event == 'launch':
+                return Player.Launch_State()
             elif event == 'jump':
                 return Player.Jump_State()
             elif event == 'crouch':
@@ -1005,7 +1079,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             owner_object.acceleration = 0
 
         def update(self, owner_object):
@@ -1021,6 +1095,8 @@ class Player(Entity):
                 return Player.Decel_State()
             elif event == 'fall':
                 return Player.Fall_State()
+            elif event == 'launch':
+                return Player.Launch_State()
             elif event == 'move':
                 return Player.Move_State()
             elif event == 'idle':
@@ -1032,7 +1108,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             scale = owner_object.game.settings.get_scale()
             owner_object.pos.y += (owner_object.HEIGHT * scale - owner_object.CROUCH_HEIGHT * scale)
             owner_object.shape.h = owner_object.CROUCH_HEIGHT * scale
@@ -1044,7 +1120,6 @@ class Player(Entity):
         def on_exit(self, owner_object):
             scale = owner_object.game.settings.get_scale()
             owner_object.pos.y -= (owner_object.HEIGHT * scale - owner_object.CROUCH_HEIGHT* scale)
-            owner_object.start_height = owner_object.pos.y
             owner_object.shape.h = owner_object.HEIGHT* scale
             owner_object.crouching = False
 
@@ -1058,7 +1133,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            print(__class__, pygame.time.get_ticks())
+            #print(__class__, pygame.time.get_ticks())
             #owner_object.freeze_movement = True
             owner_object.freeze_input = True
             sounds.death.play()

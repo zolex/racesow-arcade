@@ -71,6 +71,8 @@ class Map:
 
         SCALE = self.game.settings.get_scale()
 
+        self.game.camera.pos = Vector2(0, 0)
+
         map_file = os.path.join(self.map_folder, 'map.yaml')
         with open(map_file, 'r') as file:
             data = yaml.safe_load(file)
@@ -108,7 +110,7 @@ class Map:
                 max_x = max(portal['entry_x'] * SCALE, portal['entry_x'] * SCALE, max_x)
                 min_y = min(portal['entry_y'] * SCALE, portal['entry_y'] * SCALE, min_y)
                 max_y = max(portal['entry_y'] * SCALE, portal['entry_y'] * SCALE, max_y)
-                self.portals.append(Portal(Vector2(portal['entry_x'] * SCALE, portal['entry_y'] * SCALE), Vector2(portal['exit_x'] * SCALE, portal['exit_y'] * SCALE), self.game.settings))
+                self.portals.append(Portal(Vector2(portal['entry_x'] * SCALE, portal['entry_y'] * SCALE), portal['entry_flipped'], Vector2(portal['exit_x'] * SCALE, portal['exit_y'] * SCALE), portal['exit_flipped'], self.game.settings))
 
         jump_pads = data.get('jump_pads', None)
         if jump_pads is not None:
@@ -226,6 +228,7 @@ class Map:
                 self.parallax_2 = pygame.transform.scale(self.parallax_2, (self.parallax_2_width, height))
 
     def reset(self):
+
         self.sky: pygame.image = None
         self.parallax_1: pygame.image = None
         self.parallax_1_width: int | None = None
@@ -234,7 +237,7 @@ class Map:
         self.parallax_2_width: int | None = None
         self.parallax_2_offset: int = 0
 
-        self.static_colliders =  []
+        self.static_colliders = []
         self.ramp_colliders = []
         self.wall_colliders = []
         self.death_colliders = []
@@ -249,16 +252,17 @@ class Map:
         self.portals = []
         self.jump_pads = []
 
-        self.tree: QuadTree|None = None
+        self.tree: QuadTree | None = None
         self.filtered_objects = []
 
-        self.start_line: StartLine|None = None
+        self.start_line: StartLine | None = None
         self.finish_line: FinishLine | None = None
         self.timer: int = 0
         self.timer_start = None
         self.timer_stop = None
 
         self.load(self.map_name)
+
 
     def start_timer(self):
         self.timer_start = pygame.time.get_ticks()

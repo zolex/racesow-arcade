@@ -10,7 +10,7 @@ from src.Vector2 import Vector2
 
 class Portal(GameObject):
 
-    def __init__(self, entry: Vector2, exit: Vector2, settings: Settings):
+    def __init__(self, entry: Vector2, entry_flipped, exit: Vector2, exit_flipped, settings: Settings):
 
         self.settings = settings
         SCALE = settings.get_scale()
@@ -43,6 +43,8 @@ class Portal(GameObject):
 
 
         super().__init__(SimpleRect(entry, self.WIDTH, self.HEIGHT))
+        self.entry_flipped = entry_flipped
+        self.exit_flipped = exit_flipped
         self.exit = exit
         self.exit.x += self.shape.w // 2 + 12
         self.exit.y += self.shape.h
@@ -71,20 +73,35 @@ class Portal(GameObject):
 
         entry_sprite = self.sprite.subsurface(self.FRAMES_ENTRY[self.current_frame]).copy()
         entry_view_pos = camera.to_view_space(self.pos)
+        if self.entry_flipped:
+            entry_sprite = pygame.transform.flip(entry_sprite, True, False)
         surface.blit(entry_sprite, (entry_view_pos.x, entry_view_pos.y, self.shape.w, self.shape.h))
 
         exit_sprite = self.sprite.subsurface(self.FRAMES_EXIT[self.current_frame]).copy()
         exit_view_pos = camera.to_view_space(self.exit)
+        if self.exit_flipped:
+            exit_sprite = pygame.transform.flip(exit_sprite, True, False)
         surface.blit(exit_sprite, (exit_view_pos.x, exit_view_pos.y, self.shape.w, self.shape.h))
 
     def teleport(self, player):
         self.sound.play()
         player.pos.x = self.exit.x + 10
         player.pos.y = self.exit.y - 5
-        player.vel.y = 0.001  # not 0 because it would cause the camera settling for the portal exit!
+        player.vel.y = -0.0001  # not 0 because it would cause the camera settling for the portal exit!
         scale = self.settings.get_scale()
-        if player.vel.x < 0.3 * scale:
-            player.vel.x = 0.3 * scale
+
+        if self.exit_flipped and player.direction == 1:
+            player.direction = -1
+            player.vel.x *= -1
+            player.was_flipped = True
+        elif not self.exit_flipped and player.direction == -1:
+            player.direction = 1
+            player.vel.x *= -1
+            player.was_flipped = True
+
+        if abs(player.vel.x) < 0.3 * scale:
+            player.vel.x = 0.3 * scale * player.direction
+
         player.game.camera.stop_settling()
-        player.game.camera.pos.x = self.exit.x - 30
+        player.game.camera.pos.x = self.exit.x - 15 * scale * player.direction
         player.game.camera.pos.y = self.exit.y - self.settings.resolution[1] // 2

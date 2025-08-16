@@ -52,7 +52,7 @@ class HUD:
         fps_text = self.font.render(f"FPS: {fpss}", True, (255, 255, 255))
         self.game.surface.blit(fps_text, (hud_center - 197 * game_scale, hud_y + 12 * game_scale))
 
-        ups = f"{round(self.game.player.vel.x * 1000 / self.game.settings.get_scale())}".rjust(5, "0")
+        ups = f"{round(abs(self.game.player.vel.x) * 1000 / self.game.settings.get_scale())}".rjust(5, "0")
         fps_text = self.font_big.render(f"UPS: {ups}", True, color_gradient(self.game.player.vel.x, 0, 2))
         self.game.surface.blit(fps_text, (hud_center -75 * game_scale, hud_y + 10 * game_scale))
 

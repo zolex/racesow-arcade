@@ -12,34 +12,33 @@ class Camera(SimpleRect):
 
         self.settings = settings
 
-        self.old_camera_style = False
-
-        self.offset = self.calculate_offset()
-        self.current_offset_x = self.offset
+        # Horizontal Cam settings
+        self.base_offset_x = self.calculate_offset()
+        self.offset_x = self.base_offset_x
+        self.current_offset_x = 0
         self.transition_start = 0
         self.transition_target = 0
         self.transition_elapsed = 0.0
         self.transition_duration = 3886
-        self.base_follow_x = 20 * self.settings.get_scale()
         self.lookahead_x = 0.15
+        self.velocity_offset = 0.0
+        self.plasma_velocity_smoothing = 0.00025
+        self.no_smoothing = 10
+        self.base_follow_x = 20 * self.settings.get_scale()
 
-        # Time-based smoothing parameters (units: "per second")
-        # Higher values = snappier camera (smaller time constant)
+
+        # Vertical Cam Settings
         self.smooth_speed_y = 6.0
         self.smooth_speed_y_top = 0.01
-
-        # Vertical lookahead: when falling, show more below player
         self.fall_lookahead_time = -220
         self.max_fall_lookahead = 200
-
         self.settling_time = 666
         self.settling = False
         self.settling_elapsed = None
         self.settling_start_y = None
         self.settling_target_y = None
-
         self.initial_falling_distance = None
-        self.is_looking_ahead = False
+        self.is_looking_ahead_y = False
 
     def calculate_offset(self):
         return self.w / 2 - 220 * self.settings.get_scale()
@@ -51,24 +50,17 @@ class Camera(SimpleRect):
         return Vector2(pos.x - self.pos.x, pos.y - self.pos.y)
 
     def update(self, player):
-
         dt = config.delta_time
-
+        scale = self.settings.get_scale()
 
         # ---------- HORIZONTAL SMOOTHING ----------
-
-        if self.old_camera_style:
-            # Calculate target x based on player position and velocity
-            target_x = player.pos.x - self.offset - (self.base_follow_x * self.settings.get_scale())
-            # Apply smoothing to horizontal movement
-            delta_x = (target_x - self.pos.x) * self.lookahead_x
-            self.pos.x += delta_x
-        else:
+        if self.settings.camera_style == 'default':
+            target_lookahead_offset = 0
             # 1. Determine the instant target for the lookahead offset based on direction.
             if player.direction == 1:  # Player is moving right
-                target_lookahead_offset = -self.offset
-            else:  # Player is moving left
-                target_lookahead_offset = self.offset + player.shape.w - self.w
+                target_lookahead_offset = -self.offset_x
+            elif player.direction == -1:  # Player is moving left
+                target_lookahead_offset = self.offset_x + player.shape.w - self.w
 
             # 2. If target changes, reset easing transition
             if target_lookahead_offset != self.transition_target:
@@ -76,16 +68,35 @@ class Camera(SimpleRect):
                 self.transition_target = target_lookahead_offset
                 self.transition_elapsed = 0.0
 
+
             # 3. Progress easing
             self.transition_elapsed = min(self.transition_elapsed + dt, self.transition_duration)
             t = self.transition_elapsed / self.transition_duration
             eased_t = ease_in_out_cubic(t)
-            self.current_offset_x = (self.transition_start + (self.transition_target - self.transition_start) * eased_t)
+
+            if player.current_action_state == 'Plasma_State':
+                velocity_smoothing = self.plasma_velocity_smoothing
+            else:
+                velocity_smoothing = self.no_smoothing
+
+            target_velocity_offset = 42 * scale * abs(player.vel.x) * player.direction
+            self.velocity_offset = (self.velocity_offset + (target_velocity_offset - self.velocity_offset) * (1 - math.exp(-velocity_smoothing * dt)))
+            self.current_offset_x = ((self.transition_start + (self.transition_target - self.transition_start) * eased_t) - self.velocity_offset)
+
 
             # 4. Camera position smoothing (can keep your linear smoothing here if you like)
             target_x = player.pos.x + self.current_offset_x
             #self.pos.x += (target_x - self.pos.x) * self.lookahead_x * dt
             self.pos.x += (target_x - self.pos.x)
+
+        elif self.settings.camera_style == 'old':
+            # Calculate target x based on player position and velocity
+            target_x = player.pos.x - self.offset_x - (self.base_follow_x * scale)
+            # Apply smoothing to horizontal movement
+            delta_x = (target_x - self.pos.x) * self.lookahead_x
+            self.pos.x += delta_x
+
+
 
         # ---------- VERTICAL ----------
         # player's position relative to camera
@@ -94,11 +105,7 @@ class Camera(SimpleRect):
         # thresholds (percent of camera height) — keep these as proportions so they're resolution independent
         top_threshold = self.h * 0.15    # e.g. 15% from top
         bottom_threshold_base = self.h * 0.75  # base 60% from top
-
         alpha_fall = 1.0 - math.exp(-self.smooth_speed_y * dt)
-
-        # when falling, add extra lookahead downward (in pixels)
-
         if player.vel.y == 0:
             self.initial_falling_distance = None
 
@@ -106,7 +113,6 @@ class Camera(SimpleRect):
         if player.vel.y > 0 and player.distance_to_ground > self.settings.resolution[1] - bottom_threshold_base:
 
             if self.initial_falling_distance is None or self.initial_falling_distance == float("inf"):
-                #print("initial fall distance", player.distance_to_ground)
                 self.initial_falling_distance = player.distance_to_ground
 
             ## quad ease in-out
@@ -126,12 +132,11 @@ class Camera(SimpleRect):
             eased_delta = 1
 
             fall_lookahead_px = player.vel.y * self.fall_lookahead_time * eased_alpha * eased_delta
-
             if fall_lookahead_px > self.max_fall_lookahead:
                 fall_lookahead_px = self.max_fall_lookahead
 
         if fall_lookahead_px < 0:
-            self.is_looking_ahead = True
+            self.is_looking_ahead_y = True
 
         bottom_threshold = bottom_threshold_base + fall_lookahead_px
         if player_rel_y < top_threshold and fall_lookahead_px == 0:
@@ -146,15 +151,14 @@ class Camera(SimpleRect):
             alpha_y = 1.0 - math.exp(-self.smooth_speed_y * dt)
             eased_alpha_y = alpha_y * alpha_y
             self.pos.y += (target_y - self.pos.y) * eased_alpha_y
-        elif self.is_looking_ahead:
+        elif self.is_looking_ahead_y:
             # Target Y so player is slightly above bottom threshold (e.g. player's height above it)
             desired_target_y = player.pos.y - bottom_threshold + player.shape.h
             distance = abs(self.pos.y - desired_target_y)
 
+            # Start settling only if not already started or target changed significantly
             if player.vel.y == 0 and distance > 23:
-                # Start settling if not already started or target changed significantly
                 if not self.settling: #abs(self.settling_target_y - desired_target_y) > 100:
-                    #print("Settling camera to target Y:", desired_target_y, "dist", distance)
                     self.settling = True
                     self.settling_elapsed = 0.0
                     self.settling_start_y = self.pos.y
@@ -183,7 +187,7 @@ class Camera(SimpleRect):
         self.settling_elapsed = None
         self.settling_start_y = None
         self.settling_target_y = None
-        self.is_looking_ahead = False
+        self.is_looking_ahead_y = False
 
         # --- containment helpers kept as-is (you had them already) ---
     def contains_rect(self, other):

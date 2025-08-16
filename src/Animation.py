@@ -125,10 +125,16 @@ class Animation:
 
     def is_right_anim(self):
         #if self.player.current_action_state == 'Fall_State' or self.player.current_action_state == 'Jump_State':
-        if self.player.pressed_right:
-            return True
-        elif self.player.pressed_left:
-            return False
+        if self.player.was_flipped:
+            if self.player.direction == 1:
+                return True
+            elif self.player.direction == -1:
+                return False
+        else:
+            if self.player.pressed_right:
+                return True
+            elif self.player.pressed_left:
+                return False
 
         return self.player.direction == 1
 

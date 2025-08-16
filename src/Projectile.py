@@ -53,7 +53,7 @@ class Projectile(Vector2):
     def update(self, map):
         if self.start_time + self.duration < pygame.time.get_ticks():
             return True
-        elif self.vel_x > 0 or self.vel_y > 0:
+        elif self.vel_x != 0 or self.vel_y != 0:
             self.x += self.vel_x * config.delta_time
             self.y += self.vel_y * config.delta_time
             if self.vel_x > self.target_vel:
@@ -83,8 +83,11 @@ class Projectile(Vector2):
                     return Decal('rocket', 500, self.x, self.y, center=True, fade_out=True)
 
                 elif self.type == 'plasma':
-                    #map.game.player.add_plasma_velocity(distance, angle)
-                    return Decal('plasma', 1000, self.x + random.randrange(-3, 3), self.y + random.randrange(-3, 3), center=False, fade_out=True)
+                    if collider.type == 'wall':
+                        distance = self.get_distance(map.game.player.pos)
+                        map.game.player.add_plasma_velocity(distance, math.atan2(map.game.player.pos.y - self.y, map.game.player.pos.x - self.x))
+
+                    return Decal('plasma', 1000, self.x, self.y, center=False, fade_out=True)
 
         return False
 
