@@ -29,6 +29,8 @@ class Player(Entity):
         self.WIDTH = 32
         self.HEIGHT = 42
 
+        self.direction = 1
+
         scale =  game.settings.get_scale()
 
         super(Player, self).__init__(Vector2(0, 0), Rectangle(Vector2(0, 0), self.WIDTH * scale, self.HEIGHT * scale))
@@ -38,8 +40,6 @@ class Player(Entity):
         self.map = None
         self.last_walljump = 0
         self.last_ramp_radians = 0
-        self.animation = Animation(self)
-        self.action_states = StateMachine(self.Idle_State(), self)
         self.last_velocity = 0
         self.pressed_up = False
         self.pressed_left = False
@@ -56,6 +56,7 @@ class Player(Entity):
         self.can_uncrouch = False
         self.flip_sprites = False
         self.jump_diff = float("inf")
+
 
         self.start_height = 0
         self.jump_pressed_at = None
@@ -80,6 +81,9 @@ class Player(Entity):
         self.rocket_cooldown = 1337
         self.rocket_timer = self.rocket_cooldown
 
+
+        self.action_states = StateMachine(self.Idle_State(), self)
+        self.animation = Animation(self)
         self.height = self.animation.sprite_sheet.get_height() * self.P_SCALE
 
     def reset(self):
@@ -162,8 +166,14 @@ class Player(Entity):
         if self.last_ramp_radians == 0:
             self.game.surface.blit(self.animation.current_sprite, (view_pos_sprite.x, view_pos_sprite.y))
         else:
+
+            rotation = math.degrees(self.last_ramp_radians)
+            if self.direction == -1:
+                rotation -= 180
+
+
             # 2. Rotate the sprite
-            rotated_sprite = pygame.transform.rotate(self.animation.current_sprite, math.degrees(self.last_ramp_radians))
+            rotated_sprite = pygame.transform.rotate(self.animation.current_sprite, rotation)
 
             # 3. Center the rotated sprite on the position
             rect = rotated_sprite.get_rect(center=(view_pos_sprite.x + self.animation.current_sprite.get_width() // 2, view_pos_sprite.y + self.animation.current_sprite.get_height() // 2))
@@ -174,28 +184,35 @@ class Player(Entity):
         # debug draw rect around player
         #self.shape.draw(self.game.surface, self.game.camera, 1)
 
-    def input_wall_jump(self, v):
-        if v:
+    def input_wall_jump(self, key_pressed):
+        if key_pressed:
             if pygame.time.get_ticks() - self.last_walljump > 1000 and self.walljump_collisions():
                 self.last_walljump = pygame.time.get_ticks()
                 self.action_states.on_event('walljump')
 
-    def input_right(self, v):
-        self.pressed_right = v
-        if v and self.vel.x == 0 and self.current_action_state == 'Crouch_State':
-            self.vel.x = 0.1 * self.game.settings.get_scale()
+    def input_right(self, key_pressed):
+        self.pressed_right = key_pressed
+        min_vel = 0.1 * self.game.settings.get_scale()
+        if key_pressed and self.current_action_state == 'Crouch_State' and self.vel.x < min_vel:
+            self.vel.x = min_vel
 
-    def input_down(self, v):
-        self.pressed_down = v
-        if v:
+    def input_left(self, key_pressed):
+        self.pressed_left = key_pressed
+        min_vel = -0.1 * self.game.settings.get_scale()
+        if key_pressed and self.current_action_state == 'Crouch_State' and self.vel.x > min_vel:
+            self.vel.x = min_vel
+
+    def input_down(self, key_pressed):
+        self.pressed_down = key_pressed
+        if key_pressed:
             self.action_states.on_event('crouch')
 
-    def input_up(self, v):
-        self.pressed_up = v
+    def input_up(self, key_pressed):
+        self.pressed_up = key_pressed
 
-    def input_jump(self, v):
-        self.pressed_jump = v
-        if v:
+    def input_jump(self, key_pressed):
+        self.pressed_jump = key_pressed
+        if key_pressed:
             self.released_jump = False
             if self.jump_pressed_at is None:
                 self.jump_pressed_at = pygame.time.get_ticks()
@@ -206,8 +223,8 @@ class Player(Entity):
             self.pressed_jump = False
             self.released_jump = True
 
-    def input_switch_weapon(self, v):
-        if v and self.last_weapon_switch + 666 < pygame.time.get_ticks():
+    def input_switch_weapon(self, key_pressed):
+        if key_pressed and self.last_weapon_switch + 666 < pygame.time.get_ticks():
             if self.active_weapon == 'rocket' and self.has_plasma:
                 self.active_weapon = 'plasma'
             elif self.active_weapon == 'plasma' and self.has_rocket:
@@ -427,16 +444,20 @@ class Player(Entity):
         base_factor = config.FRICTION_BASE_FACTOR
         velocity_scaling = config.FRICTION_VELOCITY_SCALING
 
+        brake_factor = 1
+        if (self.direction == 1 and self.pressed_left) or (self.direction == -1 and self.pressed_right):
+            brake_factor = 0.985
+
         # no friction while mid-air
         if self.current_action_state == 'Jump_State' or self.current_action_state == 'Fall_State':
             base_factor = 1
 
         elif self.current_action_state == 'Decel_State':
-            return 0.998
+            return 0.998 * brake_factor
 
         elif self.current_action_state == 'Crouch_State':
             # When crouch-sliding, adjust gravity effect on friction
-            if self.pressed_right:
+            if self.pressed_right or self.pressed_left:
                 # to have less deceleration for up-ramps
                 if self.last_ramp_radians > 0:
                     gravity_effect = 0.0007
@@ -447,14 +468,29 @@ class Player(Entity):
                     base_factor = 0.91
             # normal crouching decelerates quickly
             else:
-                return 0.998
+                return 0.998 * brake_factor
 
-        return self.get_friction_factor(self.vel.x, self.last_ramp_radians, gravity_effect / self.game.settings.get_scale(), base_factor, velocity_scaling / self.game.settings.get_scale())
+        return self.get_friction_factor(self.vel.x, self.last_ramp_radians, gravity_effect / self.game.settings.get_scale(), base_factor * brake_factor, velocity_scaling / self.game.settings.get_scale())
 
     def movement(self):
         # pow() ensures friction to be applied independent of framerate
         friction_factor = pow(self.get_friction(), config.delta_time)
         self.vel.x *= friction_factor
+
+
+        if self.current_action_state == 'Plasma_State':
+            if self.pressed_left and self.vel.x >= 0:
+                self.direction = 1
+            elif self.pressed_right and self.vel.x <= 0:
+                self.direction = -1
+        else:
+            if self.pressed_right and self.vel.x >= 0:
+                self.direction = 1
+            elif self.pressed_left and self.vel.x <= 0:
+                self.direction = -1
+
+
+        print(self.direction)
 
         scale = self.game.settings.get_scale()
         # Cap vertical velocity
@@ -488,24 +524,41 @@ class Player(Entity):
 
         if self.vel.y == 0 and (not self.crouching or self.can_uncrouch):
 
-            if self.pressed_right and not self.pressed_down:
+            if (self.pressed_right or self.pressed_left) and not self.pressed_down:
                 self.action_states.on_event('move')
 
             if self.vel.x > 0 and not self.pressed_right and not self.pressed_down and not self.current_action_state == 'Idle_State':
+                self.action_states.on_event('decel')
+
+            elif self.vel.x < 0 and not self.pressed_left and not self.pressed_down and not self.current_action_state == 'Idle_State':
                 self.action_states.on_event('decel')
 
             if abs(self.vel.x) < 0.02 and self.current_action_state != 'Move_State' and not self.pressed_down:
                 self.vel.x = 0
                 self.action_states.on_event('idle')
 
+        # air brake
+        if self.current_action_state == 'Fall_State':
+            # air accelerate
+            if (self.vel.x >= 0 and self.pressed_right and not self.pressed_left) or (self.vel.x <= 0 and self.pressed_left and not self.pressed_right):
+                scaling_factor = max(0.0, 1.0 - (abs(self.vel.x) / 0.3))
+                acceleration_x = config.PLAYER_AIR_ACCEL * scaling_factor
+                print("air accel", acceleration_x * config.delta_time * self.direction)
+                self.vel.x += acceleration_x * config.delta_time * self.direction
 
-        if self.crouching and self.vel.x < 0.03:
+            # air brake
+            elif self.vel.x > 0 and self.pressed_left and not self.pressed_right:
+                self.vel.x -= config.PLAYER_AIR_BREAK * config.delta_time
+                if self.vel.x < 0:
+                    self.vel.x = 0
+
+            elif self.vel.x < 0 and self.pressed_right and not self.pressed_left:
+                self.vel.x += config.PLAYER_AIR_BREAK * config.delta_time
+                if self.vel.x > 0:
+                    self.vel.x = 0
+
+        elif self.crouching and abs(self.vel.x) < 0.03:
             self.vel.x = 0
-
-        # allow braking
-        elif self.pressed_left and not self.pressed_right and not self.current_action_state == 'Plasma_State':
-            self.vel.x -= 0.01
-
 
     def collider_collisions(self, dx, dy):
 
@@ -520,7 +573,7 @@ class Player(Entity):
             return
 
         if self.current_action_state == 'Plasma_State':
-         self.vel.x -= 0.1
+         self.vel.x -= 0.1 * self.direction
 
         if dx > 0:
             if self.current_action_state == 'Move_State' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
@@ -544,7 +597,7 @@ class Player(Entity):
             self.vel.y = config.BOUNCE_VEL
 
     def launch_from_ramp(self):
-        self.vel.y = -self.vel.x * math.tan(self.last_ramp_radians)
+        self.vel.y = -abs(self.vel.x) * math.tan(self.last_ramp_radians)
         self.action_states.on_event('fall')
 
     def ramp_collisions(self):
@@ -569,13 +622,18 @@ class Player(Entity):
 
         # determine which is the start and which is the end point
         if point0.x < point1.x:
-            # point0 ist der left (start) point
-            x_start, y_start = point0.x, point0.y
-            x_end, y_end = point1.x, point1.y
+            left_point = point0
+            right_point = point1
         else:
-            # point1 ist der left (start) point
-            x_start, y_start = point1.x, point1.y
-            x_end, y_end = point0.x, point0.y
+            left_point = point1
+            right_point = point0
+
+        if self.direction == 1:
+            x_start, y_start = left_point.x, left_point.y
+            x_end, y_end = right_point.x, right_point.y
+        else:
+            x_start, y_start = right_point.x, right_point.y
+            x_end, y_end = left_point.x, left_point.y
 
         # get the angle from proper start and end points
         dy = y_end - y_start
@@ -712,8 +770,8 @@ class Player(Entity):
             if not self.pressed_right:
                 boost *= 1.337
 
-            if self.vel.x < 0.2:
-                self.vel.x = 0.15
+            if abs(self.vel.x) < 0.2:
+                self.vel.x = 0.15 * self.direction
 
         self.acceleration = 0
         self.last_boost = round(boost * 1000)
@@ -724,14 +782,13 @@ class Player(Entity):
         # depending on the ramp angle and player speed.
         if self.last_ramp_radians > 0:
             eps = 10  # adjust so it's not infinite at 0
-            self.pos.y -= 400 * scale * (1 / (abs(self.vel.x) + eps)) * math.tan(self.last_ramp_radians)
+            self.pos.y -= 400 * scale * (1 / (abs(self.vel.x) + eps)) * math.tan(self.last_ramp_radians) * self.direction
             self.last_ramp_radians = 0
         elif self.last_ramp_radians < 0:
             self.pos.y -= 3 * scale
             self.last_ramp_radians = 0
 
-
-        self.vel.x += boost * scale
+        self.vel.x += boost * scale * self.direction
         self.vel.y += y_boost * scale
 
     def add_rocket_velocity(self, distance, angle_rad):
@@ -777,7 +834,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             return
 
         def update(self, owner_object):
@@ -801,7 +858,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
 
             owner_object.last_walljump = 0
             owner_object.animation.begin_jump()
@@ -812,13 +869,15 @@ class Player(Entity):
                 sounds.jump2.play()
 
             owner_object.game.camera.stop_settling()
-            owner_object.game.map.decals.append(Decal(f'dash{random.choice([1, 2])}', 666, owner_object.pos.x, owner_object.pos.y + owner_object.shape.h, bottom=True, fade_out=True))
+            dash = f'dash{random.choice([1, 2])}'
+            if owner_object.direction == -1:
+                dash = f'{dash}_left'
+
+            owner_object.game.map.decals.append(Decal(dash, 666, owner_object.pos.x, owner_object.pos.y + owner_object.shape.h, bottom=True, fade_out=True))
             owner_object.add_jump_velocity()
 
         def update(self, owner_object):
-            scale = owner_object.game.settings.get_scale()
-            if owner_object.pressed_right and owner_object.vel.x < 0.05 * scale:
-                owner_object.acceleration = 0.0001 * scale
+            pass
 
     class Walljump_State(State):
         def on_event(self, event):
@@ -833,7 +892,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
 
             if random.choice([True, False]):
                 sounds.walljump1.play()
@@ -860,7 +919,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             owner_object.animation.reset_anim()
 
         def update(self, owner_object):
@@ -889,17 +948,14 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             owner_object.last_ramp_radians = 0
             # allows moving forward when stuck in front of a wall
             #if owner_object.vel.x == 0:
             #    owner_object.vel.x = 0.02
 
         def update(self, owner_object):
-            scale = owner_object.game.settings.get_scale()
             owner_object.acceleration = 0
-            if owner_object.pressed_right and owner_object.vel.x < 0.1 * scale:
-                owner_object.acceleration = 0.0005 * scale
 
     class Move_State(State):
         """State when moving on the ground and not breaking or decelerating"""
@@ -921,11 +977,11 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             return
 
         def update(self, owner_object):
-            owner_object.acceleration = config.PLAYER_ACCELERATION
+            owner_object.acceleration = config.PLAYER_ACCELERATION * owner_object.direction
             if owner_object.pressed_down:
                 owner_object.action_states.on_event('crouch')
 
@@ -949,7 +1005,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             owner_object.acceleration = 0
 
         def update(self, owner_object):
@@ -976,7 +1032,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             scale = owner_object.game.settings.get_scale()
             owner_object.pos.y += (owner_object.HEIGHT * scale - owner_object.CROUCH_HEIGHT * scale)
             owner_object.shape.h = owner_object.CROUCH_HEIGHT * scale
@@ -1002,7 +1058,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             #owner_object.freeze_movement = True
             owner_object.freeze_input = True
             sounds.death.play()

@@ -11,7 +11,7 @@ def accelerate(obj, accel_x, accel_y, limit_x = None):
     """Accelerate until the limit is reached"""
     obj.vel += Vector2(accel_x, accel_y) * config.delta_time
     if limit_x != None:
-        obj.vel.x = clamp(obj.vel.x, 0, limit_x)
+        obj.vel.x = clamp(obj.vel.x, -limit_x, limit_x)
 
 
 def color_gradient(value, min_value, max_value):
@@ -99,3 +99,8 @@ def get_easter_date(year: int = None):
     month = (h + l - 7 * m + 114) // 31
     day = ((h + l - 7 * m + 114) % 31) + 1
     return month, day
+
+def ease_in_out_cubic(t: float) -> float:
+    if t < 0.5:
+        return 4 * t * t * t
+    return 1 - pow(-2 * t + 2, 3) / 2

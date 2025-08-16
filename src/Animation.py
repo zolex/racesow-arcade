@@ -96,16 +96,20 @@ class Animation:
 
         game_scale = player.game.settings.get_scale()
         self.frames = {}
+        self.frames_left = {}
         for anim, frames in SPRITES.items():
             if isinstance(frames, tuple):
                 new_frame = self.sprite_sheet.subsurface(frames).copy()
                 self.frames[anim] = pygame.transform.scale(new_frame, (new_frame.get_width() * game_scale, new_frame.get_height() * game_scale))
+                self.frames_left[anim] = pygame.transform.flip(self.frames[anim], True, False)
             elif isinstance(frames, list):
                 self.frames[anim] = []
+                self.frames_left[anim] = []
                 for frame in frames:
                     new_frame = self.sprite_sheet.subsurface(frame).copy()
                     scaled_frame = pygame.transform.scale(new_frame, (new_frame.get_width() * game_scale, new_frame.get_height() * game_scale))
                     self.frames[anim].append(scaled_frame)
+                    self.frames_left[anim].append(pygame.transform.flip(scaled_frame, True, False))
 
         self.player = player
         self.end_frame = 11
@@ -119,20 +123,44 @@ class Animation:
         self.select_no_weapon()
         self.current_sprite = self.get_idle_anim()
 
+    def is_right_anim(self):
+        #if self.player.current_action_state == 'Fall_State' or self.player.current_action_state == 'Jump_State':
+        if self.player.pressed_right:
+            return True
+        elif self.player.pressed_left:
+            return False
+
+        return self.player.direction == 1
+
     def get_run_anim(self):
-        return self.frames[self.active_run_anim]
+        if self.is_right_anim():
+            return self.frames[self.active_run_anim]
+        else:
+            return self.frames_left[self.active_run_anim]
 
     def get_walljump_anim(self):
-        return self.frames[self.active_walljump_anim]
+        if self.is_right_anim():
+            return self.frames[self.active_walljump_anim]
+        else:
+            return self.frames_left[self.active_walljump_anim]
 
     def get_slide_anim(self):
-        return self.frames[self.active_slide_anim]
+        if self.is_right_anim():
+            return self.frames[self.active_slide_anim]
+        else:
+            return self.frames_left[self.active_slide_anim]
 
     def get_crouch_anim(self):
-        return self.frames[self.active_crouch_anim]
+        if self.is_right_anim():
+            return self.frames[self.active_crouch_anim]
+        else:
+            return self.frames_left[self.active_crouch_anim]
 
     def get_idle_anim(self):
-        return self.frames[self.active_idle_anim]
+        if self.is_right_anim():
+            return self.frames[self.active_idle_anim]
+        else:
+            return self.frames_left[self.active_idle_anim]
 
     def select_no_weapon(self):
         self.active_run_anim = 'RUN'
@@ -193,7 +221,7 @@ class Animation:
 
     def crouch_anim(self):
         #print(self.player.distance_to_ground)
-        if self.player.pressed_right and self.player.ground_touch_pos is not None:
+        if (self.player.pressed_right or self.player.pressed_left) and self.player.ground_touch_pos is not None:
             self.current_sprite = self.get_slide_anim()
         else:
             self.current_sprite = self.get_crouch_anim()

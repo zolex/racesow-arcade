@@ -67,7 +67,7 @@ class Game(GameScene):
 
     def init_input_mappings(self):
         self.input_mappings = {
-            Input.LEFT: lambda v, e: setattr(self.player, "pressed_left", v),
+            Input.LEFT: lambda v, e: self.player.input_left(v),
             Input.RIGHT: lambda v, e: self.player.input_right(v),
             Input.UP: lambda v, e: self.player.input_up(v),
             Input.DOWN: lambda v, e: self.player.input_down(v),

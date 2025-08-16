@@ -99,7 +99,7 @@ menu:
                           callback: reload
                           items:
                             - { spacer: true, text: RECOMMENDED }
-                            - { text: 640x320, action: select_option, value: [1280, 640] }
+                            - { text: 640x320, action: select_option, value: [640, 320] }
                             - { text: 1280x640, action: select_option, value: [1280, 640] }
                             - { spacer: true, text: MORE }
                             - { text: 1600x800, action: select_option, value: [1600, 800] }

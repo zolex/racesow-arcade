@@ -3,6 +3,8 @@ from src import config
 from src.Settings import Settings
 from src.SimpleRect import SimpleRect
 from src.Vector2 import Vector2
+from src.utils import ease_in_out_cubic
+
 
 class Camera(SimpleRect):
     def __init__(self, pos, settings: Settings):
@@ -10,23 +12,25 @@ class Camera(SimpleRect):
 
         self.settings = settings
 
-        scale = settings.get_scale()
-        # Keep offsets scaled if you want UI/world scaling to still apply
-        self.offset_left = config.CAMERA_OFFSET_LEFT * scale
+        self.old_camera_style = False
+
+        self.offset = self.calculate_offset()
+        self.current_offset_x = self.offset
+        self.transition_start = 0
+        self.transition_target = 0
+        self.transition_elapsed = 0.0
+        self.transition_duration = 3886
+        self.base_follow_x = 20 * self.settings.get_scale()
+        self.lookahead_x = 0.15
 
         # Time-based smoothing parameters (units: "per second")
         # Higher values = snappier camera (smaller time constant)
-        self.smooth_speed_x = 8.0
         self.smooth_speed_y = 6.0
         self.smooth_speed_y_top = 0.01
 
         # Vertical lookahead: when falling, show more below player
         self.fall_lookahead_time = -220
         self.max_fall_lookahead = 200
-
-        # Keep the follow x base offset
-        self.base_follow_x = 40
-        self.lookahead_x = 0.15
 
         self.settling_time = 666
         self.settling = False
@@ -37,26 +41,51 @@ class Camera(SimpleRect):
         self.initial_falling_distance = None
         self.is_looking_ahead = False
 
+    def calculate_offset(self):
+        return self.w / 2 - 220 * self.settings.get_scale()
+
     def set_start_pos_y(self, y):
         pass
 
     def to_view_space(self, pos):
         return Vector2(pos.x - self.pos.x, pos.y - self.pos.y)
 
-    # --- New update: time-based smoothing, velocity lookahead ---
     def update(self, player):
-        """Update camera. dt is seconds since last frame (e.g. clock.tick(60)/1000.0)."""
-        dt = config.delta_time
-        if dt <= 0:
-            # avoid division by zero / exp(-0) weirdness; assume a small dt
-            dt = 1.0 / 60.0
 
-        # ---------- HORIZONTAL ----------
-        # Calculate target x based on player position and velocity
-        target_x = player.pos.x - self.offset_left - (self.base_follow_x * self.settings.get_scale())
-        # Apply smoothing to horizontal movement
-        delta_x = (target_x - self.pos.x) * self.lookahead_x
-        self.pos.x += delta_x
+        dt = config.delta_time
+
+
+        # ---------- HORIZONTAL SMOOTHING ----------
+
+        if self.old_camera_style:
+            # Calculate target x based on player position and velocity
+            target_x = player.pos.x - self.offset - (self.base_follow_x * self.settings.get_scale())
+            # Apply smoothing to horizontal movement
+            delta_x = (target_x - self.pos.x) * self.lookahead_x
+            self.pos.x += delta_x
+        else:
+            # 1. Determine the instant target for the lookahead offset based on direction.
+            if player.direction == 1:  # Player is moving right
+                target_lookahead_offset = -self.offset
+            else:  # Player is moving left
+                target_lookahead_offset = self.offset + player.shape.w - self.w
+
+            # 2. If target changes, reset easing transition
+            if target_lookahead_offset != self.transition_target:
+                self.transition_start = self.current_offset_x
+                self.transition_target = target_lookahead_offset
+                self.transition_elapsed = 0.0
+
+            # 3. Progress easing
+            self.transition_elapsed = min(self.transition_elapsed + dt, self.transition_duration)
+            t = self.transition_elapsed / self.transition_duration
+            eased_t = ease_in_out_cubic(t)
+            self.current_offset_x = (self.transition_start + (self.transition_target - self.transition_start) * eased_t)
+
+            # 4. Camera position smoothing (can keep your linear smoothing here if you like)
+            target_x = player.pos.x + self.current_offset_x
+            #self.pos.x += (target_x - self.pos.x) * self.lookahead_x * dt
+            self.pos.x += (target_x - self.pos.x)
 
         # ---------- VERTICAL ----------
         # player's position relative to camera
@@ -81,10 +110,12 @@ class Camera(SimpleRect):
                 self.initial_falling_distance = player.distance_to_ground
 
             ## quad ease in-out
-            if alpha_fall < 0.5:
-                eased_alpha = 2 * alpha_fall * alpha_fall
-            else:
-                eased_alpha = -2 * (alpha_fall - 1) * (alpha_fall - 1) + 1
+            #if alpha_fall < 0.5:
+            #    eased_alpha = 2 * alpha_fall * alpha_fall
+            #else:
+            #    eased_alpha = -2 * (alpha_fall - 1) * (alpha_fall - 1) + 1
+
+            eased_alpha = ease_in_out_cubic(alpha_fall)
 
             ## quad ease in-out based on fall-percentage
             #delta = player.distance_to_ground / self.initial_falling_distance
