@@ -10,11 +10,13 @@ from src.utils import resource_path, get_distance, create_split_rects, get_easte
 
 class MainMenu(GameScene):
 
-    ITEM_BACKGROUND_DEFAULT = (255, 255, 255, 128)  # semi-transparent white
-    ITEM_BACKGROUND_ACTIVE = (255, 0, 0, 192)  # semi-transparent red
-    ITEM_BACKGROUND_DISABLED = (66, 66, 66, 192)  # semi-transparent red
+    ITEM_BACKGROUND_DEFAULT = (192, 192, 192, 222)
+    ITEM_BACKGROUND_ACTIVE = (192, 0, 0, 222)
+    ITEM_BACKGROUND_DISABLED = (32, 42, 42, 222)
+    ITEM_BACKGROUND_SPACER = (16, 16, 16, 222)
     ITEM_TEXT_DEFAULT = (0, 0, 0)
     ITEM_TEXT_ACTIVE = (255, 128, 16)
+    ITEM_TEXT_SPACER = (255, 0, 0, 192)
     ITEM_TEXT_DARK = (168, 92, 0)
     ITEM_TEXT_DISABLED = (11, 11, 11)
 
@@ -31,9 +33,9 @@ class MainMenu(GameScene):
         },
         "small": {
             "font_path": font_path,
-            "font_size": 11,
-            "item_padding": 4,
-            "item_margin": 4,
+            "font_size": 10,
+            "item_padding": 3,
+            "item_margin": 3,
             "text_offset": 1.66
         },
         "back": {
@@ -71,9 +73,9 @@ class MainMenu(GameScene):
         },
         "large": {
             "font_path": font_path,
-            "font_size": 30,
-            "item_padding": 4,
-            "item_margin": 8,
+            "font_size": 32,
+            "item_padding": 2,
+            "item_margin": 4,
         }
     }
 
@@ -145,7 +147,7 @@ class MainMenu(GameScene):
             self.cursor = pygame.transform.scale(cursor, (width, height))
 
     def draw_cursor(self):
-        if self.cursor is None:
+        if self.cursor is None or not pygame.mouse.get_focused():
             return
 
         ticks = pygame.time.get_ticks()
@@ -173,7 +175,7 @@ class MainMenu(GameScene):
             pygame.mixer.music.fadeout(1337)
 
     def load_splash(self):
-        splash = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'splash.jpg')).convert_alpha()
+        splash = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'splash_high.png')).convert_alpha()
 
         # Get original dimensions
         orig_width, orig_height = splash.get_size()
@@ -221,7 +223,7 @@ class MainMenu(GameScene):
         if style.get('item_width') is not None:
             scaled['item_width'] = style['item_width']
         else:
-            scaled['item_width'] = int(0.9 * self.surface.get_width() / (self.surface.get_width() / self.surface.get_height()))
+            scaled['item_width'] = int(0.8 * self.surface.get_width() / (self.surface.get_width() / self.surface.get_height()))
 
         return scaled
 
@@ -426,13 +428,29 @@ class MainMenu(GameScene):
         self.surface.fill((0, 0, 0))
         self.surface.blit(self.splash, (0, 0))
 
+        style_name = 'default' if self.active_menu is None else self.active_menu.get('style', 'default')
+        menu_style = self.scale_style(MainMenu.MENU_STYLES.get(style_name))
+
         # menu title
         title = self.active_menu.get('title') if self.active_menu is not None else 'WHY SO SERIOUS?'
         title_style = self.scale_style(MainMenu.MENU_STYLES.get('large'))
         text_surface = title_style['font'].render(title, True, (255, 255, 255))
         text_width, text_height = text_surface.get_size()
-        text_x = self.settings.resolution[0] - text_width - title_style['item_margin']
-        self.surface.blit(text_surface, (text_x, title_style['item_margin']))
+        aspect_ratio = text_width / text_height
+        #max_width = (self.surface.get_width() - menu_style['item_width']) / 2 - title_style['item_margin'] * 2
+        max_width = (self.surface.get_width() / 2) - 100 * self.settings.get_scale()
+        max_height = title_style['font_size']
+        if (max_width / aspect_ratio) <= max_height:
+            new_width = max_width
+            new_height = new_width / aspect_ratio
+        else:
+            new_height = max_height
+            new_width = new_height * aspect_ratio
+        text_surface = pygame.transform.scale(text_surface, (new_width, new_height))
+        text_x = self.surface.get_width() - new_width - title_style['item_margin']
+        #text_y = self.splash.get_height() - new_height - title_style['item_margin'] * 2
+        text_y = title_style['item_margin']
+        self.surface.blit(text_surface, (text_x, text_y))
 
         if self.active_mapping is not None:
             return self.draw_active_mapping()
@@ -443,23 +461,22 @@ class MainMenu(GameScene):
         if self.active_menu is None:
             return None
 
-        style_name = self.active_menu.get('style', 'default')
-        style = self.scale_style(MainMenu.MENU_STYLES.get(style_name))
-        item_height = style['font_size'] + style['item_padding']
+
+        item_height = menu_style['font_size'] + menu_style['item_padding']
 
         menu_items = self.active_menu.get('items')
-        total_height = len(menu_items) * (item_height + style['item_margin']) - style['item_margin']
+        total_height = len(menu_items) * (item_height + menu_style['item_margin']) - menu_style['item_margin']
         scale = self.surface.get_height() / MainMenu.MENU_SCALE
         start_y = self.surface.get_height() - total_height - 10 * scale
 
         if self.has_back_button():
-            self.draw_back_button(start_y, style)
+            self.draw_back_button(start_y, menu_style)
         else:
             self.back_button = None
 
         menu_index = 0
         for item in menu_items:
-            if item.get('spacer'):
+            if item.get('spacer') and not item.get('text'):
                 menu_index += 1
                 continue
 
@@ -491,37 +508,40 @@ class MainMenu(GameScene):
             elif menu_index == self.selected_item:
                 background_color = MainMenu.ITEM_BACKGROUND_ACTIVE
                 text_color = text_color or MainMenu.ITEM_TEXT_ACTIVE
+            elif item.get('spacer'):
+                background_color = MainMenu.ITEM_BACKGROUND_SPACER
+                text_color = text_color or MainMenu.ITEM_TEXT_SPACER
             else:
                 background_color = MainMenu.ITEM_BACKGROUND_DEFAULT
                 text_color = text_color or MainMenu.ITEM_TEXT_DEFAULT
 
-            text_surface = style['font'].render(text, True, text_color)
+            text_surface = menu_style['font'].render(text, True, text_color)
             text_width, text_height = text_surface.get_size()
             rect_height = item_height
-            rect_x = (self.surface.get_width() - style['item_width']) // 2
-            rect_y = start_y + menu_index * (item_height + style['item_margin'])
-            item_width = self.get_item_width(style, text_width)
+            rect_x = (self.surface.get_width() - menu_style['item_width']) // 2
+            rect_y = start_y + menu_index * (item_height + menu_style['item_margin'])
+            item_width = self.get_item_width(menu_style, text_width)
             rect_surface = pygame.Surface((item_width, rect_height), pygame.SRCALPHA)
             rect_surface.fill(background_color)
             self.surface.blit(rect_surface, (rect_x, rect_y))
 
             text_y = rect_y + (rect_height - text_height) // 2
             if style_name == 'mapping':
-                text_x = rect_x + style['item_padding'] * 2
+                text_x = rect_x + menu_style['item_padding'] * 2
                 mapping = self.get_mapping(item)
                 mapping_text = self.get_mapping_name(mapping)
-                mapping_surface = style['font_small'].render(mapping_text, True, MainMenu.ITEM_TEXT_DARK)
-                mapping_x = rect_x + style['item_width'] - mapping_surface.get_width() - style['item_padding'] * 2
-                mapping_y = rect_y + (rect_height - mapping_surface.get_height()) // 2 + style['mapping_offset']
+                mapping_surface = menu_style['font_small'].render(mapping_text, True, MainMenu.ITEM_TEXT_DARK)
+                mapping_x = rect_x + menu_style['item_width'] - mapping_surface.get_width() - menu_style['item_padding'] * 2
+                mapping_y = rect_y + (rect_height - mapping_surface.get_height()) // 2 + menu_style['mapping_offset']
                 self.surface.blit(mapping_surface, (mapping_x, mapping_y))
             else:
                 text_x = rect_x + (item_width - text_width) // 2
 
-            self.surface.blit(text_surface, (text_x, text_y + style['text_offset'] - text_offset))
+            self.surface.blit(text_surface, (text_x, text_y + menu_style['text_offset'] - text_offset))
 
             if item.get('action') == 'setting':
-                self.surface.blit(style['font'].render('<', True, MainMenu.ITEM_TEXT_DEFAULT), (rect_x + style['item_padding'], text_y + style['text_offset'] * 2))
-                self.surface.blit(style['font'].render('>', True, MainMenu.ITEM_TEXT_DEFAULT),(rect_x + item_width - style['item_padding'] - 10 * scale, text_y + style['text_offset'] * 2))
+                self.surface.blit(menu_style['font'].render('<', True, MainMenu.ITEM_TEXT_DEFAULT), (rect_x + menu_style['item_padding'], text_y + menu_style['text_offset'] * 2))
+                self.surface.blit(menu_style['font'].render('>', True, MainMenu.ITEM_TEXT_DEFAULT),(rect_x + item_width - menu_style['item_padding'] - 10 * scale, text_y + menu_style['text_offset'] * 2))
 
 
             item['bbox'] = pygame.Rect(rect_x, rect_y, item_width, rect_height)
@@ -693,16 +713,11 @@ class MainMenu(GameScene):
         else:
             self.selected_item = menu_item.get('selected_item', 0)
 
-        # pre-select items that are saved in the settings
-        #if menu_item.get('action') == 'menu':
-        #    items = menu_item.get('menu').get('items')
-        #    for item in items:
-        #        if item.get('action') == 'resolution' and self.settings.resolution[0] == int(item.get('width')) and self.settings.resolution[1] == int(item.get('height')):
-        #            self.selected_item = items.index(item)
-        #            break
-        #        elif item.get('action') == 'fps' and self.settings.max_fps == int(item.get('fps')):
-        #            self.selected_item = items.index(item)
-        #            break
+        selected = self.get_selected_item()
+        if selected is not None:
+            while selected.get('disabled') or selected.get('spacer'):
+                self.selected_item += 1
+                selected = self.get_selected_item()
 
     def reload(self):
         display_options = pygame.SCALED
@@ -793,7 +808,7 @@ class MainMenu(GameScene):
         selected = False
         if self.active_menu is not None:
             for item in self.active_menu.get('items'):
-                if item.get('bbox') and item.get('bbox').collidepoint(event.pos):
+                if item.get('bbox') and item.get('bbox').collidepoint(event.pos) and not item.get('disabled') and not item.get('spacer'):
                     selected = True
                     self.selected_item = self.active_menu.get('items', []).index(item)
                     break
@@ -805,7 +820,6 @@ class MainMenu(GameScene):
 
         if not selected:
             self.selected_item = None
-
 
     def handle_click(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -859,6 +873,7 @@ class MainMenu(GameScene):
             pygame.K_RIGHT: lambda v, e: self.menu_right(v),
             pygame.K_RETURN: lambda v, e: self.menu_ok(v),
             pygame.K_ESCAPE: lambda v, e: self.menu_back_or_quit(v),
+            pygame.ACTIVEEVENT: lambda e: self.handle_focus(e),
         }
 
     def set_quit(self, key_down: bool = True):

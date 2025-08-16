@@ -66,18 +66,96 @@ menu:
                 - text: RESOLUTION
                   action: menu
                   menu:
-                    title: RESOLUTION
+                    title: ASPECT RATIO
                     style: small
-                    type: select
-                    setting: resolution
-                    callback: reload
+                    action: menu
                     items:
-                      - { text: 320x240, action: select_option, value: [320, 240] }
-                      - { text: 640x320, action: select_option, value: [640, 320] }
-                      - { text: 1024x512, action: select_option, value: [1024, 512] }
-                      - { text: 1280x640, action: select_option, value: [1280, 640] }
-                      - { text: 1920x960, action: select_option, value: [1920, 960] }
-                      - { text: 3840x1600, action: select_option, value: [3840, 1600] }
+                      - text: 4:3 - RETRO
+                        style: small
+                        action: menu
+                        menu:
+                          title: 4:3 - RETRO
+                          style: small
+                          type: select
+                          setting: resolution
+                          callback: reload
+                          items:
+                            - { spacer: true, text: RECOMMENDED }
+                            - { text: 640x480 - VGA, action: select_option, value: [640, 480] }
+                            - { text: 800x600 - SVGA, action: select_option, value: [640, 480] }
+                            - { text: 1024x768 - XGA, action: select_option, value: [1024, 768] }
+                            - { spacer: true, text: MORE }
+                            - { text: 1280x960 - QVGA, action: select_option, value: [1280, 960] }
+                            - { text: 1400x1050 - SXGA+, action: select_option, value: [1400, 1050] }
+                            - { text: 1600x1200 - UXGA, action: select_option, value: [1600, 1200] }
+                      - text: 2:1 - DEFAULT
+                        style: small
+                        action: menu
+                        menu:
+                          title: 2:1 - DEFAULT
+                          style: small
+                          type: select
+                          setting: resolution
+                          callback: reload
+                          items:
+                            - { spacer: true, text: RECOMMENDED }
+                            - { text: 640x320, action: select_option, value: [1280, 640] }
+                            - { text: 1280x640, action: select_option, value: [1280, 640] }
+                            - { spacer: true, text: MORE }
+                            - { text: 1600x800, action: select_option, value: [1600, 800] }
+                            - { text: 2048x1024, action: select_option, value: [1600, 800] }
+                      - text: 16:9 - TV
+                        style: small
+                        action: menu
+                        menu:
+                          title: 16:9 - TV
+                          style: small
+                          type: select
+                          setting: resolution
+                          callback: reload
+                          items:
+                            - { spacer: true, text: RECOMMENDED }
+                            - { text: 854x480 - FWVGA, action: select_option, value: [ 854, 480 ] }
+                            - { text: 1280x720 - HD, action: select_option, value: [ 1280, 720 ] }
+                            - { spacer: true, text: MORE }
+                            - { text: 1920x1080 - Full HD, action: select_option, value: [ 1920, 1080 ] }
+                            - { text: 2560x1440 - Quad HD, action: select_option, value: [ 2560, 1440] }
+                            - { text: 3840x2160 - 4K UHD, action: select_option, value: [ 3840, 2160 ] }
+                      - text: 21:9 - ULTRAWIDE
+                        style: small
+                        action: menu
+                        menu:
+                          title: 21:9 - ULTRAWIDE
+                          style: small
+                          type: select
+                          setting: resolution
+                          callback: reload
+                          items:
+                            - { spacer: true, text: RECOMMENDED }
+                            - { text: 1536x640, action: select_option, value: [ 1536, 640 ] }
+                            - { text: 1920x800, action: select_option, value: [ 1920, 800 ] }
+                            - { spacer: true, text: MORE }
+                            - { text: 2560x1080 - UW Full HD, action: select_option, value: [ 2560, 1080 ] }
+                            - { text: 3440x1440 - UW Quad HD, action: select_option, value: [ 3440, 1440 ] }
+                            - { text: 3840x1600 - UW 4K lite, action: select_option, value: [ 3840, 1600 ] }
+                            - { text: 5120x2160 - UW 4K UHD, action: select_option, value: [ 5120, 2160 ] }
+                      - text: 32:9 - SUPER ULTRAWIDE
+                        style: small
+                        action: menu
+                        menu:
+                          title: 32:9 - SUPER ULTRAWIDE
+                          style: small
+                          type: select
+                          setting: resolution
+                          callback: reload
+                          items:
+                            - { spacer: true, text: RECOMMENDED }
+                            - { text: 1600x450, action: select_option, value: [ 1600, 450 ] }
+                            - { text: 2240x630, action: select_option, value: [ 2240, 630 ] }
+                            - { spacer: true, text: MORE }
+                            - { text: 3840x1080 - Double Full HD, action: select_option, value: [ 3840, 1080 ] }
+                            - { text: 5120x1440 - Double Quad HD, action: select_option, value: [ 5120, 1440 ] }
+                            - { text: 7680x2160 - Double 4K UHD, action: select_option, value: [ 7680, 2160 ] }
                 - text: MAX FPS
                   action: menu
                   menu:
