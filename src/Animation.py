@@ -233,12 +233,11 @@ class Animation:
             self.current_sprite = self.get_crouch_anim()
 
     def run_anim(self):
-        if (self.player.
-                pressed_down):
+        if self.player.pressed_down:
             self.crouch_anim()
         else:
             anim = self.get_run_anim()
-            frame_time = 50 / max(0.7, self.player.vel.x * 2.5 / self.player.game.settings.get_scale())
+            frame_time = 50 / max(0.7, abs(self.player.vel.x) * 2.25 / self.player.game.settings.get_scale())
             self.current_sprite = anim[self.anim_frame]
             self.anim_timer += config.delta_time
             if self.anim_timer > frame_time:
