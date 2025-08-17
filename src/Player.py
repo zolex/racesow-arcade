@@ -621,9 +621,9 @@ class Player(Entity):
             self.pos.y = other_collider.pos.y + other_collider.shape.h
             self.vel.y = config.BOUNCE_VEL
 
-    def launch_from_ramp(self, y_offset = 0):
+    def launch_from_ramp(self, y_offset = 0, factor = 1.0):
         self.pos.y -= y_offset
-        self.vel.y = -abs(self.vel.x) * math.tan(self.last_ramp_radians * self.direction)
+        self.vel.y = -abs(self.vel.x) * math.tan(self.last_ramp_radians * self.direction) * factor
         self.action_states.on_event('launch')
 
     def ramp_collisions(self):
@@ -811,11 +811,9 @@ class Player(Entity):
         # depending on the ramp angle and player speed.
         if self.last_ramp_radians > 0:
             if self.game.settings.launch_on_ramp_jump:
-                eps = 5  # adjust so it's not infinite at 0
-                self.launch_from_ramp(128 * scale * (1 / (abs(self.vel.x) + eps)) * math.tan(self.last_ramp_radians) * self.direction)
+                self.launch_from_ramp(20 * scale, 0.45)
             else:
-                eps = 10  # adjust so it's not infinite at 0
-                self.pos.y -= 400 * scale * (1 / (abs(self.vel.x) + eps)) * math.tan(self.last_ramp_radians) * self.direction
+                self.pos.y -= 400 * scale * (1 / (abs(self.vel.x) + 10)) * math.tan(self.last_ramp_radians) * self.direction
             self.last_ramp_radians = 0
         elif self.last_ramp_radians < 0:
             self.pos.y -= 3 * scale
