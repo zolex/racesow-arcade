@@ -71,8 +71,6 @@ class Map:
 
         SCALE = self.game.settings.get_scale()
 
-        self.game.camera.pos = Vector2(0, 0)
-
         map_file = os.path.join(self.map_folder, 'map.yaml')
         with open(map_file, 'r') as file:
             data = yaml.safe_load(file)
@@ -80,6 +78,8 @@ class Map:
         spawnpoint = data.get('player_spawnpoint', None)
         if spawnpoint is not None:
             self.player_start = Vector2(spawnpoint['x'] * SCALE, spawnpoint['y'] * SCALE)
+
+        self.game.camera.pos = Vector2(self.player_start.x - 50, self.player_start.y - 200 * SCALE)
 
         start_line = data.get('start_line', None)
         if start_line is not None:
@@ -262,6 +262,7 @@ class Map:
         self.timer_stop = None
 
         self.load(self.map_name)
+        self.game.camera.is_looking_ahead_y = True
 
 
     def start_timer(self):

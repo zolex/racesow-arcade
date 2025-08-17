@@ -61,7 +61,8 @@ class Player(Entity):
         self.jump_pressed_at = None
         self.jump_action_distance = None
         self.jump_timing = float("-inf")
-        self.ground_touch_pos = Vector2(0, 0)
+        self.ground_touch_pos = None
+        self.ground_collider = None
 
         self.has_rocket = False
         self.rocket_ammo = 0
@@ -115,7 +116,8 @@ class Player(Entity):
         self.jump_pressed_at = None
         self.jump_action_distance = None
         self.jump_timing = float("-inf")
-        self.ground_touch_pos = Vector2(0, 0)
+        self.ground_touch_pos = None
+        self.ground_collider = None
 
         self.has_rocket = False
         self.rocket_ammo = 0
@@ -229,7 +231,6 @@ class Player(Entity):
     def input_jump(self, key_pressed):
         self.pressed_jump = key_pressed
         if key_pressed:
-            self.released_jump = False
             if self.jump_pressed_at is None:
                 self.jump_pressed_at = pygame.time.get_ticks()
                 if not self.jump_action_distance and not self.last_ramp_radians:
@@ -260,10 +261,8 @@ class Player(Entity):
         if self.vel.y > 0 and self.current_action_state != 'Plasma_State':
             self.action_states.on_event('fall')
 
-        if self.pressed_jump and (not self.crouching or self.can_uncrouch):
-            self.jump_diff = pygame.time.get_ticks() - self.jump_pressed_at
-            if self.jump_diff < 333:
-                self.action_states.on_event('jump')
+        if self.pressed_jump and self.released_jump and (not self.crouching or self.can_uncrouch):
+            self.action_states.on_event('jump')
 
         if not self.freeze_movement:
             self.state_events()
@@ -362,6 +361,10 @@ class Player(Entity):
             float: The vertical distance to the closest collider below the player.
                   Returns float('inf') if no collider is found below the player.
         """
+
+        if self.ground_collider is not None:
+            return 0
+
         player_x = self.shape.pos.x + self.shape.w / 2  # Player center x-coordinate
         player_bottom_y = self.shape.pos.y + self.shape.h  # Player bottom y-coordinate
 
@@ -596,10 +599,6 @@ class Player(Entity):
         if other_collider is None:
             return
 
-        # PLASMA ????
-        #if self.current_action_state == 'Plasma_State':
-        # self.vel.x -= 0.1 * self.direction
-
         if dx > 0:
             if self.current_action_state == 'Move_State' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
                 self.action_states.on_event('decel')
@@ -614,6 +613,7 @@ class Player(Entity):
             if self.current_action_state == 'Fall_State':
                 self.ground_touch_pos = Vector2(self.pos.x, self.pos.y)
                 self.action_states.on_event('decel')
+            self.ground_collider = other_collider
             self.pos.y = other_collider.pos.y - self.shape.h
             self.vel.y = 0
         elif dy < 0:
@@ -773,11 +773,11 @@ class Player(Entity):
         scale = self.game.settings.get_scale()
 
         # Determine if the jump was early or late
-        if self.jump_action_distance is not None and self.jump_action_distance != float("inf"):
+        if self.jump_action_distance is not None and self.jump_action_distance != 0:
             self.jump_timing = -self.jump_action_distance
         else:
             late_jump_distance = None if self.ground_touch_pos is None else self.calculate_distance(self.pos, self.ground_touch_pos)
-            if late_jump_distance is not None and late_jump_distance != float("inf"):
+            if late_jump_distance is not None and late_jump_distance != 0:
                 self.jump_timing = late_jump_distance / scale
 
         # Reset jump tracking variables for the next jump
@@ -810,8 +810,12 @@ class Player(Entity):
         # Fix jumping while colliding with a ramp by warping the player upwards
         # depending on the ramp angle and player speed.
         if self.last_ramp_radians > 0:
-            eps = 10  # adjust so it's not infinite at 0
-            self.pos.y -= 400 * scale * (1 / (abs(self.vel.x) + eps)) * math.tan(self.last_ramp_radians) * self.direction
+            if self.game.settings.launch_on_ramp_jump:
+                eps = 5  # adjust so it's not infinite at 0
+                self.launch_from_ramp(128 * scale * (1 / (abs(self.vel.x) + eps)) * math.tan(self.last_ramp_radians) * self.direction)
+            else:
+                eps = 10  # adjust so it's not infinite at 0
+                self.pos.y -= 400 * scale * (1 / (abs(self.vel.x) + eps)) * math.tan(self.last_ramp_radians) * self.direction
             self.last_ramp_radians = 0
         elif self.last_ramp_radians < 0:
             self.pos.y -= 3 * scale
@@ -819,6 +823,8 @@ class Player(Entity):
 
         self.vel.x += boost * scale * self.direction
         self.vel.y += y_boost * scale
+
+        self.released_jump = False
 
     def add_plasma_velocity(self, distance, angle_rad):
         scale = self.game.settings.get_scale()
@@ -897,6 +903,7 @@ class Player(Entity):
         def on_enter(self, owner_object):
             #print(__class__, pygame.time.get_ticks())
 
+            owner_object.ground_collider = None
             owner_object.last_walljump = 0
             owner_object.animation.begin_jump()
 
@@ -905,7 +912,6 @@ class Player(Entity):
             else:
                 sounds.jump2.play()
 
-            owner_object.game.camera.stop_settling()
             dash = f'dash{random.choice([1, 2])}'
             if owner_object.direction == -1:
                 dash = f'{dash}_left'
@@ -986,6 +992,7 @@ class Player(Entity):
 
         def on_enter(self, owner_object):
             #print(__class__, pygame.time.get_ticks())
+            owner_object.ground_collider = None
             pass
 
         def update(self, owner_object):

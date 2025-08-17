@@ -15,6 +15,8 @@ class Settings:
         self.max_volume = 10
         self.cursor = 'corn'
         self.camera_style = 'default'
+        self.camera_style_y = 'settling'
+        self.launch_on_ramp_jump = True
         self.new_plasma = False
 
         self.game_sounds = [
