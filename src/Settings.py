@@ -1,13 +1,12 @@
-import  os, pygame, random, tempfile, yaml
+import os, stat, pygame, random, tempfile, yaml
+from pathlib import Path
 from pygame._sdl2 import Window
 from src import config
 from src.Input import DEFAULT_INPUT
 
 class Settings:
     def __init__(self):
-        #self.settings_file = os.path.join(tempfile.gettempdir(), 'racesow_arcade.yaml')
-        self.settings_file = 'racesow_arcade.yaml'
-        self.resolution = [640, 320]
+        self.resolution = [740, 400]
         self.fullscreen = False
         self.max_fps = 120
         self.music_enabled = True
@@ -30,7 +29,24 @@ class Settings:
             pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'items', 'empty_shot.mp3')),
         ]
 
+        self.settings_file = self.get_settings_file()
         self.mapping = DEFAULT_INPUT
+
+
+    def get_settings_file(self):
+        filename = 'config.yaml'
+        subdir = '.racesow_arcade'
+        possible_dirs = [Path.home(), tempfile.gettempdir()]
+        for dir in possible_dirs:
+            settings_file = os.path.join(dir, subdir, filename)
+            if os.path.isfile(settings_file) and os.access(settings_file, os.W_OK):
+                return settings_file
+            elif os.access(dir, os.W_OK):
+                folder = dir / subdir
+                folder.mkdir(exist_ok=True)
+                return settings_file
+
+        return filename
 
     def get_volume(self):
         return self.volume / self.max_volume
@@ -163,3 +179,5 @@ class Settings:
 
         with open(self.settings_file, "w") as file:
             yaml.dump(settings, file, default_flow_style=False)
+
+        os.chmod(self.settings_file, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH)
