@@ -1,8 +1,10 @@
 altgraph==0.17.4
+argparse==1.4.0
 cffi==1.17.1
 numpy==2.3.1
 packaging==25.0
 pillow==11.3.0
+profilehooks==1.13.0
 pycparser==2.22
 pygame==2.6.1
 pyinstaller==6.15.0

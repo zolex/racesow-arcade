@@ -1,0 +1,176 @@
+#!/bin/bash
+
+#set -euo pipefail
+
+# Trap errors and exit gracefully
+error_exit() {
+    echo "❌ Error on line $1: $2"
+    exit 1
+}
+trap 'error_exit $LINENO "$BASH_COMMAND"' ERR
+
+# --- Configuration Defaults ---
+DEFAULT_RESOLUTION="740x400"
+DEFAULT_FULLSCREEN="false"
+
+RESOLUTION="$DEFAULT_RESOLUTION"
+FULLSCREEN="$DEFAULT_FULLSCREEN"
+
+# --- Parse CLI Arguments ---
+for arg in "$@"; do
+    case "$arg" in
+        --fullscreen)
+            FULLSCREEN="true"
+            ;;
+        -h|--help)
+            echo "Usage: $0 [RESOLUTION] [--fullscreen]"
+            echo
+            echo "Examples:"
+            echo "  $0                # use default 740x400, windowed"
+            echo "  $0 800x600        # run at 800x600, windowed"
+            echo "  $0 --fullscreen   # use default resolution, fullscreen"
+            echo "  $0 1920x1080 --fullscreen"
+            exit 0
+            ;;
+        *)
+            # Assume anything else is a resolution
+            if [[ "$arg" =~ ^[0-9]+x[0-9]+$ ]]; then
+                RESOLUTION="$arg"
+            else
+                echo "❌ Unknown argument: $arg"
+                echo "Run '$0 --help' for usage."
+                exit 1
+            fi
+            ;;
+    esac
+done
+
+# Validate resolution format
+if ! [[ "$RESOLUTION" =~ ^[0-9]+x[0-9]+$ ]]; then
+    echo "❌ Invalid resolution format: $RESOLUTION (expected e.g. 800x600)"
+    exit 1
+fi
+
+# Validate fullscreen flag
+if [[ "$FULLSCREEN" != "true" && "$FULLSCREEN" != "false" ]]; then
+    echo "❌ Invalid fullscreen flag: $FULLSCREEN (expected 'true' or 'false')"
+    exit 1
+fi
+
+RESOLUTION=$(echo "$RESOLUTION" | cut -d'+' -f1)
+
+# Detect default active display output
+DEFAULT_OUTPUT=$(xrandr | grep " connected primary" | awk '{print $1}' || true)
+if [ -z "$DEFAULT_OUTPUT" ]; then
+    DEFAULT_OUTPUT=$(xrandr | grep " connected" | awk '{print $1}' | head -n 1 || true)
+fi
+
+if [ -z "$DEFAULT_OUTPUT" ]; then
+    echo "❌ No connected display detected via xrandr. Aborting."
+    exit 1
+fi
+
+# Read original resolution and margins
+PROPERTIES=$(xrandr --verbose | awk -v out="$DEFAULT_OUTPUT" '
+    $0 ~ "^"out" connected" { capture=1; next }
+    capture && /^[^ ]+ (dis)?connected/ { exit }
+    capture { print }
+')
+
+has_capability() {
+    echo "$PROPERTIES" | grep -q "$1"
+}
+
+ORIGINAL_LEFT_MARGIN=$(echo "$PROPERTIES" | awk '/Left Margin/ {print $3}' || true)
+ORIGINAL_RIGHT_MARGIN=$(echo "$PROPERTIES" | awk '/Right Margin/ {print $3}' || true)
+ORIGINAL_RESOLUTION=$(xrandr | grep "$DEFAULT_OUTPUT connected" | awk '{print $4}' | cut -d'+' -f1)
+
+if [ -z "$ORIGINAL_RESOLUTION" ]; then
+    echo "❌ Could not determine original resolution. Aborting."
+    exit 1
+fi
+
+# Extract width and height
+DESIRED_WIDTH=$(echo "$RESOLUTION" | cut -d'x' -f1)
+DESIRED_HEIGHT=$(echo "$RESOLUTION" | cut -d'x' -f2)
+
+# Check if desired resolution exists
+AVAILABLE_RESOLUTION=$(xrandr | grep -A10 "^$DEFAULT_OUTPUT connected" | grep -Eo '[0-9]+x[0-9]+' | grep -w "$RESOLUTION" || true)
+
+if [ -z "$AVAILABLE_RESOLUTION" ]; then
+    echo "⚠️ Desired resolution $RESOLUTION not available. Selecting closest available resolution..."
+    CLOSEST_RESOLUTION=$(xrandr | grep -A10 "^$DEFAULT_OUTPUT connected" | grep -Eo '[0-9]+x[0-9]+' | awk -F'x' -v w=$DESIRED_WIDTH -v h=$DESIRED_HEIGHT '{
+        diff = ($1-w)^2 + ($2-h)^2
+        if (NR==1 || diff<min) { min=diff; res=$0 }
+    } END { print res }')
+    if [ -z "$CLOSEST_RESOLUTION" ]; then
+        echo "❌ No suitable resolution found. Aborting."
+        exit 1
+    fi
+    RESOLUTION=$CLOSEST_RESOLUTION
+    echo "✅ Using closest resolution: $RESOLUTION"
+fi
+
+# Extract original width/height
+ORIGINAL_WIDTH=$(echo "$ORIGINAL_RESOLUTION" | cut -d'x' -f1)
+ORIGINAL_HEIGHT=$(echo "$ORIGINAL_RESOLUTION" | cut -d'x' -f2)
+
+# Extract desired width/height
+NEW_WIDTH=$(echo "$RESOLUTION" | cut -d'x' -f1)
+NEW_HEIGHT=$(echo "$RESOLUTION" | cut -d'x' -f2)
+
+# Compute scaling factor to match heights
+SCALE_FACTOR=$(awk -v oh=$ORIGINAL_HEIGHT -v nh=$NEW_HEIGHT 'BEGIN { if (nh==0) exit 1; print oh / nh }')
+
+# Scaled width after matching heights
+SCALED_WIDTH=$(awk -v nw=$NEW_WIDTH -v sf=$SCALE_FACTOR 'BEGIN { printf "%d", nw * sf }')
+
+echo "📺 Original resolution: ${ORIGINAL_WIDTH}x${ORIGINAL_HEIGHT}"
+echo "📺 Desired resolution:  ${NEW_WIDTH}x${NEW_HEIGHT}"
+echo "🔢 Scale factor: $SCALE_FACTOR"
+echo "📏 Scaled resolution: ${SCALED_WIDTH}x${NEW_HEIGHT}"
+
+# Calculate margins
+TOTAL_MARGIN=$(( ORIGINAL_WIDTH - SCALED_WIDTH ))
+NEW_LEFT_MARGIN=$(( TOTAL_MARGIN / 2 ))
+NEW_RIGHT_MARGIN=$(( TOTAL_MARGIN - NEW_LEFT_MARGIN ))
+
+echo "📐 Calculated margins -> Left: $NEW_LEFT_MARGIN, Right: $NEW_RIGHT_MARGIN"
+
+# Apply resolution and margins if capabilities exist
+if has_capability "Left Margin"; then
+    xrandr --output "$DEFAULT_OUTPUT" --set "left margin" "$NEW_LEFT_MARGIN"
+fi
+if has_capability "Right Margin"; then
+    xrandr --output "$DEFAULT_OUTPUT" --set "right margin" "$NEW_RIGHT_MARGIN"
+fi
+
+xrandr -s "$RESOLUTION"
+
+# Virtual environment setup
+if [ -f .venv/bin/activate ]; then
+    source .venv/bin/activate
+else
+    echo "⚠️ Virtual environment not found. Creating..."
+    python -m venv .venv
+    source .venv/bin/activate
+    .venv/bin/pip install -r requirements.txt
+fi
+
+if [ "$FULLSCREEN" == "true" ]; then
+  GAME_ARGS=" --fullscreen"
+fi
+
+# Run the Game
+if ! .venv/bin/python RacesowArcade.pyw --resolution="$RESOLUTION" $GAME_ARGS; then
+    echo "❌ Failed to run RacesowArcade.pyw. Aborting."
+    exit 1
+fi
+
+# Restore original display resolution and margins
+trap - ERR  # disable trap before cleanup (avoid double error messages)
+[ -n "$ORIGINAL_LEFT_MARGIN" ] && has_capability "Left Margin" && xrandr --output "$DEFAULT_OUTPUT" --set "left margin" "$ORIGINAL_LEFT_MARGIN"
+[ -n "$ORIGINAL_RIGHT_MARGIN" ] && has_capability "Right Margin" && xrandr --output "$DEFAULT_OUTPUT" --set "right margin" "$ORIGINAL_RIGHT_MARGIN"
+[ -n "$ORIGINAL_RESOLUTION" ] && xrandr -s "$ORIGINAL_RESOLUTION"
+
+echo "✅ Display settings restored successfully."
