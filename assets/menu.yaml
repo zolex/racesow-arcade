@@ -53,6 +53,28 @@ menu:
                       - { text: SHOOT, action: mapping, type: controller, mapping: shoot, group: game }
                       - { text: SWITCH WEAPON, action: mapping, type: controller, mapping: switch_weapon, group: game }
 
+          - text: GAMEPLAY
+            action: menu
+            menu:
+              title: GAMEPLAY
+              style: default
+              items:
+                - text: CAMERA
+                  style: small
+                  action: menu
+                  menu:
+                    title: CAMERA
+                    style: small
+                    type: select
+                    setting: camera_style
+                    callback: update_game_settings
+                    items:
+                      - { text: Lookahead (recommended), action: select_option, value: 'lookahead' }
+                      - { text: Snappy, action: select_option, value: 'snappy' }
+                      - { text: Crappy, action: select_option, value: 'ai' }
+                      - { text: Fixed, action: select_option, value: 'fixed' }
+
+
           - text: GRAPHICS
             action: menu
             menu:
@@ -81,8 +103,9 @@ menu:
                           callback: reload
                           items:
                             - { spacer: true, text: RECOMMENDED }
+                            - { text: 320x240, action: select_option, value: [320, 240] }
                             - { text: 640x480 - VGA, action: select_option, value: [640, 480] }
-                            - { text: 800x600 - SVGA, action: select_option, value: [640, 480] }
+                            - { text: 800x600 - SVGA, action: select_option, value: [800, 600] }
                             - { text: 1024x768 - XGA, action: select_option, value: [1024, 768] }
                             - { spacer: true, text: MORE }
                             - { text: 1280x960 - QVGA, action: select_option, value: [1280, 960] }
@@ -99,6 +122,7 @@ menu:
                           callback: reload
                           items:
                             - { spacer: true, text: RECOMMENDED }
+                            - { text: 480x240, action: select_option, value: [480, 240] }
                             - { text: 640x320, action: select_option, value: [640, 320] }
                             - { text: 1280x640, action: select_option, value: [1280, 640] }
                             - { spacer: true, text: MORE }
@@ -115,6 +139,9 @@ menu:
                           callback: reload
                           items:
                             - { spacer: true, text: RECOMMENDED }
+                            - { text: 569x320, action: select_option, value: [ 569, 320 ] }
+                            - { text: 720x400, action: select_option, value: [ 720, 400 ] }
+                            - { text: 720x480, action: select_option, value: [ 720, 480 ] }
                             - { text: 854x480 - FWVGA, action: select_option, value: [ 854, 480 ] }
                             - { text: 1280x720 - HD, action: select_option, value: [ 1280, 720 ] }
                             - { spacer: true, text: MORE }

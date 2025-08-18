@@ -1,11 +1,12 @@
-import os, pygame, random, tempfile, yaml
+import  os, pygame, random, tempfile, yaml
 from pygame._sdl2 import Window
 from src import config
 from src.Input import DEFAULT_INPUT
 
 class Settings:
     def __init__(self):
-        self.settings_file = os.path.join(tempfile.gettempdir(), 'racesow_acrade.yaml')
+        #self.settings_file = os.path.join(tempfile.gettempdir(), 'racesow_arcade.yaml')
+        self.settings_file = 'racesow_arcade.yaml'
         self.resolution = [640, 320]
         self.fullscreen = False
         self.max_fps = 120
@@ -14,8 +15,7 @@ class Settings:
         self.volume = 10
         self.max_volume = 10
         self.cursor = 'corn'
-        self.camera_style = 'default'
-        self.camera_style_y = 'settling'
+        self.camera_style = 'fixed'
         self.launch_on_ramp_jump = True
         self.new_plasma = False
 
@@ -72,7 +72,9 @@ class Settings:
         return getattr(self, setting, None)
 
     def set(self, setting, value):
-        return setattr(self, setting, value)
+        setattr(self, setting, value)
+        if setting == 'music_volume':
+            self.update_music_volume()
 
     def reduce(self, setting):
         if setting == 'volume':
@@ -108,6 +110,10 @@ class Settings:
         max_fps = data.get('max_fps', self.max_fps)
         if isinstance(max_fps, int):
             self.max_fps = max_fps
+
+        camera_style = data.get('camera_style', self.camera_style)
+        if isinstance(camera_style, str):
+            self.camera_style = camera_style
 
         volume = data.get('volume', self.volume)
         if isinstance(volume, int):
@@ -146,6 +152,7 @@ class Settings:
             "fullscreen": self.fullscreen,
             "max_fps": self.max_fps,
             "mapping": self.mapping,
+            "camera_style": self.camera_style,
             "volume": self.volume,
             "music_volume": self.music_volume,
             "music_enabled": self.music_enabled,

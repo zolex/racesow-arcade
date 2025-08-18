@@ -1,6 +1,5 @@
 import os, pygame
 
-from src.Camera import Camera
 from src import config
 from src.GameObject import GameObject
 from src.SimpleRect import SimpleRect
@@ -25,7 +24,7 @@ class JumpPad(GameObject):
 
         self.bbox = (self.pos.x, self.pos.y, self.pos.x + self.shape.w, self.pos.y + self.shape.w)
 
-    def draw(self, surface: pygame.Surface, camera: Camera):
+    def draw(self, surface: pygame.Surface, camera):
 
         view_pos = camera.to_view_space(self.pos)
         surface.blit(self.sprite, (view_pos.x, view_pos.y, self.shape.w, self.shape.h))

@@ -643,7 +643,7 @@ class Player(Entity):
             self.last_ramp_radians = 0
             return
 
-        self.game.camera.stop_settling()
+        self.game.camera.stop_settling(self)
 
         # unordered points of the ramp line
         point0 = ramp_collider[0]

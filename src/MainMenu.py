@@ -122,7 +122,6 @@ class MainMenu(GameScene):
         self.quit = False
         self.quit_really = False
         self.selected_item = 0
-        self.next_scene: GameScene | None = None
         self.active_mapping = None
         self.input_mappings = None
         self.parent_menus = []
@@ -255,6 +254,9 @@ class MainMenu(GameScene):
 
     def set_mapping(self, mapping: dict, event: pygame.event.Event):
 
+        if mapping is None:
+            return
+            
         input = self.extract_input(event, mapping.get('type'))
         if input is None:
             return
@@ -484,13 +486,13 @@ class MainMenu(GameScene):
             text_offset = 0
             if item.get('action') == 'switch':
                 text_offset = 1.25 * scale
-                text = f'{item.get('text')} [{'ON' if self.settings.get(item.get('setting')) else 'OFF'}]'
+                text = f"{item.get('text')} [{'ON' if self.settings.get(item.get('setting')) else 'OFF'}]"
             elif item.get('action') == 'setting':
-                text = f'{item.get('text')} ({self.settings.get(item.get('setting'))})'
+                text = f"{item.get('text')} ({self.settings.get(item.get('setting'))})"
             elif item.get('action') == 'select_option' and item.get('value') == self.settings.get(self.active_menu.get('setting')):
                 text_color = MainMenu.ITEM_TEXT_DARK
                 text_offset = 1.25 * scale
-                text = f'[{item.get('text')}]'
+                text = f"[{item.get('text')}]"
             else:
                 text = item.get('text')
 
@@ -728,6 +730,10 @@ class MainMenu(GameScene):
         self.splash = self.load_splash()
         self.load_cursor()
 
+    def update_game_settings(self):
+        if isinstance(self.next_scene, Game):
+            self.next_scene.update_settings()
+
     def show_mapping(self, menu_item):
         self.active_mapping = menu_item
 
@@ -873,7 +879,6 @@ class MainMenu(GameScene):
             pygame.K_RIGHT: lambda v, e: self.menu_right(v),
             pygame.K_RETURN: lambda v, e: self.menu_ok(v),
             pygame.K_ESCAPE: lambda v, e: self.menu_back_or_quit(v),
-            pygame.ACTIVEEVENT: lambda e: self.handle_focus(e),
         }
 
     def set_quit(self, key_down: bool = True):

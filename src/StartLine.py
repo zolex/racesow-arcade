@@ -1,6 +1,5 @@
 import os, pygame
 
-from src.Camera import Camera
 from src import config
 from src.GameObject import GameObject
 from src.SimpleRect import SimpleRect
@@ -18,12 +17,12 @@ class StartLine(GameObject):
 
         self.bbox = (self.pos.x, self.pos.y, self.pos.x + self.shape.w, self.pos.y + self.shape.w)
 
-    def draw_back(self, surface: pygame.Surface, camera: Camera):
+    def draw_back(self, surface: pygame.Surface, camera):
         view_pos = camera.to_view_space(self.pos)
         back = self.sprite.subsurface((0, 0, 10 * self.scale, 128 * self.scale)).copy()
         surface.blit(back, (view_pos.x, view_pos.y, 30, self.shape.h))
 
-    def draw_front(self, surface: pygame.Surface, camera: Camera):
+    def draw_front(self, surface: pygame.Surface, camera):
         view_pos = camera.to_view_space(self.pos)
         back = self.sprite.subsurface((10 * self.scale, 0 * self.scale, 55 * self.scale, 128 * self.scale)).copy()
         surface.blit(back, (view_pos.x + 10 * self.scale, view_pos.y, 55 * self.scale, self.shape.h))

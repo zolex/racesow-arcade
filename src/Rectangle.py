@@ -1,4 +1,3 @@
-from src.Camera import Camera
 from src.SimpleRect import SimpleRect
 from src.Texture import Texture
 from src.Vector2 import Vector2
@@ -63,7 +62,7 @@ class Rectangle(SimpleRect):
                         final_y < self.h and final_y + texture.rotated_height > 0):
                         self.surface.blit(texture.surface, (final_x, final_y))
 
-    def draw(self, target_surface: pygame.Surface, camera: Camera, outline=None):
+    def draw(self, target_surface: pygame.Surface, camera, outline=None):
         view_pos = camera.to_view_space(self.pos)
         if self.surface is not None:
             target_surface.blit(self.surface, (view_pos.x, view_pos.y))

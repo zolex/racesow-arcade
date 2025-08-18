@@ -1,6 +1,5 @@
 import os, pygame
 
-from src.Camera import Camera
 from src import config
 from src.GameObject import GameObject
 from src.Settings import Settings
@@ -68,7 +67,7 @@ class Portal(GameObject):
             if self.current_frame == len(self.FRAMES_ENTRY) - 1:
                 self.current_frame = 0
 
-    def draw(self, surface: pygame.Surface, camera: Camera):
+    def draw(self, surface: pygame.Surface, camera):
         self.animate()
 
         entry_sprite = self.sprite.subsurface(self.FRAMES_ENTRY[self.current_frame]).copy()
@@ -102,6 +101,6 @@ class Portal(GameObject):
         if abs(player.vel.x) < 0.3 * scale:
             player.vel.x = 0.3 * scale * player.direction
 
-        player.game.camera.stop_settling()
+        player.game.camera.stop_settling(player)
         player.game.camera.pos.x = self.exit.x - 15 * scale * player.direction
         player.game.camera.pos.y = self.exit.y - self.settings.resolution[1] // 2

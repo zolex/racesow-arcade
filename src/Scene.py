@@ -17,7 +17,6 @@ class GameScene(ABC):
         self.quit = False
         self.keyboard = self.settings.mapping.get('keyboard', {})
         self.controller = self.settings.mapping.get('controller', {})
-
         self.controllers: list[pygame.joystick.Joystick] = []
         pygame.joystick.init()
         for i in range(0, pygame.joystick.get_count()):
@@ -55,6 +54,7 @@ class GameScene(ABC):
                 quit_callback()
                 break
 
+            axis_count = 0
             for mapping, callback in mappings.items():
 
                 if Input.ANY == mapping and event.type in (pygame.KEYDOWN, pygame.JOYBUTTONDOWN, pygame.JOYAXISMOTION, pygame.JOYHATMOTION):
@@ -82,8 +82,15 @@ class GameScene(ABC):
                     mapped_axis = self.controller.get(mapping, {}).get('axis')
                     mapped_value = self.controller.get(mapping, {}).get('value')
                     if event.axis == mapped_axis:
-                        callback(round(event.value) == mapped_value, event)
-                        break
+                        axis_count += 1
+                        rounded = round(event.value)
+                        if rounded == mapped_value:
+                            callback(True, event)
+                            break
+                        elif rounded == 0:
+                            callback(False, event)
+                            if axis_count == 2:
+                                break
 
                 elif event.type == pygame.JOYHATMOTION:
                     mapped_hat = self.controller.get(mapping, {}).get('hat')

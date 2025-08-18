@@ -1,4 +1,3 @@
-from src.Camera import Camera
 from src.Texture import Texture
 import pygame
 import math
@@ -115,7 +114,7 @@ class Triangle():
             # Use the mask to show only the triangle
             self.surface.blit(triangle_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
 
-    def draw(self, target_surface: pygame.Surface, camera: Camera):
+    def draw(self, target_surface: pygame.Surface, camera):
         if self.surface is not None:
             target_surface.blit(self.surface, (self.surface_pos.x - camera.pos.x, self.surface_pos.y - camera.pos.y))
         else:

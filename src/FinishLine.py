@@ -1,9 +1,6 @@
 import os, pygame
 
-from src.Camera import Camera
 from src import config
-from src.GameObject import GameObject
-from src.SimpleRect import SimpleRect
 from src.StartLine import StartLine
 from src.Vector2 import Vector2
 

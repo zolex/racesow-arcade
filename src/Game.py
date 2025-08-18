@@ -1,18 +1,35 @@
 import copy, os, pygame
 
+from src.CameraAi import CameraAI
+from src.CameraFixed import CameraFixed
+from src.CameraLookahead import CameraLookahead
+from src.CameraSnappy import CameraSnappy
 from src.Input import Input
 from src.Scene import GameScene
 from src.Map import Map
 from src.Player import Player
 from src import config
-from src.Camera import Camera
 from src.Settings import Settings
-from src.Vector2 import Vector2
 from src.HUD import HUD
 
 from src.Decal import pre_load_decals
 from src.Item import pre_load_items
 from src.Projectile import pre_load_projectiles
+
+def create_camera(settings: Settings):
+    if settings.camera_style == 'fixed':
+        return CameraFixed(settings)
+
+    if settings.camera_style == 'snappy':
+        return CameraSnappy(settings)
+
+    if settings.camera_style == 'lookahead':
+        return CameraLookahead(settings)
+
+    if settings.camera_style == 'ai':
+        return CameraAI(settings)
+
+    raise Exception(f'Invalid camera style: {settings.camera_style}')
 
 class Game(GameScene):
     """Contains main loop and handles the game"""
@@ -24,7 +41,7 @@ class Game(GameScene):
         pre_load_items(game_scale)
         pre_load_projectiles(game_scale)
 
-        self.camera = Camera(Vector2(), self.settings)
+        self.camera = create_camera(settings)
         self.hud = HUD(self)
         self.map = Map(self)
         self.player = Player(self)
@@ -40,6 +57,10 @@ class Game(GameScene):
         self.player.draw()
         self.map.draw_front()
         self.hud.draw()
+
+    def update_settings(self):
+        self.camera = create_camera(self.settings)
+        pass
 
     def update(self):
         # let it "load" a few milliseconds to avoid missing out collision checks
@@ -62,7 +83,7 @@ class Game(GameScene):
             return
 
         menu = copy.copy(self.next_scene)
-        menu.next_scene = self
+        menu.set_next_scene(self)
         menu.game_loop(entrypoint=['SETTINGS'], force_quit=True)
 
     def init_input_mappings(self):
