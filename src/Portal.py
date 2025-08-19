@@ -14,7 +14,7 @@ class Portal(pygame.Rect):
         self.WIDTH = 64 * SCALE
         self.HEIGHT = 64 * SCALE
 
-        super().__init__(x + self.WIDTH, y + self.HEIGHT, self.WIDTH, self.HEIGHT)
+        super().__init__(x + self.WIDTH - 16 * SCALE, y + self.HEIGHT, self.WIDTH, self.HEIGHT)
 
         self.FRAME_TIME = 25
         self.FRAMES_ENTRY = [

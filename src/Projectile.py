@@ -30,8 +30,10 @@ class Projectile(Vector2):
         self.sprite: pygame.Surface = pygame.transform.rotate(Projectile.types[type], self.rotation)
 
     def draw(self, surface, camera):
-        view_pos = camera.to_view_space(Vector2(self.x, self.y))
+        view_pos = camera.to_view_space(self)
         surface.blit(self.sprite, (view_pos.x, view_pos.y))
+
+        #pygame.draw.rect(surface, (0, 0, 0), (view_pos.x, view_pos.y, self.sprite.get_width(), self.sprite.get_height()), 1)
 
     def volume_for_distance(self, distance):
         return min(1.1, max(0.05, 1.1 - (distance / 2674)))
@@ -70,8 +72,9 @@ class Projectile(Vector2):
                     distance = self.get_distance(map.game.player)
                     sounds.rocket.set_volume(self.volume_for_distance(distance))
                     sounds.rocket.play()
-                    map.game.player.add_rocket_velocity(distance, math.atan2(map.game.player.y - self.y, map.game.player.x - self.x + config.ROCKET_DOWN_OFFSET_X))
-                    return Decal('rocket', 500, self.x, self.y, center=True, fade_out=True)
+                    offset_x = config.ROCKET_DOWN_OFFSET_X * map.game.settings.get_scale()
+                    map.game.player.add_rocket_velocity(distance, math.atan2(map.game.player.y - self.y, map.game.player.x - self.x + offset_x))
+                    return Decal('rocket', 500, self.x + offset_x, self.y, center=True, fade_out=True)
 
                 elif self.type == 'plasma':
                     if collider.type == 'wall':
