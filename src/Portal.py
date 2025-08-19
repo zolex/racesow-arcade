@@ -1,20 +1,21 @@
 import os, pygame
 
 from src import config
-from src.GameObject import GameObject
 from src.Settings import Settings
-from src.SimpleRect import SimpleRect
-from src.Vector2 import Vector2
 
+class Portal(pygame.Rect):
 
-class Portal(GameObject):
+    def __init__(self, x, y, flipped: bool, settings: Settings, exit = None):
 
-    def __init__(self, entry: Vector2, entry_flipped, exit: Vector2, exit_flipped, settings: Settings):
-
+        self.exit = exit
         self.settings = settings
+
         SCALE = settings.get_scale()
         self.WIDTH = 64 * SCALE
         self.HEIGHT = 64 * SCALE
+
+        super().__init__(x + self.WIDTH, y + self.HEIGHT, self.WIDTH, self.HEIGHT)
+
         self.FRAME_TIME = 25
         self.FRAMES_ENTRY = [
             (0 * self.WIDTH, 2 * self.HEIGHT, self.WIDTH, self.HEIGHT),
@@ -41,14 +42,7 @@ class Portal(GameObject):
         ]
 
 
-        super().__init__(SimpleRect(entry, self.WIDTH, self.HEIGHT))
-        self.entry_flipped = entry_flipped
-        self.exit_flipped = exit_flipped
-        self.exit = exit
-        self.exit.x += self.shape.w // 2 + 12
-        self.exit.y += self.shape.h
-        self.pos.x += self.shape.w // 2 + 12
-        self.pos.y += self.shape.h
+        self.flipped = flipped
         self.current_frame = 0
         self.anim_timer = 0
         sprite = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'portal.png')).convert_alpha()
@@ -57,7 +51,7 @@ class Portal(GameObject):
         self.sound = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'teleport.mp3'))
         self.sound.set_volume(1)
 
-        self.bbox = (min(self.pos.x, self.exit.x), min(self.pos.y, self.exit.y), max(self.pos.x, self.exit.x), max(self.pos.y, self.exit.y))
+        self.bbox = (self.x, self.y, self.w, self.h)
 
     def animate(self):
         self.anim_timer += config.delta_time
@@ -70,30 +64,33 @@ class Portal(GameObject):
     def draw(self, surface: pygame.Surface, camera):
         self.animate()
 
-        entry_sprite = self.sprite.subsurface(self.FRAMES_ENTRY[self.current_frame]).copy()
-        entry_view_pos = camera.to_view_space(self.pos)
-        if self.entry_flipped:
-            entry_sprite = pygame.transform.flip(entry_sprite, True, False)
-        surface.blit(entry_sprite, (entry_view_pos.x, entry_view_pos.y, self.shape.w, self.shape.h))
+        if self.exit is not None:
+            sprite = self.sprite.subsurface(self.FRAMES_ENTRY[self.current_frame]).copy()
+        else:
+            sprite = self.sprite.subsurface(self.FRAMES_EXIT[self.current_frame]).copy()
+        entry_view_pos = camera.to_view_space(self)
 
-        exit_sprite = self.sprite.subsurface(self.FRAMES_EXIT[self.current_frame]).copy()
-        exit_view_pos = camera.to_view_space(self.exit)
-        if self.exit_flipped:
-            exit_sprite = pygame.transform.flip(exit_sprite, True, False)
-        surface.blit(exit_sprite, (exit_view_pos.x, exit_view_pos.y, self.shape.w, self.shape.h))
+        if self.flipped:
+            sprite = pygame.transform.flip(sprite, True, False)
+
+        surface.blit(sprite, (entry_view_pos.x, entry_view_pos.y, self.w, self.h))
 
     def teleport(self, player):
+
+        if self.exit is None:
+            return
+
         self.sound.play()
-        player.pos.x = self.exit.x + 10
-        player.pos.y = self.exit.y - 5
+        player.x = self.exit.x + 10
+        player.y = self.exit.y - 5
         player.vel.y = -0.0001  # not 0 because it would cause the camera settling for the portal exit!
         scale = self.settings.get_scale()
 
-        if self.exit_flipped and player.direction == 1:
+        if self.exit.flipped and player.direction == 1:
             player.direction = -1
             player.vel.x *= -1
             player.was_flipped = True
-        elif not self.exit_flipped and player.direction == -1:
+        elif not self.exit.flipped and player.direction == -1:
             player.direction = 1
             player.vel.x *= -1
             player.was_flipped = True
@@ -102,5 +99,5 @@ class Portal(GameObject):
             player.vel.x = 0.3 * scale * player.direction
 
         player.game.camera.stop_settling(player)
-        player.game.camera.pos.x = self.exit.x - 15 * scale * player.direction
-        player.game.camera.pos.y = self.exit.y - self.settings.resolution[1] // 2
+        player.game.camera.x = self.exit.x - 15 * scale * player.direction
+        player.game.camera.y = self.exit.y - self.settings.resolution[1] // 2

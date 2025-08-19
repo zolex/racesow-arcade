@@ -13,6 +13,7 @@ class Triangle():
         self.p3 = p3
         self.surface = None
         self.surface_pos = None
+        self.type = 'ramp'
 
         tri_min_x = float("inf")
         tri_max_x = float("-inf")
@@ -116,12 +117,12 @@ class Triangle():
 
     def draw(self, target_surface: pygame.Surface, camera):
         if self.surface is not None:
-            target_surface.blit(self.surface, (self.surface_pos.x - camera.pos.x, self.surface_pos.y - camera.pos.y))
+            target_surface.blit(self.surface, (self.surface_pos.x - camera.x, self.surface_pos.y - camera.y))
         else:
             pygame.draw.polygon(target_surface, (160, 0, 44, 128), [
-                (self.p1.x - camera.pos.x, self.p1.y - camera.pos.y),
-                (self.p2.x - camera.pos.x, self.p2.y - camera.pos.y),
-                (self.p3.x - camera.pos.x, self.p3.y - camera.pos.y)
+                (self.p1.x - camera.x, self.p1.y - camera.y),
+                (self.p2.x - camera.x, self.p2.y - camera.y),
+                (self.p3.x - camera.x, self.p3.y - camera.y)
             ])
 
     def overlaps(self, rect):
@@ -130,13 +131,13 @@ class Triangle():
         triangle_points = [self.p1, self.p2, self.p3]
         rect_points = [
             rect.pos,
-            Vector2(rect.pos.x + rect.w, rect.pos.y),
-            Vector2(rect.pos.x + rect.w, rect.pos.y + rect.h),
-            Vector2(rect.pos.x, rect.pos.y + rect.h),
+            Vector2(rect.x + rect.w, rect.y),
+            Vector2(rect.x + rect.w, rect.y + rect.h),
+            Vector2(rect.x, rect.y + rect.h),
         ]
         # Check if any triangle vertex is inside the rectangle
         for p in triangle_points:
-            if (rect.pos.x <= p.x <= rect.pos.x + rect.w) and (rect.pos.y <= p.y <= rect.pos.y + rect.h):
+            if (rect.x <= p.x <= rect.x + rect.w) and (rect.y <= p.y <= rect.y + rect.h):
                 return True
         # Check if any rectangle corner is inside the triangle
         if any(self.point_in_triangle(rp) for rp in rect_points):

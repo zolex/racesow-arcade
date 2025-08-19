@@ -1,15 +1,14 @@
-from src.SimpleRect import SimpleRect
 from src.Texture import Texture
 from src.Vector2 import Vector2
 import pygame
 
-class Rectangle(SimpleRect):
+class Rectangle(pygame.Rect):
     """Rectangle class for collider rectangles"""
-    def __init__(self, pos = Vector2(), w = 0, h = 0, texture: Texture|None=None):
-        super().__init__(pos, w, h)
+    def __init__(self, x = 0, y = 0, w = 0, h = 0, texture: Texture|None=None, wall_type='static'):
+        super().__init__(x, y, w, h)
         self.surface = None
-
-        self.bbox = (self.pos.x, self.pos.y, self.pos.x + self.w, self.pos.y + self.h)
+        self.type = wall_type
+        self.bbox = (self.x, self.y, self.x + self.w, self.y + self.h)
 
         # pre-render surface if there is a texture
         if texture is not None:
@@ -63,41 +62,11 @@ class Rectangle(SimpleRect):
                         self.surface.blit(texture.surface, (final_x, final_y))
 
     def draw(self, target_surface: pygame.Surface, camera, outline=None):
-        view_pos = camera.to_view_space(self.pos)
+        view_pos = camera.to_view_space(self)
         if self.surface is not None:
             target_surface.blit(self.surface, (view_pos.x, view_pos.y))
         else:
             pygame.draw.rect(target_surface, (0, 0, 0, 128), (view_pos.x, view_pos.y, self.w, self.h), outline)
-
-
-    def overlaps(self, other):
-        """Check if two rectangles overlap"""
-        return not(other.pos.x + other.w <= self.pos.x or
-                   other.pos.x >= self.pos.x + self.w or
-                   other.pos.y + other.h <= self.pos.y or
-                   other.pos.y >= self.pos.y + self.h)
-
-    def check_collisions(self, collider_list):
-        """Check collisions between two rectangles, if in a rangle of 100px, returns a single collider"""
-        for collider in collider_list:
-            if abs(self.pos.x - collider.pos.x) < 100 or collider.shape.w >= 100:  # Wider colliders are checked anyway
-                if self.overlaps(collider.shape):
-                    return collider
-
-    def check_center_collisions(self, collider_list, less_x = 0, less_y = 0):
-        """Check collision of the center of this rect and another rectangle"""
-        for collider in collider_list:
-            if collider.pos.x + less_x <= self.pos.x + self.w // 2 <= collider.pos.x - less_x + collider.shape.w and collider.pos.y + less_y <= self.pos.y + self.h // 2 <= collider.pos.y - less_y + collider.shape.h:
-                return collider
-
-    def check_entity_collisions(self, entity_list):
-        """Check collisions but return a list of all colliding entities"""
-        others = []
-        for entity in entity_list:
-            if entity.shape is not self and abs(self.pos.x - entity.pos.x) < 100:
-                if self.overlaps(entity.shape):
-                    others.append(entity)
-        return others
 
     def check_triangle_top_sides_collision(self, collider_list):
         """
@@ -111,8 +80,7 @@ class Rectangle(SimpleRect):
             A tuple of (Vector2, Vector2) representing the colliding side, or None if no collision
         """
 
-        for collider in collider_list:
-            triangle = collider.shape
+        for triangle in collider_list:
             # Find the highest vertex (lowest y-coordinate)
             vertices = [triangle.p1, triangle.p2, triangle.p3]
             highest_vertex_idx = 0
@@ -152,15 +120,15 @@ class Rectangle(SimpleRect):
         """
         # Rectangle edges
         rect_edges = [
-            (Vector2(self.pos.x, self.pos.y), Vector2(self.pos.x + self.w, self.pos.y)),  # Top
-            (Vector2(self.pos.x + self.w, self.pos.y), Vector2(self.pos.x + self.w, self.pos.y + self.h)),  # Right
-            (Vector2(self.pos.x + self.w, self.pos.y + self.h), Vector2(self.pos.x, self.pos.y + self.h)),  # Bottom
-            (Vector2(self.pos.x, self.pos.y + self.h), Vector2(self.pos.x, self.pos.y))  # Left
+            (Vector2(self.x, self.y), Vector2(self.x + self.w, self.y)),  # Top
+            (Vector2(self.x + self.w, self.y), Vector2(self.x + self.w, self.y + self.h)),  # Right
+            (Vector2(self.x + self.w, self.y + self.h), Vector2(self.x, self.y + self.h)),  # Bottom
+            (Vector2(self.x, self.y + self.h), Vector2(self.x, self.y))  # Left
         ]
 
         # Check if either endpoint is inside the rectangle
-        if (self.pos.x <= p1.x <= self.pos.x + self.w and self.pos.y <= p1.y <= self.pos.y + self.h) or \
-                (self.pos.x <= p2.x <= self.pos.x + self.w and self.pos.y <= p2.y <= self.pos.y + self.h):
+        if (self.x <= p1.x <= self.x + self.w and self.y <= p1.y <= self.y + self.h) or \
+                (self.x <= p2.x <= self.x + self.w and self.y <= p2.y <= self.y + self.h):
             return True
 
         # Check if the line intersects with any of the rectangle's edges

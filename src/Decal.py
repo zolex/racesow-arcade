@@ -23,7 +23,7 @@ class Decal(Vector2):
         self.start_time = pygame.time.get_ticks()
 
     def draw(self, surface, camera):
-        view_pos = camera.to_view_space(Vector2(self.x, self.y))
+        view_pos = camera.to_view_space(self)
         if self.center:
             pos = (view_pos.x - self.sprite.get_width() / 2, view_pos.y - self.sprite.get_height() / 2)
         elif self.bottom:

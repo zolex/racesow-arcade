@@ -33,15 +33,6 @@ class Projectile(Vector2):
         view_pos = camera.to_view_space(Vector2(self.x, self.y))
         surface.blit(self.sprite, (view_pos.x, view_pos.y))
 
-    def point_in_triangle(self, pt, t):
-        def sign(p1, p2, p3):
-            return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y)
-
-        b1 = sign(pt, t.p1, t.p2) < 0.0
-        b2 = sign(pt, t.p2, t.p3) < 0.0
-        b3 = sign(pt, t.p3, t.p1) < 0.0
-        return (b1 == b2) and (b2 == b3)
-
     def volume_for_distance(self, distance):
         return min(1.1, max(0.05, 1.1 - (distance / 2674)))
 
@@ -61,7 +52,7 @@ class Projectile(Vector2):
             if self.vel_y > self.target_vel:
                 self.vel_y += self.acc * config.delta_time
             if self.sound is not None:
-                distance = self.get_distance(map.game.player.pos)
+                distance = self.get_distance(map.game.player)
                 self.sound.set_volume(self.volume_for_distance(distance))
 
             colliders = []
@@ -76,46 +67,31 @@ class Projectile(Vector2):
             collider = self.check_collisions(colliders)
             if collider is not None:
                 if self.type == 'rocket':
-                    distance = self.get_distance(map.game.player.pos)
+                    distance = self.get_distance(map.game.player)
                     sounds.rocket.set_volume(self.volume_for_distance(distance))
                     sounds.rocket.play()
-                    map.game.player.add_rocket_velocity(distance, math.atan2(map.game.player.pos.y - self.y, map.game.player.pos.x - self.x + config.ROCKET_DOWN_OFFSET_X))
+                    map.game.player.add_rocket_velocity(distance, math.atan2(map.game.player.y - self.y, map.game.player.x - self.x + config.ROCKET_DOWN_OFFSET_X))
                     return Decal('rocket', 500, self.x, self.y, center=True, fade_out=True)
 
                 elif self.type == 'plasma':
                     if collider.type == 'wall':
-                        distance = self.get_distance(map.game.player.pos)
-                        map.game.player.add_plasma_velocity(distance, math.atan2(map.game.player.pos.y - self.y, map.game.player.pos.x - self.x))
+                        distance = self.get_distance(map.game.player)
+                        map.game.player.add_plasma_velocity(distance, math.atan2(map.game.player.y - self.y, map.game.player.x - self.x))
 
                     return Decal('plasma', 1000, self.x, self.y, center=False, fade_out=True)
 
         return False
 
     def check_collisions(self, collider_list):
-        """Check collisions:
-           - For Rectangle: usual AABB test
-           - For Triangle: uses point_in_triangle function
-           If collision is detected, returns the collider.
-        """
-
         for collider in collider_list:
-            if isinstance(collider.shape, Rectangle):
-                if (collider.shape.pos.x < self.x < collider.shape.pos.x + collider.shape.w and
-                        collider.shape.pos.y < self.y < collider.shape.pos.y + collider.shape.h):
+            if isinstance(collider, Rectangle):
+                if (collider.x < self.x < collider.x + collider.w and
+                        collider.y < self.y < collider.y + collider.h):
                     if self.sound is not None:
                         self.sound.stop()
                     return collider
-            elif isinstance(collider.shape, Triangle):
-                # Assuming self.x and self.y represent the point to test
-                class Pt:  # Minimal point object for compatibility
-                    def __init__(self, x, y):
-                        self.x = x
-                        self.y = y
-
-                pt = Pt(self.x, self.y)
-                if self.point_in_triangle(pt, collider.shape):
-                    if self.sound is not None:
-                        self.sound.stop()
+            elif isinstance(collider, Triangle):
+                if collider.point_in_triangle(self):
                     return collider
 
         return None

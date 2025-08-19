@@ -34,10 +34,10 @@ class CameraSnappy(Camera):
         # ---------- HORIZONTAL ----------
 
         # Calculate target x based on player position and velocity
-        target_x = player.pos.x - self.offset_x - (self.base_follow_x * scale)
+        target_x = player.x - self.offset_x - (self.base_follow_x * scale)
         # Apply smoothing to horizontal movement
-        delta_x = (target_x - self.pos.x) * self.lookahead_x
-        self.pos.x += delta_x
+        delta_x = (target_x - self.x) * self.lookahead_x
+        self.x += delta_x
 
 
         # ---------- VERTICAL ----------
@@ -55,16 +55,16 @@ class CameraSnappy(Camera):
                 t_eased = 1 - pow(1 - t, 3)
                 fall_lookahead_px = t_eased * self.max_fall_lookahead
 
-        player_rel_y = player.pos.y - self.pos.y
+        player_rel_y = player.y - self.y
         bottom_threshold = self.bottom_threshold_base + fall_lookahead_px
         if player_rel_y < self.top_threshold and fall_lookahead_px == 0:
             # move up so the player reaches the top threshold
-            target_y = player.pos.y - self.top_threshold
+            target_y = player.y - self.top_threshold
             alpha_y = 1.0 - math.exp(-self.smooth_speed_y_top * dt)
-            self.pos.y += (target_y - self.pos.y) * alpha_y
+            self.y += (target_y - self.y) * alpha_y
         elif player_rel_y > bottom_threshold:
             # move down so the player reaches the bottom threshold
-            target_y = player.pos.y - bottom_threshold
+            target_y = player.y - bottom_threshold
             alpha_y = 1.0 - math.exp(-self.smooth_speed_y * dt)
             eased_alpha_y = alpha_y * alpha_y
-            self.pos.y += (target_y - self.pos.y) * eased_alpha_y
+            self.y += (target_y - self.y) * eased_alpha_y

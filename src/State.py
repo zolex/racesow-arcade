@@ -15,3 +15,7 @@ class State:
     def on_exit(self, owner_object):
         """Performs actions when exiting state"""
         pass
+
+    def can_exit(self, owner_object):
+        """Determines if state can exit"""
+        return True

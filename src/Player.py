@@ -1,36 +1,40 @@
-import copy, math, pygame, random, os
-from src.Animation import Animation
+import math, pygame, random, os
 from src.Decal import Decal
-from src.Entity import Entity
 from src.Rectangle import Rectangle
+from src.SpriteAnim import SpriteAnim
+from src.SpriteSheet import SpriteSheet
 from src.StateMachine import StateMachine
 from src.State import State
 from src.Vector2 import Vector2
 from src.Projectile import Projectile
 from src import sounds, config
 
-class Player(Entity):
+class Player(Rectangle):
     def __init__(self, game):
+
+        scale = game.settings.get_scale()
+
+        self.vel = Vector2(0, 0)
 
         self.game = game
 
-        self.CROUCH_OFF = 1  # reduce "physical" crouch height from sprite height
-        self.CROUCH_HEIGHT = 32 - self.CROUCH_OFF
-
-        self.P_SCALE = 0.5
-        self.P_WIDTH = 128
-        self.P_HEIGHT = 128
-        self.P_WIDTH_S = self.P_WIDTH * self.P_SCALE
-        self.P_HEIGHT_S = self.P_HEIGHT * self.P_SCALE
-
-        self.WIDTH = 32
-        self.HEIGHT = 42
+        self.CROUCH_OFF = 0 # 1  # reduce "physical" crouch height from sprite height
+        self.CROUCH_HEIGHT = 0 #32 - self.CROUCH_OFF
 
         self.direction = 1
 
-        scale =  game.settings.get_scale()
+        sheet = SpriteSheet(os.path.join(config.assets_folder, 'graphics', 'player.png'), 128, 128, padding=(39, 2, 0, 10), scale=scale/2)
+        self.anim = SpriteAnim(sheet)
+        self.anim.add('idle', 'no_weapon', [(2, 1)], loop=False)
+        self.anim.add('crouch', 'no_weapon', [(2, 0)], loop=False, padding=(25*scale/2, 0, 0, 0))
+        self.anim.add('run', 'no_weapon', {'left': [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)], 'right': [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5)]}, loop=True)
+        self.anim.add('jump', 'no_weapon', {'left': [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)], 'right': [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5)]}, loop=False)
+        self.anim.play('idle')
 
-        super(Player, self).__init__(Vector2(0, 0), Rectangle(Vector2(0, 0), self.WIDTH * scale, self.HEIGHT * scale))
+        self.previous_frame = frame = self.anim.get_frame()
+
+        super(Player, self).__init__(0, 0, frame.get_width(), frame.get_height())
+
         self.distance_to_ground = 0
         self.last_boost = 0
         self.last_boost_time = None
@@ -83,8 +87,6 @@ class Player(Entity):
 
 
         self.action_states = StateMachine(self.Idle_State(), self)
-        self.animation = Animation(self)
-        self.height = self.animation.sprite_sheet.get_height() * self.P_SCALE
 
     def reset(self):
         self.distance_to_ground = 0
@@ -94,7 +96,7 @@ class Player(Entity):
         self.acceleration = 0
         self.last_walljump = 0
         self.last_ramp_radians = 0
-        self.animation = Animation(self)
+        #self.animation = Animation(self)
         self.action_states = StateMachine(self.Idle_State(), self)
         self.last_velocity = 0
         self.pressed_up = False
@@ -137,20 +139,19 @@ class Player(Entity):
         self.rocket_timer = self.rocket_cooldown
         self.vel = Vector2(0, 0)
         self.action_states = StateMachine(self.Fall_State(), self)
-        self.shape.pos.x = self.map.player_start.x
-        self.shape.pos.y = self.map.player_start.y
+        self.x = self.map.player_start.x
+        self.y = self.map.player_start.y
 
         #print("player reset")
 
     def set_map(self, map):
         self.map = map
-        self.shape.pos = map.player_start
+        self.x = map.player_start.x
+        self.y = map.player_start.y
 
     def __getattr__(self, name):
         if name == 'current_action_state':
             return self.action_states.get_state()
-        elif name == 'pos':
-            return self.shape.pos
         return object.__getattribute__(self, name)
 
     def draw(self):
@@ -158,30 +159,32 @@ class Player(Entity):
         scale = self.game.settings.get_scale()
 
         #if camera.contains(self.rect):
-        view_pos_sprite = self.game.camera.to_view_space(
-            Vector2(
-                self.shape.pos.x - 16 * scale,
-                self.shape.pos.y - (32 * scale if self.crouching else 21 * scale)
-            )
-        )
+        view_pos_sprite = self.game.camera.to_view_space(self)
+
+        frame = self.anim.get_frame(self.direction)
+        self.w = frame.get_width()
+        self.h = frame.get_height()
+
+        previous_height = self.previous_frame.get_height()
+        if previous_height != self.h:
+            self.y += previous_height - self.h
+
+        self.previous_frame = frame
 
         blur_factor = self.last_boost / 64 * scale * self.direction
         if self.last_ramp_radians == 0:
-            self.motion_blur(view_pos_sprite, self.animation.current_sprite, blur_factor)
-            self.game.surface.blit(self.animation.current_sprite, (view_pos_sprite.x, view_pos_sprite.y))
+            self.motion_blur(view_pos_sprite, frame, blur_factor)
+            self.game.surface.blit(frame, (view_pos_sprite.x, view_pos_sprite.y))
 
         else:
             rotation = math.degrees(self.last_ramp_radians)
-            #if self.direction == -1:
-            #    rotation -= 180
-
-            rotated_sprite = pygame.transform.rotate(self.animation.current_sprite, rotation)
-            rect = rotated_sprite.get_rect(center=(view_pos_sprite.x + self.animation.current_sprite.get_width() // 2, view_pos_sprite.y + self.animation.current_sprite.get_height() // 2))
+            rotated_sprite = pygame.transform.rotate(frame, rotation)
+            rect = rotated_sprite.get_rect(center=(view_pos_sprite.x + self.w // 2, view_pos_sprite.y + self.h // 2))
             self.motion_blur(Vector2(rect.topleft[0], rect.topleft[1]), rotated_sprite, blur_factor)
             self.game.surface.blit(rotated_sprite, rect.topleft)
 
         # debug draw rect around player
-        #self.shape.draw(self.game.surface, self.game.camera, 1)
+        pygame.draw.rect(self.game.surface, (0, 0, 0), (view_pos_sprite.x, view_pos_sprite.y, self.w, self.h), 2)
 
     def motion_blur(self, view_pos, sprite, blur_factor):
         if self.num_boost_ghosts is not None:
@@ -246,7 +249,7 @@ class Player(Entity):
                 self.active_weapon = 'plasma'
             elif self.active_weapon == 'plasma' and self.has_rocket:
                 self.active_weapon = 'rocket'
-            self.animation.set_active_weapon()
+            #self.animation.set_active_weapon()
             self.last_weapon_switch = pygame.time.get_ticks()
 
     def update(self):
@@ -256,6 +259,8 @@ class Player(Entity):
 
         self.plasma_timer = min(self.plasma_timer + config.delta_time, self.plasma_cooldown)
         self.rocket_timer = min(self.rocket_timer + config.delta_time, self.rocket_cooldown)
+
+        #print("vely", self.vel.y)
 
         # Trigger falling
         if self.vel.y > 0 and self.current_action_state != 'Plasma_State':
@@ -276,7 +281,26 @@ class Player(Entity):
             if self.current_action_state == 'Plasma_State':
                 self.action_states.on_event('fall')
 
-        self.animation.animate()
+        self.anim.update(config.delta_time, self.direction, self.speed_to_fps(abs(self.vel.x)))
+
+    def speed_to_fps(self, speed, speed_min=0.01, speed_max=4.0, fps_min=5, fps_max=32, power=0.5):
+        """
+        Map player speed to animation FPS.
+        - speed: player speed (0.1 = slow, 1 = medium, 4 = ultra fast)
+        - fps_min: fps at slowest
+        - fps_max: fps at fastest
+        - power: curve shaping factor (0.5 = sqrt, 1 = linear, 2 = quadratic)
+        """
+        scale = self.game.settings.get_scale()
+
+        # clamp speed to range
+        s = max(speed_min * scale, min(speed * scale, speed_max * scale))
+        # normalize 0..1
+        norm = (s - speed_min * scale) / (speed_max * scale - speed_min * scale)
+        # apply curve
+        curved = norm ** power
+        # scale to fps range
+        return fps_min + (fps_max - fps_min) * curved
 
     def shoot(self):
         if self.active_weapon == 'rocket':
@@ -295,9 +319,9 @@ class Player(Entity):
                 sounds.rocket_launch.play()
                 channel = sounds.rocket_fly.play(loops=-1)
                 if self.pressed_down:
-                    self.map.projectiles.append(Projectile('rocket', 1337000, self.pos.x + config.ROCKET_DOWN_OFFSET_X * scale, self.pos.y + config.ROCKET_DOWN_OFFSET_Y * scale, self.vel.x, self.vel.y + 1 * scale, 0.7 * scale, -0.0015 * scale, channel, ['ramp', 'static']))
+                    self.map.projectiles.append(Projectile('rocket', 1337000, self.x + config.ROCKET_DOWN_OFFSET_X * scale, self.y + config.ROCKET_DOWN_OFFSET_Y * scale, self.vel.x, self.vel.y + 1 * scale, 0.7 * scale, -0.0015 * scale, channel, ['ramp', 'static']))
                 else:
-                    self.map.projectiles.append(Projectile('rocket', 1337000, self.pos.x + 30 * scale, self.pos.y + 5 * scale, self.vel.x + 1 * scale, 0, 1.1 * scale, -0.00075 * scale, channel, ['ramp', 'static']))
+                    self.map.projectiles.append(Projectile('rocket', 1337000, self.x + 30 * scale, self.y + 5 * scale, self.vel.x + 1 * scale, 0, 1.1 * scale, -0.00075 * scale, channel, ['ramp', 'static']))
 
     def shoot_plasma(self):
         scale = self.game.settings.get_scale()
@@ -323,7 +347,7 @@ class Player(Entity):
                             y_offset = 3 * scale
 
                         self.action_states.on_event('plasma')
-                        self.map.projectiles.append(Projectile('plasma', 1000, self.pos.x - 0.5 * scale + x_offset, self.pos.y + y_offset, self.vel.x, self.vel.y, collide_with=['wall']))
+                        self.map.projectiles.append(Projectile('plasma', 1000, self.x - 0.5 * scale + x_offset, self.y + y_offset, self.vel.x, self.vel.y, collide_with=['wall']))
                     else:
                         if self.pressed_left:
                             decal_offset = 5
@@ -333,7 +357,7 @@ class Player(Entity):
                             decal_offset = 15
 
                         self.action_states.on_event('plasma')
-                        self.map.decals.append(Decal('plasma', 1000, self.pos.x + decal_offset * scale, self.pos.y + 5 * scale, center=True, fade_out=True))
+                        self.map.decals.append(Decal('plasma', 1000, self.x + decal_offset * scale, self.y + 5 * scale, center=True, fade_out=True))
                         if self.pressed_down:
                             if self.pressed_left or self.pressed_right:
                                 self.vel.y -= 0.07 * scale
@@ -349,7 +373,7 @@ class Player(Entity):
                         elif self.pressed_right:
                             self.vel.x -= 0.04 * scale
                 else:
-                    self.map.projectiles.append(Projectile('plasma', 10000, self.pos.x + 30 * scale * self.direction, self.pos.y + 2 * scale, self.vel.x + 3 * scale * self.direction))
+                    self.map.projectiles.append(Projectile('plasma', 10000, self.x + 30 * scale * self.direction, self.y + 2 * scale, self.vel.x + 3 * scale * self.direction))
 
 
     def get_distance_to_collider_below(self):
@@ -365,25 +389,24 @@ class Player(Entity):
         if self.ground_collider is not None:
             return 0
 
-        player_x = self.shape.pos.x + self.shape.w / 2  # Player center x-coordinate
-        player_bottom_y = self.shape.pos.y + self.shape.h  # Player bottom y-coordinate
+        player_x = self.x + self.w / 2  # Player center x-coordinate
+        player_bottom_y = self.y + self.h  # Player bottom y-coordinate
 
         min_distance = float('inf')
 
         # Check static colliders
-        for collider in self.map.static_colliders:
+        for rectangle in self.map.static_colliders:
             # Only check colliders that are horizontally aligned with the player
-            if collider.pos.x <= player_x <= collider.pos.x + collider.shape.w:
+            if rectangle.x <= player_x <= rectangle.x + rectangle.w:
                 # Only check colliders that are below the player
-                if collider.pos.y > player_bottom_y:
-                    distance = collider.pos.y - player_bottom_y
+                if rectangle.y > player_bottom_y:
+                    distance = rectangle.y - player_bottom_y
                     if distance < min_distance:
                         min_distance = distance
 
 
         # Check ramp colliders
-        for collider in self.map.ramp_colliders:
-            triangle = collider.shape
+        for triangle in self.map.ramp_colliders:
             vertices = [triangle.p1, triangle.p2, triangle.p3]
 
             # Find the horizontal range of the triangle
@@ -516,6 +539,8 @@ class Player(Entity):
 
         # Accelerate
         self.vel.x += self.acceleration * scale * config.delta_time
+
+        #if self.distance_to_ground > 0:
         self.vel.y += config.GRAVITY * scale * config.delta_time
 
         # Apply friction
@@ -529,8 +554,8 @@ class Player(Entity):
             self.move_single_axis(0, self.vel.y)
 
     def move_single_axis(self, dx, dy):
-        self.pos.x += dx * config.delta_time
-        self.pos.y += dy * config.delta_time
+        self.x += dx * config.delta_time
+        self.y += dy * config.delta_time
 
         self.collider_collisions(dx, dy)
         self.ramp_collisions()
@@ -594,35 +619,42 @@ class Player(Entity):
         if self.last_ramp_radians != 0:
             return
 
-        other_collider = self.shape.check_collisions(self.map.static_colliders)
+        index = self.collidelist(self.map.static_colliders)
 
-        if other_collider is None:
+
+        if index == -1:
             return
 
+        other_collider = self.map.static_colliders[index]
+
         if dx > 0:
+            #print("dx > 0")
             if self.current_action_state == 'Move_State' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
                 self.action_states.on_event('decel')
-            self.pos.x = other_collider.pos.x - self.shape.w
+            self.x = other_collider.x - self.w
             self.vel.x = 0
         elif dx < 0:
+            #print("dx < 0")
             if self.current_action_state == 'Move_State' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
                 self.action_states.on_event('decel')
-            self.pos.x = other_collider.pos.x + other_collider.shape.w
+            self.x = other_collider.x + other_collider.w
             self.vel.x = 0
         elif dy > 0:
+            #print("dy > 0")
             if self.current_action_state == 'Fall_State':
-                self.ground_touch_pos = Vector2(self.pos.x, self.pos.y)
+                self.ground_touch_pos = Vector2(self.x, self.y)
                 self.action_states.on_event('decel')
             self.ground_collider = other_collider
-            self.pos.y = other_collider.pos.y - self.shape.h
+            self.y = other_collider.y - self.h
             self.vel.y = 0
         elif dy < 0:
+            #print("dy < 0")
             self.action_states.on_event('fall')
-            self.pos.y = other_collider.pos.y + other_collider.shape.h
+            self.y = other_collider.y + other_collider.h
             self.vel.y = config.BOUNCE_VEL
 
     def launch_from_ramp(self, y_offset = 0, factor = 1.0):
-        self.pos.y -= y_offset
+        self.y -= y_offset
         self.vel.y = -abs(self.vel.x) * math.tan(self.last_ramp_radians * self.direction) * factor
         self.action_states.on_event('launch')
 
@@ -632,7 +664,7 @@ class Player(Entity):
             return
 
         # Get the line of the ramp we collided with (up or down)
-        ramp_collider = self.shape.check_triangle_top_sides_collision(self.map.ramp_colliders)
+        ramp_collider = self.check_triangle_top_sides_collision(self.map.ramp_colliders)
 
         if ramp_collider is None:
             # launch when leaving a ramp
@@ -677,17 +709,17 @@ class Player(Entity):
         self.last_ramp_radians = next_rad
 
         # Calculate horizontal progress (progress ratio) across the ramp
-        x = self.shape.pos.x + self.shape.w / 2  # Player center x
+        x = self.x + self.w / 2  # Player center x
         progress = max(0, min(1, (x - x_start) / dx))  # Clamp to [0,1]
 
         # Linear interpolation from base y to top y
         y_on_ramp = (1 - progress) * y_start + progress * y_end
 
         # Set player's feet to ramp surface
-        self.shape.pos.y = y_on_ramp - self.shape.h
+        self.y = y_on_ramp - self.h
 
         if not self.ground_touch_pos:
-            self.ground_touch_pos = Vector2(self.pos.x, self.pos.y)
+            self.ground_touch_pos = Vector2(self.x, self.y)
 
         self.vel.y = 0
 
@@ -700,7 +732,7 @@ class Player(Entity):
                     item.picked_up = False
                     item.respawn_at = None
                 continue
-            if item.pos.x - item.width <= self.pos.x + self.shape.w / 2 <= item.pos.x + item.width and item.pos.y - item.height <= self.pos.y + self.shape.h / 2 <= item.pos.y + item.height:
+            if item.x - item.width <= self.x + self.w / 2 <= item.x + item.width and item.y - item.height <= self.y + self.h / 2 <= item.y + item.height:
                 sounds.pickup.play()
                 self.active_weapon = item.type
                 if item.type == 'rocket':
@@ -712,55 +744,46 @@ class Player(Entity):
                 item.picked_up = True
                 if item.stay:
                     item.respawn_at = pygame.time.get_ticks() + 3000
-                self.animation.set_active_weapon()#
+                #self.animation.set_active_weapon()#
 
     def functional_collisions(self):
 
         scale = self.game.settings.get_scale()
 
-        portal = self.shape.check_center_collisions(self.map.portals, 20 * scale, -40)
-        if portal is not None:
-            portal.teleport(self)
+        for portal in self.map.portals:
+            if portal.collidepoint(self.midbottom[0], self.midbottom[1]):
+                portal.teleport(self)
+                return
 
-        jump_pad = self.shape.check_center_collisions(self.map.jump_pads, 10 * scale, -20 * scale)
-        if jump_pad is not None:
-            jump_pad.jump(self)
+        for jump_pad in self.map.jump_pads:
+            if jump_pad.collidepoint(self.midbottom[0], self.midbottom[1]):
+                jump_pad.jump(self)
+                return
 
-        death = self.shape.check_collisions(self.map.death_colliders)
-        if death is not None:
+        if self.collidelist(self.map.death_colliders) != -1:
             self.action_states.on_event('dead')
 
         if self.map.timer == 0 and self.map.start_line is not None:
-            start_line = self.shape.check_collisions([self.map.start_line])
-            if start_line is not None:
+            if self.colliderect(self.map.start_line) != -1:
                 self.map.start_timer()
 
         if self.map.timer != 0 and self.map.finish_line is not None:
-            finish_line = self.shape.check_collisions([self.map.finish_line])
-            if finish_line is not None:
+            if self.colliderect(self.map.finish_line) != -1:
                 self.map.stop_timer()
 
     def walljump_collisions(self):
-        wall_collider = self.shape.check_collisions(self.map.wall_colliders)
-
-        return wall_collider is not None
+        return self.collidelist(self.map.wall_colliders) != -1
 
     def plasma_climb_collisions(self):
-        wall_collider = self.shape.check_center_collisions(self.map.wall_colliders)
+        for collider in self.map.wall_colliders:
+            if collider.collidepoint(self.center[0], self.center[1]):
+                return True
 
-        return wall_collider is not None
+        return False
 
     def check_can_uncrouch(self):
-        height = self.HEIGHT * self.game.settings.get_scale()
-        stand_rect = copy.copy(self.shape)
-        stand_rect.pos = copy.copy(self.shape.pos)
-        stand_rect.pos.y -= (height - self.shape.h)
-        stand_rect.h = height
-        for collider in self.map.static_colliders:
-            if collider.shape.overlaps(stand_rect):
-                return False
-
-        return True
+        stand_rect = pygame.Rect(self.x, self.y - 24, self.w, self.h + 24)
+        return stand_rect.collidelist(self.map.static_colliders) == -1
 
     def calculate_distance(self, pos1, pos2):
         """Calculates the Euclidean distance between two points."""
@@ -776,7 +799,7 @@ class Player(Entity):
         if self.jump_action_distance is not None and self.jump_action_distance != 0:
             self.jump_timing = -self.jump_action_distance
         else:
-            late_jump_distance = None if self.ground_touch_pos is None else self.calculate_distance(self.pos, self.ground_touch_pos)
+            late_jump_distance = None if self.ground_touch_pos is None else self.calculate_distance(self, self.ground_touch_pos)
             if late_jump_distance is not None and late_jump_distance != 0:
                 self.jump_timing = late_jump_distance / scale
 
@@ -813,10 +836,10 @@ class Player(Entity):
             if self.game.settings.launch_on_ramp_jump:
                 self.launch_from_ramp(20 * scale, 0.45)
             else:
-                self.pos.y -= 400 * scale * (1 / (abs(self.vel.x) + 10)) * math.tan(self.last_ramp_radians) * self.direction
+                self.y -= 400 * scale * (1 / (abs(self.vel.x) + 10)) * math.tan(self.last_ramp_radians) * self.direction
             self.last_ramp_radians = 0
         elif self.last_ramp_radians < 0:
-            self.pos.y -= 3 * scale
+            self.y -= 3 * scale
             self.last_ramp_radians = 0
 
         self.vel.x += boost * scale * self.direction
@@ -875,7 +898,8 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
+            owner_object.anim.play('idle')
             return
 
         def update(self, owner_object):
@@ -892,6 +916,8 @@ class Player(Entity):
                 return Player.Walljump_State()
             elif event == 'plasma':
                 return Player.Plasma_State()
+            #elif event == 'crouch':
+            #    return Player.Crouch_State()
             elif event == 'ramp':
                 return Player.Move_State()
             elif event == 'dead':
@@ -899,11 +925,13 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
+
+            owner_object.anim.play('jump')
 
             owner_object.ground_collider = None
             owner_object.last_walljump = 0
-            owner_object.animation.begin_jump()
+            #owner_object.animation.begin_jump()
 
             if random.choice([True, False]):
                 sounds.jump1.play()
@@ -914,7 +942,7 @@ class Player(Entity):
             if owner_object.direction == -1:
                 dash = f'{dash}_left'
 
-            owner_object.game.map.decals.append(Decal(dash, 666, owner_object.pos.x, owner_object.pos.y + owner_object.shape.h, bottom=True, fade_out=True))
+            owner_object.game.map.decals.append(Decal(dash, 666, owner_object.x, owner_object.y + owner_object.h, bottom=True, fade_out=True))
             owner_object.add_jump_velocity()
 
         def update(self, owner_object):
@@ -933,7 +961,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
 
             if random.choice([True, False]):
                 sounds.walljump1.play()
@@ -941,7 +969,7 @@ class Player(Entity):
                 sounds.walljump2.play()
 
             owner_object.vel.y = config.WALLJUMP_VELOCITY * owner_object.game.settings.get_scale()
-            owner_object.animation.reset_anim()
+            #owner_object.animation.reset_anim()
 
     class Plasma_State(State):
         def on_event(self, event):
@@ -960,8 +988,9 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
-            owner_object.animation.reset_anim()
+            print(__class__, pygame.time.get_ticks())
+            #owner_object.animation.reset_anim()
+            pass
 
         def update(self, owner_object):
             if not owner_object.pressed_left and not owner_object.pressed_right and not owner_object.pressed_up and not owner_object.pressed_down:
@@ -976,8 +1005,8 @@ class Player(Entity):
                 return Player.Decel_State()
             elif event == 'move':
                 return Player.Move_State()
-            elif event == 'crouch':
-                return Player.Crouch_State()
+            #elif event == 'crouch':
+            #    return Player.Crouch_State()
             elif event == 'walljump':
                 return Player.Walljump_State()
             elif event == 'ramp':
@@ -989,7 +1018,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             owner_object.ground_collider = None
             pass
 
@@ -1022,7 +1051,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             owner_object.last_ramp_radians = 0
             self.launch_time = 0
 
@@ -1037,8 +1066,8 @@ class Player(Entity):
         def on_event(self, event):
             if event == 'decel':
                 return Player.Decel_State()
-            elif event == 'fall':
-                return Player.Fall_State()
+            #elif event == 'fall':
+            #    return Player.Fall_State()
             elif event == 'jump':
                 return Player.Jump_State()
             elif event == 'launch':
@@ -1054,7 +1083,8 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
+            owner_object.anim.play('run')
             return
 
         def update(self, owner_object):
@@ -1069,8 +1099,8 @@ class Player(Entity):
                 return Player.Idle_State()
             elif event == 'move':
                 return Player.Move_State()
-            elif event == 'fall':
-                return Player.Fall_State()
+            #elif event == 'fall':
+            #    return Player.Fall_State()
             elif event == 'launch':
                 return Player.Launch_State()
             elif event == 'jump':
@@ -1084,7 +1114,8 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
+            owner_object.anim.play('run')
             owner_object.acceleration = 0
 
         def update(self, owner_object):
@@ -1098,8 +1129,8 @@ class Player(Entity):
                 return Player.Jump_State()
             elif event == 'decel':
                 return Player.Decel_State()
-            elif event == 'fall':
-                return Player.Fall_State()
+            #elif event == 'fall':
+            #d    return Player.Fall_State()
             elif event == 'launch':
                 return Player.Launch_State()
             elif event == 'move':
@@ -1113,21 +1144,15 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
-            scale = owner_object.game.settings.get_scale()
-            owner_object.pos.y += (owner_object.HEIGHT * scale - owner_object.CROUCH_HEIGHT * scale)
-            owner_object.shape.h = owner_object.CROUCH_HEIGHT * scale
+            print(__class__, pygame.time.get_ticks())
+            owner_object.anim.play('crouch')
             owner_object.crouching = True
 
         def update(self, owner_object):
             owner_object.acceleration = 0
 
         def on_exit(self, owner_object):
-            scale = owner_object.game.settings.get_scale()
-            owner_object.pos.y -= (owner_object.HEIGHT * scale - owner_object.CROUCH_HEIGHT* scale)
-            owner_object.shape.h = owner_object.HEIGHT* scale
             owner_object.crouching = False
-
 
     class Dead_State(State):
         """State when player is dead"""
@@ -1138,7 +1163,7 @@ class Player(Entity):
             return self
 
         def on_enter(self, owner_object):
-            #print(__class__, pygame.time.get_ticks())
+            print(__class__, pygame.time.get_ticks())
             #owner_object.freeze_movement = True
             owner_object.freeze_input = True
             sounds.death.play()

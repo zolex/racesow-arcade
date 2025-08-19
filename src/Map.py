@@ -8,7 +8,6 @@ from src.StartLine import StartLine
 from src.Vector2 import Vector2
 from src.Triangle import Triangle
 from src.Rectangle import Rectangle
-from src.Collider import Collider
 from src.Item import Item
 from src.Projectile import Projectile
 from src.Texture import Texture
@@ -83,11 +82,11 @@ class Map:
 
         start_line = data.get('start_line', None)
         if start_line is not None:
-            self.start_line = StartLine(Vector2(start_line['x'] * SCALE, start_line['y'] * SCALE), scale=SCALE)
+            self.start_line = StartLine(start_line['x'] * SCALE, start_line['y'] * SCALE, scale=SCALE)
 
         finish_line = data.get('finish_line', None)
         if finish_line is not None:
-            self.finish_line = FinishLine(Vector2(finish_line['x'] * SCALE, finish_line['y'] * SCALE))
+            self.finish_line = FinishLine(finish_line['x'] * SCALE, finish_line['y'] * SCALE)
 
         min_x = float("inf")
         max_x = float("-inf")
@@ -101,16 +100,14 @@ class Map:
                 max_x = max(item['x'] * SCALE, max_x)
                 min_y = min(item['y'] * SCALE, min_y)
                 max_y = max(item['y'] * SCALE, max_y)
-                self.items.append(Item(item['type'], Vector2(item['x'] * SCALE, item['y'] * SCALE + 12 * SCALE), 16 * SCALE, 16 * SCALE, item['ammo'], item['stay']))
+                self.items.append(Item(item['type'], item['x'] * SCALE, item['y'] * SCALE + 12 * SCALE, 16 * SCALE, 16 * SCALE, item['ammo'], item['stay']))
 
         portals = data.get('portals', None)
         if portals is not None:
             for portal in portals:
-                min_x = min(portal['entry_x'] * SCALE, portal['exit_x'] * SCALE, min_x)
-                max_x = max(portal['entry_x'] * SCALE, portal['entry_x'] * SCALE, max_x)
-                min_y = min(portal['entry_y'] * SCALE, portal['entry_y'] * SCALE, min_y)
-                max_y = max(portal['entry_y'] * SCALE, portal['entry_y'] * SCALE, max_y)
-                self.portals.append(Portal(Vector2(portal['entry_x'] * SCALE, portal['entry_y'] * SCALE), portal['entry_flipped'], Vector2(portal['exit_x'] * SCALE, portal['exit_y'] * SCALE), portal['exit_flipped'], self.game.settings))
+                exit = Portal(portal['exit_x'] * SCALE, portal['exit_y'] * SCALE, portal['exit_flipped'], self.game.settings)
+                self.portals.append(Portal(portal['entry_x'] * SCALE, portal['entry_y'] * SCALE, portal['entry_flipped'], self.game.settings, exit))
+                self.portals.append(exit)
 
         jump_pads = data.get('jump_pads', None)
         if jump_pads is not None:
@@ -119,7 +116,7 @@ class Map:
                 max_x = max(jump_pad['x'] * SCALE, max_x)
                 min_y = min(jump_pad['y'] * SCALE, min_y)
                 max_y = max(jump_pad['y'] * SCALE, max_y)
-                self.jump_pads.append(JumpPad(Vector2(jump_pad['x'] * SCALE, jump_pad['y'] * SCALE), Vector2(jump_pad['vel_x'] * SCALE, jump_pad['vel_y'] * SCALE), SCALE))
+                self.jump_pads.append(JumpPad(jump_pad['x'] * SCALE, jump_pad['y'] * SCALE, Vector2(jump_pad['vel_x'] * SCALE, jump_pad['vel_y'] * SCALE), SCALE))
 
         rectangles = data.get('rectangles', None)
         if rectangles is not None:
@@ -134,7 +131,7 @@ class Map:
                 texture_path = rect.get('texture', None)
                 if texture_path is not None:
                     texture = Texture(os.path.join(self.map_folder, rect['texture']), rect.get('texture_scale', 1) * SCALE, rect.get('texture_offset_x', 0) * SCALE, rect.get('texture_offset_y', 0) * SCALE, rect.get('texture_rotation', 0))
-                collider = Collider(Rectangle(Vector2(rect['x'] * SCALE, rect['y'] * SCALE), int(rect['w'] * SCALE), int(rect['h'] * SCALE), texture), rect['wall_type'])
+                collider = Rectangle(rect['x'] * SCALE, rect['y'] * SCALE, int(rect['w'] * SCALE), int(rect['h'] * SCALE), texture, rect['wall_type'])
                 if rect['wall_type'] == 'static':
                     self.static_colliders.append(collider)
                 elif rect['wall_type'] == 'wall':
@@ -157,7 +154,7 @@ class Map:
                     max_x = max(p['x'] * SCALE, max_x)
                     min_y = min(p['y'] * SCALE, min_y)
                     max_y = max(p['y'] * SCALE, max_y)
-                collider = Collider(Triangle(Vector2(points[0]['x'] * SCALE, points[0]['y'] * SCALE), Vector2(points[1]['x'] * SCALE, points[1]['y'] * SCALE), Vector2(points[2]['x'] * SCALE, points[2]['y'] * SCALE), texture), 'ramp')
+                collider = Triangle(Vector2(points[0]['x'] * SCALE, points[0]['y'] * SCALE), Vector2(points[1]['x'] * SCALE, points[1]['y'] * SCALE), Vector2(points[2]['x'] * SCALE, points[2]['y'] * SCALE), texture)
                 if triangle['wall_type'] == 'ramp':
                     self.ramp_colliders.append(collider)
 
@@ -181,11 +178,11 @@ class Map:
         self.jump_pads = []
 
         for collider in self.static_colliders + self.wall_colliders + self.decoration + self.death_colliders:
-            self.tree.insert(collider, collider.shape.bbox)
+            self.tree.insert(collider, collider.bbox)
         self.static_colliders = self.wall_colliders = self.decoration = self.death_colliders = []
 
         for collider in self.ramp_colliders:
-            self.tree.insert(collider, collider.shape.bbox)
+            self.tree.insert(collider, collider.bbox)
         self.ramp_colliders = []
 
         #for item in data.get('player_items', []):
@@ -287,20 +284,21 @@ class Map:
         self.jump_pads = []
 
         # extend the boundary to the bottom extremely (42) so we can always find the distance to the collider below
-        boundary = (self.game.camera.pos.x, self.game.camera.pos.y, self.game.camera.pos.x + self.game.camera.w, self.game.camera.pos.y + self.game.camera.h * 42)
+        boundary = (self.game.camera.x, self.game.camera.y, self.game.camera.x + self.game.camera.w, self.game.camera.y + self.game.camera.h * 42)
         self.filtered_objects = self.tree.intersect(boundary)
         for object in self.filtered_objects:
-            if isinstance(object, Collider):
+            if isinstance(object, Rectangle):
                 if object.type == 'static':
                     self.static_colliders.append(object)
                 elif object.type == 'wall':
                     self.wall_colliders.append(object)
-                elif object.type == 'ramp':
-                    self.ramp_colliders.append(object)
                 elif object.type == 'death':
                     self.death_colliders.append(object)
                 elif object.type == 'deco':
                     self.decoration.append(object)
+            elif isinstance(object, Triangle):
+                if object.type == 'ramp':
+                    self.ramp_colliders.append(object)
             elif isinstance(object, Item):
                 self.items.append(object)
             elif isinstance(object, Portal):
@@ -327,7 +325,7 @@ class Map:
         self.draw_parallax_1()
 
         for collider in self.static_colliders + self.wall_colliders + self.ramp_colliders + self.death_colliders + self.decoration:
-            collider.shape.draw(self.game.surface, self.game.camera)
+            collider.draw(self.game.surface, self.game.camera)
 
         for item in self.items:
             item.draw(self.game.surface, self.game.camera)
@@ -362,10 +360,10 @@ class Map:
         if self.parallax_1 is not None:
             parallax_1_factor = 0.25  # smaller = further away
 
-            offset_x = -parallax_1_factor / self.parallax_1_width * self.game.camera.pos.x
+            offset_x = -parallax_1_factor / self.parallax_1_width * self.game.camera.x
             x = self.game.settings.resolution[0] + offset_x * self.parallax_1_width + self.parallax_1_offset
 
-            y = -parallax_1_factor * self.game.camera.pos.y
+            y = -parallax_1_factor * self.game.camera.y
 
             if x < -self.parallax_1_width:
                 self.parallax_1_offset += self.parallax_1_width * 2
@@ -377,8 +375,8 @@ class Map:
             parallax_2_factor = 0.125  # smaller = further away
 
             # Calculate offset based on camera position
-            offset_x = -parallax_2_factor * self.game.camera.pos.x
-            offset_y = -parallax_2_factor * self.game.camera.pos.y
+            offset_x = -parallax_2_factor * self.game.camera.x
+            offset_y = -parallax_2_factor * self.game.camera.y
 
             # Wrap offset so it always stays within the texture width
             x = (offset_x % self.parallax_2_width)

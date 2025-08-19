@@ -9,7 +9,7 @@ class CameraFixed(Camera):
 
     def update(self, player):
         if player.direction == 1:
-            self.pos.x = player.pos.x + player.shape.w - self.offset_x
+            self.x = player.x + player.w - self.offset_x
         else:
-            self.pos.x = player.pos.x - self.w + self.offset_x + player.shape.w
-        self.pos.y = player.pos.y + player.shape.h - self.offset_y
+            self.x = player.x - self.w + self.offset_x + player.w
+        self.y = player.y + player.h - self.offset_y

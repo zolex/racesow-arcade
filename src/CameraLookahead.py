@@ -50,7 +50,7 @@ class CameraLookahead(Camera):
         if player.direction == 1:  # Player is moving right
             target_lookahead_offset = -self.offset_x
         elif player.direction == -1:  # Player is moving left
-            target_lookahead_offset = self.offset_x + player.shape.w - self.w
+            target_lookahead_offset = self.offset_x + player.w - self.w
 
         # 2. If target changes, reset easing transition
         if target_lookahead_offset != self.transition_target:
@@ -76,10 +76,10 @@ class CameraLookahead(Camera):
         self.current_offset_x = ((self.transition_start + ( self.transition_target - self.transition_start) * eased_t) - self.velocity_offset)
 
         # Eased camera toward target_x
-        dx = player.pos.x + self.current_offset_x - self.pos.x
+        dx = player.x + self.current_offset_x - self.x
         alpha = 1.0 - math.exp(-self.lookahead_x * config.delta_time)  # exponential smoothing
         eased_alpha = ease_in_out_cubic(alpha) # cubic easing
-        self.pos.x += dx * eased_alpha
+        self.x += dx * eased_alpha
 
 
     def update_y(self, player):
@@ -96,32 +96,32 @@ class CameraLookahead(Camera):
         if fall_lookahead_px < 0:
             self.is_looking_ahead_y = True
 
-        player_rel_y = player.pos.y - self.pos.y
+        player_rel_y = player.y - self.y
         bottom_threshold = self.bottom_threshold_base + fall_lookahead_px
         if player_rel_y < self.top_threshold and fall_lookahead_px == 0:
             self.settling = False
             # move up so the player reaches the top threshold
-            target_y = player.pos.y - self.top_threshold
+            target_y = player.y - self.top_threshold
             alpha_y = 1.0 - math.exp(-self.smooth_speed_y_top * config.delta_time)
-            self.pos.y += (target_y - self.pos.y) * alpha_y
+            self.y += (target_y - self.y) * alpha_y
         elif player_rel_y > bottom_threshold and not self.settling:
             # move down so the player reaches the bottom threshold
-            target_y = player.pos.y - bottom_threshold
+            target_y = player.y - bottom_threshold
             alpha_y = 1.0 - math.exp(-self.smooth_speed_y * config.delta_time)
             eased_alpha_y = alpha_y * alpha_y
-            self.pos.y += (target_y - self.pos.y) * eased_alpha_y
+            self.y += (target_y - self.y) * eased_alpha_y
         elif self.is_looking_ahead_y:
-            desired_target_y = player.pos.y - bottom_threshold + player.shape.h
+            desired_target_y = player.y - bottom_threshold + player.h
             if not self.settling and player.vel.y == 0:
                 self.settling = True
                 self.settling_elapsed = 0.0
-                self.settling_start_y = self.pos.y
+                self.settling_start_y = self.y
                 self.settling_target_y = desired_target_y
             if self.settling and self.settling_target_y is not None and self.settling_elapsed is not None and self.settling_start_y is not None:
                 self.settling_elapsed += config.delta_time
                 t = min(self.settling_elapsed / self.settling_time, 1.0)
                 ease_t = 1 - (1 - t) ** 3  # cubic out
-                self.pos.y = round((1 - ease_t) * self.settling_start_y + ease_t * self.settling_target_y, 2)
+                self.y = round((1 - ease_t) * self.settling_start_y + ease_t * self.settling_target_y, 2)
                 if ease_t >= 1.0:
                     self.stop_settling(player)
 

@@ -31,7 +31,7 @@ class CameraAI(Camera):
 
     def update(self, player):
         if self.max_lookahead is None:
-            self.max_lookahead = self.h * 0.4 - player.shape.h
+            self.max_lookahead = self.h * 0.4 - player.h
 
         current_time = pygame.time.get_ticks()  # ms timestamp
 
@@ -70,9 +70,9 @@ class CameraAI(Camera):
                 self.switch_time = None
 
         if player.direction == 1:  # facing right
-            target_x = player.pos.x + player.shape.w - self.offset_x
+            target_x = player.x + player.w - self.offset_x
         else:  # facing left
-            target_x = player.pos.x - self.w + self.offset_x + player.shape.w
+            target_x = player.x - self.w + self.offset_x + player.w
 
         if allow_switch:
             # --- Adaptive smoothing based on velocity ---
@@ -80,17 +80,17 @@ class CameraAI(Camera):
             adaptive_speed_x = self.base_speed_x + (self.max_speed_x - self.base_speed_x) * vel_factor
             eased_speed_x = self.ease_in_out(adaptive_speed_x)
 
-            self.pos.x = self.lerp(self.pos.x, target_x, eased_speed_x)
+            self.x = self.lerp(self.x, target_x, eased_speed_x)
 
         self.last_direction = player.direction
 
         # --- Vertical follow with lookahead (linear) ---
-        top_bound = self.pos.y + self.h * 0.25
-        bottom_bound = self.pos.y + self.h * 0.75
+        top_bound = self.y + self.h * 0.25
+        bottom_bound = self.y + self.h * 0.75
 
-        target_y = self.pos.y
-        player_bottom = player.pos.y + player.shape.h
-        player_top = player.pos.y
+        target_y = self.y
+        player_bottom = player.y + player.h
+        player_top = player.y
 
         if player_top < top_bound:
             target_y = player_top - self.h * 0.25
@@ -99,7 +99,7 @@ class CameraAI(Camera):
 
         target_y += self.lookahead_offset
 
-        self.pos.y = self.lerp(self.pos.y, target_y, self.smooth_speed_y)
+        self.y = self.lerp(self.y, target_y, self.smooth_speed_y)
 
     def stop_settling(self, player):
         # allow instant camera switch when teleporting

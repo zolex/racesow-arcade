@@ -143,9 +143,9 @@ class Settings:
         if isinstance(music_enabled, bool):
             self.music_enabled = music_enabled
 
-        window = Window.from_display_module()
-        position = data.get('window', {}).get('position', {'x': 0, 'y': 0})
-        window.position = (position.get('x', 0), position.get('y', 0))
+        #window = Window.from_display_module()
+        #position = data.get('window', {}).get('position', {'x': 0, 'y': 0})
+        #window.position = (position.get('x', 0), position.get('y', 0))
 
         pygame.mixer.music.set_volume(self.music_volume / (self.max_volume / self.volume))
 

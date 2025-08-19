@@ -8,9 +8,10 @@ class StateMachine:
         """Updates current state and runs on_exit and on_enter"""
         new_state = self.state.on_event(event)
         if new_state is not self.state:
-            self.state.on_exit(self.owner_object)
-            self.state = new_state
-            self.state.on_enter(self.owner_object)
+            if self.state.can_exit(self.owner_object):
+                self.state.on_exit(self.owner_object)
+                self.state = new_state
+                self.state.on_enter(self.owner_object)
 
     def update(self):
         self.state.update(self.owner_object)
