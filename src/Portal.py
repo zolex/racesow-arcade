@@ -2,78 +2,39 @@ import os, pygame
 
 from src import config
 from src.Settings import Settings
+from src.SpriteAnim import SpriteAnim
+from src.SpriteSheet import SpriteSheet
+
 
 class Portal(pygame.Rect):
 
     def __init__(self, x, y, flipped: bool, settings: Settings, exit = None):
-
         self.exit = exit
         self.settings = settings
-
-        SCALE = settings.get_scale()
-        self.WIDTH = 64 * SCALE
-        self.HEIGHT = 64 * SCALE
-
-        super().__init__(x + self.WIDTH - 16 * SCALE, y + self.HEIGHT, self.WIDTH, self.HEIGHT)
-
-        self.FRAME_TIME = 25
-        self.FRAMES_ENTRY = [
-            (0 * self.WIDTH, 2 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (3 * self.WIDTH, 1 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (2 * self.WIDTH, 1 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (1 * self.WIDTH, 1 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (0 * self.WIDTH, 1 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (3 * self.WIDTH, 0 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (2 * self.WIDTH, 0 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (1 * self.WIDTH, 0 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (0 * self.WIDTH, 0 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-        ]
-
-        self.FRAMES_EXIT = [
-            (0 * self.WIDTH, 5 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (3 * self.WIDTH, 4 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (2 * self.WIDTH, 4 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (1 * self.WIDTH, 4 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (0 * self.WIDTH, 4 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (3 * self.WIDTH, 3 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (2 * self.WIDTH, 3 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (1 * self.WIDTH, 3 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-            (0 * self.WIDTH, 3 * self.HEIGHT, self.WIDTH, self.HEIGHT),
-        ]
-
-
         self.flipped = flipped
-        self.current_frame = 0
-        self.anim_timer = 0
-        sprite = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'portal.png')).convert_alpha()
-        new_size = (sprite.get_width() / 2 * SCALE, sprite.get_height() / 2  * SCALE)
-        self.sprite = pygame.transform.smoothscale(sprite, new_size)
+        scale = settings.get_scale()/2
+        padding = (0, 32, 0, 30)
+        type = 'entry' if self.exit is not None else 'exit'
+        sprite_sheet = SpriteSheet(os.path.join(config.assets_folder, 'graphics', 'portals.png'), 128, 128, padding=padding, add_flipped=True, scale=scale)
+        self.anim = SpriteAnim(sprite_sheet)
+        if type == 'entry':
+            self.anim.add('loop',[(0, 0), (0, 1), (0, 2), (0, 3), (1, 0), (1, 1), (1, 2), (1, 3), (2, 0)], fps=16)
+        else:
+            self.anim.add('loop', [(3, 0), (3, 1), (3, 2), (3, 3), (4, 0), (4, 1), (4, 2), (4, 3), (5, 0)], fps=16)
+
+        self.anim.play('loop')
+        frame, w, h = self.anim.get_frame()
+        super().__init__(x + w + (padding[1] + padding[3]) * scale, y + h, w, h)
+
         self.sound = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'teleport.mp3'))
         self.sound.set_volume(1)
 
-        self.bbox = (self.x, self.y, self.w, self.h)
-
-    def animate(self):
-        self.anim_timer += config.delta_time
-        if self.anim_timer > self.FRAME_TIME:
-            self.anim_timer = 0
-            self.current_frame += 1
-            if self.current_frame == len(self.FRAMES_ENTRY) - 1:
-                self.current_frame = 0
-
     def draw(self, surface: pygame.Surface, camera):
-        self.animate()
-
-        if self.exit is not None:
-            sprite = self.sprite.subsurface(self.FRAMES_ENTRY[self.current_frame]).copy()
-        else:
-            sprite = self.sprite.subsurface(self.FRAMES_EXIT[self.current_frame]).copy()
+        self.anim.update(config.delta_time, 1, -1)
         entry_view_pos = camera.to_view_space(self)
-
-        if self.flipped:
-            sprite = pygame.transform.flip(sprite, True, False)
-
-        surface.blit(sprite, (entry_view_pos.x, entry_view_pos.y, self.w, self.h))
+        frame, self.w, self.h = self.anim.get_frame(1 if self.flipped == False else -1)
+        surface.blit(frame, (entry_view_pos.x, entry_view_pos.y, self.w, self.h))
+        #pygame.draw.rect(surface, (0, 0, 0), (entry_view_pos.x, entry_view_pos.y, self.w, self.h), 1)
 
     def teleport(self, player):
 

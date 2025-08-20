@@ -162,40 +162,27 @@ class Map:
         ### store everything in quadtree ###
         ####################################
 
-        #print("min_x:", min_x, "max_x:", max_x, "min_y:", min_y, "max_y:", max_y)
         self.tree = QuadTree(bbox=(min_x, min_y, max_x, max_y))
 
         for item in self.items:
-            self.tree.insert(item, item.bbox)
+            self.tree.insert(item, (item.x, item.y, item.x + item.w, item.y + item.h))
         self.items = []
 
         for portal in self.portals:
-            self.tree.insert(portal,portal.bbox)
+            self.tree.insert(portal, (portal.x, portal.y, portal.x + portal.w, portal.y + portal.h))
         self.portals = []
 
         for jump_pad in self.jump_pads:
-            self.tree.insert(jump_pad, jump_pad.bbox)
+            self.tree.insert(jump_pad, (jump_pad.x, jump_pad.y, jump_pad.x + jump_pad.w, jump_pad.y + jump_pad.h))
         self.jump_pads = []
 
-        for collider in self.static_colliders + self.wall_colliders + self.decoration + self.death_colliders:
-            self.tree.insert(collider, collider.bbox)
+        for rect in self.static_colliders + self.wall_colliders + self.decoration + self.death_colliders:
+            self.tree.insert(rect, (rect.x, rect.y, rect.x + rect.w, rect.y + rect.h))
         self.static_colliders = self.wall_colliders = self.decoration = self.death_colliders = []
 
-        for collider in self.ramp_colliders:
-            self.tree.insert(collider, collider.bbox)
+        for triangle in self.ramp_colliders:
+            self.tree.insert(triangle, triangle.bbox)
         self.ramp_colliders = []
-
-        #for item in data.get('player_items', []):
-        #    if item['type'] == 'plasma':
-        #        player.has_plasma = True
-        #        player.plasma_ammo = item['ammo']
-        #        player.animation.select_plasma()
-        #        player.active_weapon = 'plasma'
-        #    if item['type'] == 'rocket':
-        #        player.has_rocket = True
-        #        player.rocket_ammo = item['ammo']
-        #        player.animation.select_rocket()
-        #        player.active_weapon = 'rocket'
 
         sky = data.get('sky', None)
         if sky is not None:

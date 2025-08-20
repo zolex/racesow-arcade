@@ -26,8 +26,6 @@ class Item(pygame.Rect):
 
         self.sprite = Item.types[type]
 
-        self.bbox = (self.x, self.y, self.x + self.w, self.y + self.h)
-
     def draw(self, surface, camera):
         if self.picked_up:
             return

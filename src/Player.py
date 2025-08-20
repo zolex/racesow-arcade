@@ -71,38 +71,39 @@ class Player(Rectangle):
         player_scale = scale/2
         crouch=(25 * player_scale, 0, 0, 0)
 
-        sheet = SpriteSheet(os.path.join(config.assets_folder, 'graphics', 'player.png'), 128, 128, padding=(39, 2, 0, 10), scale=player_scale)
+        sheet = SpriteSheet(os.path.join(config.assets_folder, 'graphics', 'player.png'), 128, 128, padding=(39, 2, 0, 10), scale=player_scale, add_flipped=True)
         self.anim = SpriteAnim(sheet)
 
         run_no_weapon = {'left': [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)], 'right': [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5)]}
-        self.anim.add('idle', 'no_weapon', [(2, 1)], loop=False)
-        self.anim.add('dead', 'no_weapon', [(10, 5)], loop=False)
-        self.anim.add('run', 'no_weapon', run_no_weapon, loop=True)
-        self.anim.add('jump', 'no_weapon', run_no_weapon, loop=False)
-        self.anim.add('wall_jump', 'no_weapon', [(2, 1), (2, 2), (2, 3), (2, 4)], loop=False, fps=12)
-        self.anim.add('crouch', 'no_weapon', [(2, 0)], loop=False, padding=crouch)
-        self.anim.add('slide', 'no_weapon', [(10, 0)], loop=False, padding=crouch)
+        self.anim.add('idle', [(2, 1)], 'no_weapon', loop=False)
+        self.anim.add('dead', [(10, 5)], 'no_weapon', loop=False)
+        self.anim.add('run', run_no_weapon, 'no_weapon', loop=True)
+        self.anim.add('jump', run_no_weapon, 'no_weapon', loop=False)
+        self.anim.add('wall_jump', [(2, 1), (2, 2), (2, 3), (2, 4)], 'no_weapon', loop=False, fps=12)
+        self.anim.add('crouch', [(2, 0)], 'no_weapon', loop=False, padding=crouch)
+        self.anim.add('slide', [(10, 0)], 'no_weapon', loop=False, padding=crouch)
 
         run_plasma = {'left': [(3, 0), (3, 1), (3, 2), (3, 3), (3, 4), (3, 5)], 'right': [(4, 0), (4, 1), (4, 2), (4, 3), (4, 4), (4, 5)]}
-        self.anim.add('idle', 'plasma', [(5, 1)], loop=False)
-        self.anim.add('dead', 'plasma', [(10, 5)], loop=False)
-        self.anim.add('run', 'plasma', run_plasma, loop=True)
-        self.anim.add('jump', 'plasma', run_plasma, loop=False)
-        self.anim.add('wall_jump', 'plasma', [(5, 2), (5, 3), (5, 4)], loop=False)
-        self.anim.add('crouch', 'plasma', [(5, 0)], loop=False, padding=crouch)
-        self.anim.add('slide', 'plasma', [(10, 2)], loop=False, padding=crouch)
-        self.anim.add('plasma', 'plasma', [(5, 5)], loop=False, padding=crouch)
+        self.anim.add('idle', [(5, 1)], 'plasma', loop=False)
+        self.anim.add('dead', [(10, 5)], 'plasma', loop=False)
+        self.anim.add('run', run_plasma, 'plasma', loop=True)
+        self.anim.add('jump', run_plasma, 'plasma', loop=False)
+        self.anim.add('wall_jump', [(5, 2), (5, 3), (5, 4)], 'plasma', loop=False)
+        self.anim.add('crouch', [(5, 0)], 'plasma', loop=False, padding=crouch)
+        self.anim.add('slide', [(10, 2)], 'plasma', loop=False, padding=crouch)
+        self.anim.add('plasma', [(5, 5)], 'plasma', loop=False, padding=crouch)
 
         run_rocket = {'left': [(6, 0), (6, 1), (6, 2), (6, 3), (6, 4), (6, 5)], 'right': [(7, 0), (7, 1), (7, 2), (7, 3), (7, 4), (7, 5)]}
-        self.anim.add('idle', 'rocket', [(8, 1)], loop=False)
-        self.anim.add('dead', 'rocket', [(10, 5)], loop=False)
-        self.anim.add('run', 'rocket', run_rocket, loop=True)
-        self.anim.add('jump', 'rocket', run_rocket, loop=False)
-        self.anim.add('wall_jump', 'rocket', [(8, 2), (8, 3), (8, 4)], loop=False)
-        self.anim.add('crouch', 'rocket', [(8, 0)], loop=False, padding=crouch)
-        self.anim.add('slide', 'rocket', [(10, 1)], loop=False, padding=crouch)
-        self.anim.add('aim_down', 'rocket', [(9, 2)], loop=False)
+        self.anim.add('idle', [(8, 1)], 'rocket', loop=False)
+        self.anim.add('dead', [(10, 5)], 'rocket', loop=False)
+        self.anim.add('run', run_rocket, 'rocket', loop=True)
+        self.anim.add('jump', run_rocket, 'rocket', loop=False)
+        self.anim.add('wall_jump', [(8, 2), (8, 3), (8, 4)], 'rocket', loop=False)
+        self.anim.add('crouch', [(8, 0)], 'rocket', loop=False, padding=crouch)
+        self.anim.add('slide', [(10, 1)], 'rocket', loop=False, padding=crouch)
+        self.anim.add('aim_down', [(9, 2)], 'rocket', loop=False)
 
+        self.anim.group = 'no_weapon'
         self.anim.play('idle', self.visible_direction)
 
     def reset(self):
@@ -778,10 +779,8 @@ class Player(Rectangle):
 
     def functional_collisions(self):
 
-        scale = self.game.settings.get_scale()
-
         for portal in self.map.portals:
-            if portal.collidepoint(self.midbottom[0], self.midbottom[1]):
+            if portal.collidepoint(self.center[0], self.center[1]):
                 portal.teleport(self)
                 return
 

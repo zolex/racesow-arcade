@@ -4,7 +4,7 @@ class SpriteAnim:
     def __init__(self, sprite_sheet):
         self.sheet = sprite_sheet
         self.animations = {}  # {group: {direction: {name: {sequences, fps, loop, callback}}}}
-        self.group = 'no_weapon'  # logical state of the character
+        self.group = 'default'  # logical state of the animation
         self.current_animation = None
         self.current_sequence = None
         self.frame_index = 0
@@ -13,7 +13,7 @@ class SpriteAnim:
         self.previous_anim = None
         self.previous_frame = None
 
-    def add(self, name, group, frames, fps=None, loop=True, callback=None, padding=None):
+    def add(self, name, frames, group='default', fps=None, loop=True, callback=None, padding=None):
         """
         name: animation name
         frames: either list of (row, col) tuples or dict of sequences {sequence_name: list of (row, col)}
@@ -57,7 +57,7 @@ class SpriteAnim:
             self.previous_anim = None
             self.previous_frame = None
 
-    def play(self, name, direction, callback=None, reset=True, start_frame=0):
+    def play(self, name, direction=1, callback=None, reset=True, start_frame=0):
         """play a specific animation by name."""
         #print("play anim", name, direction)
         self.previous_anim = self.current_animation
@@ -105,7 +105,7 @@ class SpriteAnim:
             self.frame_index = 0
             self.timer = 0
 
-    def update(self, dt, direction, visual_direction, fps):
+    def update(self, dt, direction=1, visual_direction=1, fps=None):
         if self.current_animation is None:
             return
 
@@ -113,7 +113,7 @@ class SpriteAnim:
         frames = anim["sequences"][self.current_sequence]
 
         self.timer += dt
-        frame_duration = 1000 / (anim["fps"] or fps)
+        frame_duration = 1000 / (fps or anim["fps"])
 
         while self.timer >= frame_duration:
             # loops: based on playback direction

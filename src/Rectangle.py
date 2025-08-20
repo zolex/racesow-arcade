@@ -8,7 +8,6 @@ class Rectangle(pygame.Rect):
         super().__init__(x, y, w, h)
         self.surface = None
         self.type = wall_type
-        self.bbox = (self.x, self.y, self.x + self.w, self.y + self.h)
 
         # pre-render surface if there is a texture
         if texture is not None:

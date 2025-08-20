@@ -19,8 +19,6 @@ class JumpPad(pygame.Rect):
         self.sprite = pygame.transform.smoothscale(sprite, new_size)
         self.sound = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'jumppad.mp3'))
 
-        self.bbox = (self.x, self.y, self.x + self.w, self.y + self.w)
-
     def draw(self, surface: pygame.Surface, camera):
 
         view_pos = camera.to_view_space(self)

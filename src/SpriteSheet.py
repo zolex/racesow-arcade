@@ -2,7 +2,7 @@ import pygame
 
 
 class SpriteSheet:
-    def __init__(self, sheet_path, sprite_width, sprite_height, margin=0, spacing=0, padding=(0, 0, 0, 0), add_flipped=True, scale=1):
+    def __init__(self, sheet_path, sprite_width, sprite_height, margin=0, spacing=0, padding=(0, 0, 0, 0), add_flipped=False, scale=1):
         """
         sheet_path: path to sprite sheet image
         sprite_width, sprite_height: size of each sprite in the sheet

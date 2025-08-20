@@ -11,8 +11,6 @@ class StartLine(pygame.Rect):
             self.sprite = pygame.transform.scale(self.sprite, (self.sprite.get_width() * scale, self.sprite.get_height() * scale))
         super().__init__(x, y, self.sprite.get_width(), self.sprite.get_height())
 
-        self.bbox = (self.x, self.y, self.x + self.w, self.y + self.w)
-
     def draw_back(self, surface: pygame.Surface, camera):
         view_pos = camera.to_view_space(self)
         back = self.sprite.subsurface((0, 0, 10 * self.scale, 128 * self.scale)).copy()
