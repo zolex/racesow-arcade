@@ -9,18 +9,18 @@ from src.SpriteSheet import SpriteSheet
 class Portal(pygame.Rect):
 
     def __init__(self, x, y, flipped: bool, settings: Settings, exit = None):
+        self.is_entry = exit is not None
         self.exit = exit
         self.settings = settings
         self.flipped = flipped
         scale = settings.get_scale()/2
         padding = (0, 32, 0, 30)
-        type = 'entry' if self.exit is not None else 'exit'
         sprite_sheet = SpriteSheet(os.path.join(config.assets_folder, 'graphics', 'portals.png'), 128, 128, padding=padding, add_flipped=True, scale=scale)
         self.anim = SpriteAnim(sprite_sheet)
-        if type == 'entry':
-            self.anim.add('loop',[(0, 0), (0, 1), (0, 2), (0, 3), (1, 0), (1, 1), (1, 2), (1, 3), (2, 0)], fps=16)
+        if self.is_entry:
+            self.anim.add('loop',[(0, 0), (0, 1), (0, 2), (0, 3), (1, 0), (1, 1), (1, 2), (1, 3), (2, 0)], fps=24)
         else:
-            self.anim.add('loop', [(3, 0), (3, 1), (3, 2), (3, 3), (4, 0), (4, 1), (4, 2), (4, 3), (5, 0)], fps=16)
+            self.anim.add('loop', [(3, 0), (3, 1), (3, 2), (3, 3), (4, 0), (4, 1), (4, 2), (4, 3), (5, 0)], fps=24)
 
         self.anim.play('loop')
         frame, w, h = self.anim.get_frame()
@@ -38,7 +38,7 @@ class Portal(pygame.Rect):
 
     def teleport(self, player):
 
-        if self.exit is None:
+        if not self.exit:
             return
 
         self.sound.play()
@@ -49,10 +49,12 @@ class Portal(pygame.Rect):
 
         if self.exit.flipped and player.direction == 1:
             player.direction = -1
+            player.visible_direction = -1
             player.vel.x *= -1
             player.was_flipped = True
         elif not self.exit.flipped and player.direction == -1:
             player.direction = 1
+            player.visible_direction = 1
             player.vel.x *= -1
             player.was_flipped = True
 

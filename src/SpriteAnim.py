@@ -9,7 +9,7 @@ class SpriteAnim:
         self.current_sequence = None
         self.frame_index = 0
         self.timer = 0
-
+        self.callback = None
         self.previous_anim = None
         self.previous_frame = None
 
@@ -62,11 +62,14 @@ class SpriteAnim:
         #print("play anim", name, direction)
         self.previous_anim = self.current_animation
         self.previous_frame = self.frame_index
-        anim_new = self.animations[self.group][direction][name]  # any direction for keys
+        try:
+            anim_new = self.animations[self.group][direction][name]
+        except KeyError:
+            return
+
         sequence_names_new = list(anim_new["sequences"].keys())
         if callback is not None:
-            anim_new["callback"] = callback
-            anim_new["callback_called"] = False
+            self.callback = callback
 
         # switching to a new animation
         if self.current_animation != name:
@@ -89,6 +92,11 @@ class SpriteAnim:
             else:
                 self.current_sequence = sequence_names_new[0]
                 if reset:
+                    if start_frame == -1:
+                        anim = self.animations[self.group][direction][name]
+                        frames = anim["sequences"][self.current_sequence]
+                        start_frame = len(frames) - 1
+
                     self.frame_index = start_frame
                     self.timer = 0
 
@@ -113,7 +121,7 @@ class SpriteAnim:
         frames = anim["sequences"][self.current_sequence]
 
         self.timer += dt
-        frame_duration = 1000 / (fps or anim["fps"])
+        frame_duration = 1000 / (anim["fps"] or fps) # used fixed fps given in add() over update-fps
 
         while self.timer >= frame_duration:
             # loops: based on playback direction
@@ -140,15 +148,18 @@ class SpriteAnim:
                 # one-shot: freeze at last valid frame
                 else:
                     self.frame_index = len(frames) - 1
-                    if anim["callback"] and not anim.get("callback_called", False):
-                        anim["callback"]()
-                        anim["callback_called"] = True
-                    return
+                    if self.callback is not None:
+                        self.callback()
+                        self.callback = None
 
     def get_frame(self, direction=1):
         if self.current_animation is None:
             return None, 0, 0
-        anim = self.animations[self.group][direction][self.current_animation]
+        try:
+            anim = self.animations[self.group][direction][self.current_animation]
+        except KeyError:
+            anim = next(iter(self.animations[self.group][direction].values()))
+
         frames = anim["sequences"][self.current_sequence]
         try:
             return frames[self.frame_index], anim["width"], anim["height"]

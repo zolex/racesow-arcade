@@ -94,7 +94,7 @@ class Game(GameScene):
             Input.DOWN: lambda v, e: self.player.input_down(v),
             Input.JUMP: lambda v, e: self.player.input_jump(v),
             Input.WALL_JUMP: lambda v, e: self.player.input_wall_jump(v),
-            Input.SHOOT: lambda v, e: setattr(self.player, "pressed_shoot", v),
+            Input.SHOOT: lambda v, e: self.player.input_shoot(v),
             Input.SWITCH_WEAPON: lambda v, e: self.player.input_switch_weapon(v),
             Input.BACK: lambda v, e: self.set_quit(v),
             Input.MENU: lambda v, e: self.show_settings(v),

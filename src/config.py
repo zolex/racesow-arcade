@@ -50,7 +50,7 @@ ROCKET_DOWN_OFFSET_Y = 10
 #Velocities for different events
 BOUNCE_VEL = 0
 JUMP_VELOCITY = -0.325
-WALLJUMP_VELOCITY = -0.22
+WALLJUMP_VELOCITY = 0.22
 DEATH_VEL_Y = -0.35
 
 #Sets timer value so animations start instantly instead of counting up first
