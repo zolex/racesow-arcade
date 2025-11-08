@@ -30,12 +30,7 @@ class Rectangle(pygame.Rect):
             # We need to account for the scale factor in determining tile coverage
             tiles_x = int(self.w / (scaled_width * 0.9)) + 2  # Add extra tiles to ensure coverage
             tiles_y = int(self.h / (scaled_height * 0.9)) + 2
-            
-            # Apply offset directly from the top-left corner
-            # NO IDEA WHY, BUT WE NEED TO MULTIPLY WITH 2 TO GET THE SAME RESULTS AS IN MAPDESIGNER
-            effective_offset_x = texture.offset_x * 2
-            effective_offset_y = texture.offset_y * 2
-            
+
             # For each tile position in our grid
             for i in range(-1, tiles_x):
                 for j in range(-1, tiles_y):
@@ -44,21 +39,19 @@ class Rectangle(pygame.Rect):
                     base_y = j * scaled_height
                     
                     # Apply the offset from the top-left corner
-                    final_x = base_x + effective_offset_x
-                    final_y = base_y + effective_offset_y
+                    final_x = base_x + texture.offset_x
+                    final_y = base_y + texture.offset_y
                     
                     # If rotation is needed, we need to handle it differently
-                    if texture.rotation != 0:
-                        # For rotated textures, we need to adjust the position
-                        # to account for the size difference due to rotation
-                        final_x -= texture.width_diff / 2
-                        final_y -= texture.height_diff / 2
+                    #if texture.rotation != 0:
+                    #    # For rotated textures, we need to adjust the position
+                    #    # to account for the size difference due to rotation
+                    #    final_x -= texture.width_diff / 2
+                    #    final_y -= texture.height_diff / 2
                     
                     # Only blit if this tile would be visible in the rectangle
                     # Use the rotated dimensions for visibility check
-                    if (final_x < self.w and final_x + texture.rotated_width > 0 and 
-                        final_y < self.h and final_y + texture.rotated_height > 0):
-                        self.surface.blit(texture.surface, (final_x, final_y))
+                    self.surface.blit(texture.surface, (final_x, final_y))
 
     def draw(self, target_surface: pygame.Surface, camera, outline=None):
         view_pos = camera.to_view_space(self)

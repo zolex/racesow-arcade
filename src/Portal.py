@@ -1,19 +1,19 @@
 import os, pygame
 
 from src import config
-from src.Settings import Settings
 from src.SpriteAnim import SpriteAnim
 from src.SpriteSheet import SpriteSheet
 
 
 class Portal(pygame.Rect):
 
-    def __init__(self, x, y, flipped: bool, settings: Settings, exit = None):
+    def __init__(self, x, y, flipped: bool, exit = None, screen_width=0, scale=1, volume=1):
         self.is_entry = exit is not None
+        self.scale = scale
+        self.screen_width = screen_width
         self.exit = exit
-        self.settings = settings
         self.flipped = flipped
-        scale = settings.get_scale()/2
+        scale = scale/2
         padding = (0, 32, 0, 30)
         sprite_sheet = SpriteSheet(os.path.join(config.assets_folder, 'graphics', 'portals.png'), 128, 128, padding=padding, add_flipped=True, scale=scale)
         self.anim = SpriteAnim(sprite_sheet)
@@ -27,7 +27,7 @@ class Portal(pygame.Rect):
         super().__init__(x + w + (padding[1] + padding[3]) * scale, y + h, w, h)
 
         self.sound = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'teleport.mp3'))
-        self.sound.set_volume(1)
+        self.sound.set_volume(volume)
 
     def draw(self, surface: pygame.Surface, camera):
         self.anim.update(config.delta_time, 1, -1)
@@ -45,7 +45,6 @@ class Portal(pygame.Rect):
         player.x = self.exit.x + 10
         player.y = self.exit.y - 5
         player.vel.y = -0.0001  # not 0 because it would cause the camera settling for the portal exit!
-        scale = self.settings.get_scale()
 
         if self.exit.flipped and player.direction == 1:
             player.direction = -1
@@ -58,9 +57,9 @@ class Portal(pygame.Rect):
             player.vel.x *= -1
             player.was_flipped = True
 
-        if abs(player.vel.x) < 0.3 * scale:
-            player.vel.x = 0.3 * scale * player.direction
+        if abs(player.vel.x) < 0.3 * self.scale:
+            player.vel.x = 0.3 * self.scale * player.direction
 
         player.game.camera.stop_settling(player)
-        player.game.camera.x = self.exit.x - 15 * scale * player.direction
-        player.game.camera.y = self.exit.y - self.settings.resolution[1] // 2
+        player.game.camera.x = self.exit.x - 15 * self.scale * player.direction
+        player.game.camera.y = self.exit.y - self.screen_width // 2

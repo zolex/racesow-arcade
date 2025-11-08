@@ -8,7 +8,7 @@ class JumpPad(pygame.Rect):
     WIDTH = 64
     HEIGHT = 21
 
-    def __init__(self, x, y, vel: Vector2 = Vector2(0, -0.7), scale: float = 1.0):
+    def __init__(self, x, y, vel: Vector2 = Vector2(0, -0.7), scale: float = 1.0, volume=1):
         super().__init__(x, y, self.WIDTH * scale, self.HEIGHT * scale)
         self.jumped_at = float("-inf")
         self.vel = vel
@@ -18,6 +18,7 @@ class JumpPad(pygame.Rect):
         new_size = (sprite.get_width() / 2 * scale, sprite.get_height() / 2 * scale)
         self.sprite = pygame.transform.smoothscale(sprite, new_size)
         self.sound = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'jumppad.mp3'))
+        self.sound.set_volume(volume)
 
     def draw(self, surface: pygame.Surface, camera):
 

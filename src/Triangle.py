@@ -57,20 +57,15 @@ class Triangle():
             # 3. Translate back
             # 4. Apply offset (divided by scale)
             # 5. Apply scale
-            
-            # Calculate the center of the triangle for rotation reference
-            # Use the average of the three points as in MapDesigner
-            tri_center_x = (shifted_points[0][0] + shifted_points[1][0] + shifted_points[2][0]) / 3
-            tri_center_y = (shifted_points[0][1] + shifted_points[1][1] + shifted_points[2][1]) / 3
-            
+
             # Get the dimensions of the texture at different stages
             scaled_width = texture.scaled_width
             scaled_height = texture.scaled_height
             
             # Calculate how many tiles we need in each direction
             # We need to account for the scale factor in determining tile coverage
-            tiles_x = int(b_rect.width / (scaled_width * 0.9)) + 2  # Add extra tiles to ensure coverage
-            tiles_y = int(b_rect.height / (scaled_height * 0.9)) + 2
+            tiles_x = math.ceil(b_rect.width / scaled_width )
+            tiles_y = math.ceil(b_rect.height / scaled_height)
             
             # Calculate the effective offset
             # NO IDEA WHY, BUT HERE WE DON'T NEED TO MULTIPLY WITH 2 (AS FOR RECTANGLE) TO GET THE SAME RESULTS AS IN MAPDESIGNER
@@ -85,32 +80,10 @@ class Triangle():
                     base_y = j * scaled_height
                     
                     # Apply the offset
-                    pos_x = base_x + effective_offset_x
-                    pos_y = base_y + effective_offset_y
-                    
-                    # First adjust for the width/height difference due to rotation
-                    # This ensures tiles are properly spaced when rotated
-                    adjusted_x = pos_x - texture.width_diff / 2
-                    adjusted_y = pos_y - texture.height_diff / 2
-                    
-                    # Calculate position relative to the triangle center (for rotation)
-                    rel_x = adjusted_x - tri_center_x
-                    rel_y = adjusted_y - tri_center_y
-                    
-                    # Apply rotation transformation (similar to MapDesigner)
-                    # Convert rotation to radians
-                    angle_rad = -texture.rotation * (math.pi / 180)
-                    rotated_x = rel_x * math.cos(angle_rad) - rel_y * math.sin(angle_rad)
-                    rotated_y = rel_x * math.sin(angle_rad) + rel_y * math.cos(angle_rad)
-                    
-                    # Translate back to triangle coordinates
-                    final_x = rotated_x + tri_center_x
-                    final_y = rotated_y + tri_center_y
-                    
-                    # Only blit if this tile would be visible in the triangle's bounding rectangle
-                    if (final_x < b_rect.width and final_x + texture.rotated_width > 0 and 
-                        final_y < b_rect.height and final_y + texture.rotated_height > 0):
-                        self.surface.blit(texture.surface, (final_x, final_y))
+                    final_x = base_x + effective_offset_x
+                    final_y = base_y + effective_offset_y
+
+                    self.surface.blit(texture.surface, (final_x, final_y))
 
             # Use the mask to show only the triangle
             self.surface.blit(triangle_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)

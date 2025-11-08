@@ -214,5 +214,9 @@ menu:
                   action: switch
                   setting: music_enabled
                   callback: switch_music
+                - text: NEXT SONG
+                  action: func
+                  func: next_music
+                  depends: music_enabled
     - text: QUIT
       action: quit

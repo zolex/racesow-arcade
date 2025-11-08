@@ -10,8 +10,8 @@ class SpriteAnim:
         self.frame_index = 0
         self.timer = 0
         self.callback = None
-        self.previous_anim = None
-        self.previous_frame = None
+        #self.previous_anim = None
+        #self.previous_frame = None
 
     def add(self, name, frames, group='default', fps=None, loop=True, callback=None, padding=None):
         """
@@ -51,17 +51,17 @@ class SpriteAnim:
                 "callback": callback,
             }
 
-    def previous(self, direction=1):
-        if self.previous_anim is not None and self.previous_frame is not None:
-            self.play(self.previous_anim, direction, reset=False, start_frame=self.previous_frame)
-            self.previous_anim = None
-            self.previous_frame = None
+    #def previous(self, direction=1):
+    #    if self.previous_anim is not None and self.previous_frame is not None:
+    #        self.play(self.previous_anim, direction, reset=False, start_frame=self.previous_frame)
+    #        self.previous_anim = None
+    #        self.previous_frame = None
 
     def play(self, name, direction=1, callback=None, reset=True, start_frame=0):
         """play a specific animation by name."""
         #print("play anim", name, direction)
-        self.previous_anim = self.current_animation
-        self.previous_frame = self.frame_index
+        #self.previous_anim = self.current_animation
+        #self.previous_frame = self.frame_index
         try:
             anim_new = self.animations[self.group][direction][name]
         except KeyError:
@@ -142,6 +142,9 @@ class SpriteAnim:
                     else:
                         self.current_sequence = sequence_names[0]
 
+                    if anim["callback"] is not None:
+                        anim["callback"]()
+
                     # reset to start or end depending on playback direction
                     self.frame_index = 0 if step > 0 else len(frames) - 1
 
@@ -157,10 +160,15 @@ class SpriteAnim:
             return None, 0, 0
         try:
             anim = self.animations[self.group][direction][self.current_animation]
+            frames = anim["sequences"][self.current_sequence]
         except KeyError:
-            anim = next(iter(self.animations[self.group][direction].values()))
+            try:
+                anim = next(iter(self.animations[self.group][direction].values()))
+                frames = anim["sequences"][self.current_sequence]
+            except KeyError:
+                anim = next(iter(self.animations[self.group][direction].values()))
+                frames = next(iter(anim["sequences"].values()))
 
-        frames = anim["sequences"][self.current_sequence]
         try:
             return frames[self.frame_index], anim["width"], anim["height"]
         except IndexError:

@@ -3,6 +3,7 @@ from datetime import date
 from src import config
 from src.Game import Game
 from src.Input import Input
+from src.Music import Music
 from src.Settings import Settings
 from src.Scene import GameScene
 from src.utils import resource_path, get_distance, create_split_rects, get_easter_date
@@ -37,6 +38,12 @@ class MainMenu(GameScene):
             "item_padding": 3,
             "item_margin": 3,
             "text_offset": 1.66
+        },
+        "tiny": {
+            "font_path": font_path,
+            "font_size": 5,
+            "item_padding": 2,
+            "item_margin": 2,
         },
         "back": {
             "font_path": font_path,
@@ -109,10 +116,8 @@ class MainMenu(GameScene):
         self.using_mouse = False
         self.root_menu = None
         self.cursor = None
-        self.music = [
-            os.path.join(config.assets_folder, 'sounds', 'menu_1.ogg'),
-            os.path.join(config.assets_folder, 'sounds', 'menu_2.ogg'),
-        ]
+
+        self.music = Music(settings)
 
         self.splash: pygame.Surface = self.load_splash()
         self.load_menu()
@@ -165,13 +170,13 @@ class MainMenu(GameScene):
         self.surface.blit(self.cursor, pygame.mouse.get_pos())
 
     def play_music(self):
-        if self.settings.music_enabled:
-            pygame.mixer.music.load(self.music[random.choice([0, 1])])
-            pygame.mixer.music.play(loops=-1, fade_ms=3886)
+        self.music.play()
+
+    def next_music(self):
+        self.music.next()
 
     def stop_music(self):
-        if self.settings.music_enabled:
-            pygame.mixer.music.fadeout(1337)
+        self.music.stop()
 
     def load_splash(self):
         splash = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'splash_high.png')).convert_alpha()
@@ -454,6 +459,14 @@ class MainMenu(GameScene):
         text_y = title_style['item_margin']
         self.surface.blit(text_surface, (text_x, text_y))
 
+        # current track
+        if self.music.current_track is not None:
+            track_style = self.scale_style(MainMenu.MENU_STYLES.get('tiny'))
+            track_surface = track_style['font'].render(f'PLAYING: {self.music.current_track}', True, (255, 255, 255))
+            track_x = self.settings.resolution[0] - track_surface.get_width() - track_style['item_margin']
+            track_y = self.settings.resolution[1] - track_surface.get_height() - track_style['item_margin']
+            self.surface.blit(track_surface, (track_x, track_y))
+
         if self.active_mapping is not None:
             return self.draw_active_mapping()
 
@@ -619,6 +632,11 @@ class MainMenu(GameScene):
                         'text': 'EGYPT (alpha.1)',
                     },
                     {
+                        'action': 'map',
+                        'map': 'test',
+                        'text': 'test',
+                    },
+                    {
                         'action': 'web_link',
                         'link': 'https://github.com/zolex/RAME/blob/alpha.1/README.md',
                         'text': 'create your own map!',
@@ -645,7 +663,7 @@ class MainMenu(GameScene):
         callback = item.get('callback')
         if callback is not None:
             method = getattr(self, callback)
-            if callback is not None and method is not None:
+            if method is not None:
                 method()
 
     def menu_ok(self, key_down, using_mouse = False):
@@ -666,6 +684,14 @@ class MainMenu(GameScene):
             self.ok.play()
             setting = selected_item.get('setting')
             self.set_setting(selected_item, not self.settings.get(setting))
+
+        elif selected_item.get('action') == 'func':
+            self.ok.play()
+            func = selected_item.get('func')
+            if func is not None:
+                func = getattr(self, func)
+                if func is not None:
+                    func()
 
         elif selected_item.get('action') == 'select_option':
             last = len(self.parent_menus) - 1

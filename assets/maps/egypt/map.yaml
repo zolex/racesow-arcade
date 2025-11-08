@@ -17,7 +17,7 @@ items:
   type: plasma
   x: 12576.0
   y: -224.0
-- ammo: 50
+- ammo: 999
   stay: false
   type: plasma
   x: 11968.0
@@ -49,8 +49,8 @@ jump_pads:
   y: 352.0
 parallax_1: textures/parallax1.png
 player_spawnpoint:
-  x: -128.0
-  y: 256.0
+  x: 11712.0
+  y: 320.0
 portals:
 - entry_flipped: false
   entry_x: 13888.0
@@ -77,6 +77,39 @@ portals:
   exit_x: 21120.0
   exit_y: -800.0
 rectangles:
+- h: 64.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 384.0
+  wall_type: static
+  x: 3872.0
+  y: 288.0
+  z_index: -48.0
+- h: 32.0
+  texture: textures/border_t.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 180.0
+  texture_scale: 1.0
+  w: 384.0
+  wall_type: deco
+  x: 3872.0
+  y: 320.0
+  z_index: -47.0
+- h: 192.0
+  texture: textures/start.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 256.0
+  wall_type: deco
+  x: -256.0
+  y: 192.0
+  z_index: -46.0
 - h: 128.0
   texture: textures/wall_tr.png
   texture_offset_x: 0.0
@@ -99,17 +132,6 @@ rectangles:
   x: 6592.0
   y: 288.0
   z_index: -44.0
-- h: 64.0
-  texture: textures/stone.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 384.0
-  wall_type: static
-  x: 3872.0
-  y: 288.0
-  z_index: -43.0
 - h: 352.0
   texture: textures/stone.png
   texture_offset_x: 0.0
@@ -170,7 +192,7 @@ rectangles:
   texture_offset_x: 0.0
   texture_offset_y: 0.0
   texture_rotation: 0.0
-  texture_scale: 1.05
+  texture_scale: 1.0
   w: 128.0
   wall_type: deco
   x: 11552.0
@@ -222,7 +244,7 @@ rectangles:
   z_index: -23.0
 - h: 224.0
   texture: textures/wall_tr.png
-  texture_offset_x: -32.0
+  texture_offset_x: -64.0
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
@@ -231,21 +253,10 @@ rectangles:
   x: 1984.0
   y: 224.0
   z_index: -22.0
-- h: 192.0
-  texture: textures/start.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 256.0
-  wall_type: deco
-  x: -256.0
-  y: 192.0
-  z_index: -20.0
-- h: 96.0
+- h: 128.0
   texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
+  texture_offset_x: -3.0
+  texture_offset_y: -32.0
   texture_rotation: 0.0
   texture_scale: 0.5
   w: 64.0
@@ -253,7 +264,7 @@ rectangles:
   x: 7424.0
   y: 288.0
   z_index: -19.0
-- h: 192.0
+- h: 224.0
   texture: textures/palm.png
   texture_offset_x: 0.0
   texture_offset_y: -32.0
@@ -262,7 +273,7 @@ rectangles:
   w: 128.0
   wall_type: deco
   x: 4704.0
-  y: 192.0
+  y: 160.0
   z_index: -18.0
 - h: 160.0
   texture: textures/wall_l.png
@@ -550,17 +561,6 @@ rectangles:
   x: 19456.0
   y: -192.0
   z_index: 0.0
-- h: 96.0
-  texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
-  texture_rotation: 0.0
-  texture_scale: 0.5
-  w: 64.0
-  wall_type: deco
-  x: 18240.0
-  y: 288.0
-  z_index: 0.0
 - h: 32.0
   texture: textures/wall_l.png
   texture_offset_x: 0.0
@@ -781,49 +781,16 @@ rectangles:
   x: 9696.0
   y: 128.0
   z_index: 0.0
-- h: 96.0
-  texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
-  texture_rotation: 0.0
-  texture_scale: 0.5
-  w: 64.0
-  wall_type: deco
-  x: 9696.0
-  y: 288.0
-  z_index: 0.0
-- h: 192.0
-  texture: textures/palm.png
-  texture_offset_x: -8.872500000000002
-  texture_offset_y: -177.485
-  texture_rotation: 15
-  texture_scale: 1.0888
-  w: 128.0
-  wall_type: deco
-  x: 11392.0
-  y: 192.0
-  z_index: 0.0
-- h: 96.0
-  texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
-  texture_rotation: 0.0
-  texture_scale: 0.5
-  w: 64.0
-  wall_type: deco
-  x: 13088.0
-  y: -576.0
-  z_index: 0.0
-- h: 256.0
+- h: 128.0
   texture: textures/palm.png
   texture_offset_x: 0.0
   texture_offset_y: 0.0
   texture_rotation: 0.0
-  texture_scale: 1.0
-  w: 128.0
+  texture_scale: 0.5
+  w: 64.0
   wall_type: deco
-  x: 13088.0
-  y: -736.0
+  x: 9568.0
+  y: 256.0
   z_index: 0.0
 - h: 64.0
   texture: textures/plant.png
@@ -836,27 +803,16 @@ rectangles:
   x: 12768.0
   y: -416.0
   z_index: 0.0
-- h: 96.0
+- h: 128.0
   texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 0.5
   w: 64.0
   wall_type: deco
-  x: 12832.0
-  y: -448.0
-  z_index: 0.0
-- h: 96.0
-  texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
-  texture_rotation: 0.0
-  texture_scale: 0.5
-  w: 64.0
-  wall_type: deco
-  x: 12512.0
-  y: -288.0
+  x: 12864.0
+  y: -480.0
   z_index: 0.0
 - h: 64.0
   texture: textures/rail_l.png
@@ -915,13 +871,13 @@ rectangles:
   z_index: 0.0
 - h: 128.0
   texture: textures/palm.png
-  texture_offset_x: 31.0
+  texture_offset_x: 63.0
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 0.5
   w: 64.0
   wall_type: deco
-  x: 4768.0
+  x: 4800.0
   y: 256.0
   z_index: 0.0
 - h: 64.0
@@ -948,9 +904,9 @@ rectangles:
   z_index: 0.0
 - h: 192.0
   texture: textures/palm.png
-  texture_offset_x: -8.872500000000002
-  texture_offset_y: -177.485
-  texture_rotation: 15
+  texture_offset_x: -8.87
+  texture_offset_y: -81.49000000000001
+  texture_rotation: 0.0
   texture_scale: 1.0888
   w: 128.0
   wall_type: deco
@@ -959,7 +915,7 @@ rectangles:
   z_index: 0.0
 - h: 128.0
   texture: textures/palm.png
-  texture_offset_x: 31.0
+  texture_offset_x: 0.0
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 0.5
@@ -978,17 +934,6 @@ rectangles:
   wall_type: deco
   x: 8736.0
   y: 320.0
-  z_index: 0.0
-- h: 192.0
-  texture: textures/palm.png
-  texture_offset_x: -10.272500000000093
-  texture_offset_y: -179.185
-  texture_rotation: 15
-  texture_scale: 1.1025
-  w: 128.0
-  wall_type: deco
-  x: 6176.0
-  y: 192.0
   z_index: 0.0
 - h: 64.0
   texture: textures/rail_r.png
@@ -1296,7 +1241,7 @@ rectangles:
   w: 256.0
   wall_type: deco
   x: 13728.0
-  y: -1568.0
+  y: -1472.0
   z_index: 0.0
 - h: 160.0
   texture: textures/wall_l.png
@@ -1685,7 +1630,7 @@ rectangles:
   z_index: 0.0
 - h: 128.0
   texture: textures/palm.png
-  texture_offset_x: 31.0
+  texture_offset_x: 0.0
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 0.5
@@ -1707,7 +1652,7 @@ rectangles:
   z_index: 0.0
 - h: 128.0
   texture: textures/palm.png
-  texture_offset_x: 31.0
+  texture_offset_x: 0.0
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 0.5
@@ -1716,18 +1661,18 @@ rectangles:
   x: 1536.0
   y: 256.0
   z_index: 0.0
-- h: 96.0
+- h: 128.0
   texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 0.5
   w: 64.0
   wall_type: deco
   x: 3104.0
-  y: 288.0
+  y: 256.0
   z_index: 0.0
-- h: 192.0
+- h: 224.0
   texture: textures/palm.png
   texture_offset_x: 0.0
   texture_offset_y: -32.0
@@ -1735,8 +1680,8 @@ rectangles:
   texture_scale: 1.0
   w: 128.0
   wall_type: deco
-  x: 544.0
-  y: 192.0
+  x: 512.0
+  y: 160.0
   z_index: 0.0
 - h: 256.0
   texture: textures/palm.png
@@ -1840,7 +1785,7 @@ rectangles:
 - h: 224.0
   texture: textures/wall_l.png
   texture_offset_x: 0.0
-  texture_offset_y: 9.0
+  texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
   w: 64.0
@@ -1853,7 +1798,7 @@ rectangles:
   texture_offset_x: 0.0
   texture_offset_y: 0.0
   texture_rotation: 0.0
-  texture_scale: 1.0
+  texture_scale: 1.1576
   w: 1888.0
   wall_type: static
   x: -256.0
@@ -1886,33 +1831,11 @@ rectangles:
   texture_offset_x: 0.0
   texture_offset_y: 0.0
   texture_rotation: 0.0
-  texture_scale: 1.1025
+  texture_scale: 1.0
   w: 47552.0
   wall_type: static
   x: 22336.0
   y: 384.0
-  z_index: 0.0
-- h: 192.0
-  texture: textures/palm.png
-  texture_offset_x: -10.272500000000093
-  texture_offset_y: -179.185
-  texture_rotation: 15
-  texture_scale: 1.1025
-  w: 128.0
-  wall_type: deco
-  x: 2048.0
-  y: 192.0
-  z_index: 0.0
-- h: 192.0
-  texture: textures/palm.png
-  texture_offset_x: -8.872500000000002
-  texture_offset_y: -177.485
-  texture_rotation: 15
-  texture_scale: 1.0888
-  w: 128.0
-  wall_type: deco
-  x: 3168.0
-  y: 192.0
   z_index: 0.0
 - h: 160.0
   texture: textures/wall.png
@@ -2233,7 +2156,7 @@ rectangles:
   x: 20512.0
   y: 64.0
   z_index: 0.0
-- h: 192.0
+- h: 224.0
   texture: textures/palm.png
   texture_offset_x: 0.0
   texture_offset_y: -32.0
@@ -2242,9 +2165,9 @@ rectangles:
   w: 128.0
   wall_type: deco
   x: 19712.0
-  y: -288.0
+  y: -320.0
   z_index: 0.0
-- h: 288.0
+- h: 320.0
   texture: textures/palm.png
   texture_offset_x: 1.0
   texture_offset_y: -45.0
@@ -2253,9 +2176,9 @@ rectangles:
   w: 192.0
   wall_type: deco
   x: 20384.0
-  y: -384.0
+  y: -416.0
   z_index: 0.0
-- h: 192.0
+- h: 224.0
   texture: textures/palm.png
   texture_offset_x: 0.0
   texture_offset_y: -32.0
@@ -2264,62 +2187,18 @@ rectangles:
   w: 128.0
   wall_type: deco
   x: 21024.0
-  y: -288.0
+  y: -320.0
   z_index: 0.0
-- h: 96.0
+- h: 128.0
   texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 0.5
   w: 64.0
   wall_type: deco
   x: 15328.0
-  y: -32.0
-  z_index: 0.0
-- h: 96.0
-  texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
-  texture_rotation: 0.0
-  texture_scale: 0.5
-  w: 64.0
-  wall_type: deco
-  x: 16480.0
-  y: 128.0
-  z_index: 0.0
-- h: 96.0
-  texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
-  texture_rotation: 0.0
-  texture_scale: 0.5
-  w: 64.0
-  wall_type: deco
-  x: 19776.0
-  y: -192.0
-  z_index: 0.0
-- h: 96.0
-  texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
-  texture_rotation: 0.0
-  texture_scale: 0.5
-  w: 64.0
-  wall_type: deco
-  x: 20992.0
-  y: -192.0
-  z_index: 0.0
-- h: 96.0
-  texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
-  texture_rotation: 0.0
-  texture_scale: 0.5
-  w: 64.0
-  wall_type: deco
-  x: 21664.0
-  y: 32.0
+  y: -64.0
   z_index: 0.0
 - h: 192.0
   texture: textures/palm.png
@@ -2343,7 +2222,7 @@ rectangles:
   x: 15968.0
   y: -32.0
   z_index: 0.0
-- h: 288.0
+- h: 320.0
   texture: textures/palm.png
   texture_offset_x: 1.0
   texture_offset_y: -45.0
@@ -2352,9 +2231,9 @@ rectangles:
   w: 192.0
   wall_type: deco
   x: 15872.0
-  y: -128.0
+  y: -160.0
   z_index: 0.0
-- h: 192.0
+- h: 224.0
   texture: textures/palm.png
   texture_offset_x: 0.0
   texture_offset_y: -32.0
@@ -2363,9 +2242,9 @@ rectangles:
   w: 128.0
   wall_type: deco
   x: 16544.0
-  y: 64.0
+  y: 32.0
   z_index: 0.0
-- h: 192.0
+- h: 224.0
   texture: textures/palm.png
   texture_offset_x: 0.0
   texture_offset_y: -32.0
@@ -2373,8 +2252,8 @@ rectangles:
   texture_scale: 1.0
   w: 128.0
   wall_type: deco
-  x: 15328.0
-  y: -128.0
+  x: 15360.0
+  y: -160.0
   z_index: 0.0
 - h: 96.0
   texture: textures/wall_l.png
@@ -2476,23 +2355,12 @@ rectangles:
   y: 512.0
   z_index: 0.0
 - h: 32.0
-  texture: textures/border_t.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 180.0
-  texture_scale: 1.0
-  w: 384.0
-  wall_type: deco
-  x: 3872.0
-  y: 320.0
-  z_index: 0.0
-- h: 32.0
   texture: textures/border_tsfr.png
   texture_offset_x: 32.0
   texture_offset_y: -32.0
-  texture_rotation: 180.0
+  texture_rotation: 540
   texture_scale: 1.0
-  w: 64.0
+  w: 32.0
   wall_type: deco
   x: 3872.0
   y: 320.0
@@ -2695,7 +2563,7 @@ rectangles:
   x: 19136.0
   y: 288.0
   z_index: 0.0
-- h: 192.0
+- h: 224.0
   texture: textures/palm.png
   texture_offset_x: 0.0
   texture_offset_y: -32.0
@@ -2704,20 +2572,9 @@ rectangles:
   w: 128.0
   wall_type: deco
   x: 18528.0
-  y: 160.0
+  y: 128.0
   z_index: 0.0
-- h: 96.0
-  texture: textures/palm.png
-  texture_offset_x: 31.0
-  texture_offset_y: -16.0
-  texture_rotation: 0.0
-  texture_scale: 0.5
-  w: 64.0
-  wall_type: deco
-  x: 19136.0
-  y: 288.0
-  z_index: 0.0
-- h: 192.0
+- h: 224.0
   texture: textures/palm.png
   texture_offset_x: 0.0
   texture_offset_y: -32.0
@@ -2726,7 +2583,128 @@ rectangles:
   w: 128.0
   wall_type: deco
   x: 22336.0
-  y: 192.0
+  y: 160.0
+  z_index: 0.0
+- h: 256.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 6176.0
+  y: 128.0
+  z_index: 0.0
+- h: 256.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 2048.0
+  y: 128.0
+  z_index: 0.0
+- h: 256.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 3168.0
+  y: 128.0
+  z_index: 0.0
+- h: 256.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 11360.0
+  y: 128.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 0.5
+  w: 64.0
+  wall_type: deco
+  x: 13120.0
+  y: -608.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 0.5
+  w: 64.0
+  wall_type: deco
+  x: 16480.0
+  y: 96.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 0.5
+  w: 64.0
+  wall_type: deco
+  x: 19136.0
+  y: 256.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: -25.0
+  texture_rotation: 0.0
+  texture_scale: 0.5
+  w: 64.0
+  wall_type: deco
+  x: 18336.0
+  y: 256.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 0.5
+  w: 64.0
+  wall_type: deco
+  x: 19776.0
+  y: -224.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 0.5
+  w: 64.0
+  wall_type: deco
+  x: 21024.0
+  y: -224.0
+  z_index: 0.0
+- h: 128.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 0.5
+  w: 64.0
+  wall_type: deco
+  x: 22336.0
+  y: 256.0
   z_index: 0.0
 - h: 128.0
   texture: textures/driftsand_l.png
@@ -2811,9 +2789,9 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 64.0
+  w: 96.0
   wall_type: deco
-  x: 21760.0
+  x: 21728.0
   y: 128.0
   z_index: 14.0
 - h: 32.0
@@ -2822,9 +2800,9 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 64.0
+  w: 96.0
   wall_type: deco
-  x: 21152.0
+  x: 21120.0
   y: -96.0
   z_index: 15.0
 - h: 32.0
@@ -2866,7 +2844,7 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 180.0
   texture_scale: 1.0
-  w: 64.0
+  w: 96.0
   wall_type: deco
   x: 19936.0
   y: 160.0
@@ -2910,7 +2888,7 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 180.0
   texture_scale: 1.0
-  w: 64.0
+  w: 96.0
   wall_type: deco
   x: 19648.0
   y: -64.0
@@ -2932,9 +2910,9 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 180.0
   texture_scale: 1.0
-  w: 320.0
+  w: 192.0
   wall_type: deco
-  x: 6624.0
+  x: 6720.0
   y: 320.0
   z_index: 27.0
 - h: 32.0
@@ -2961,11 +2939,11 @@ rectangles:
   z_index: 29.0
 - h: 32.0
   texture: textures/border_tsfr.png
-  texture_offset_x: 32.0
+  texture_offset_x: 0.0
   texture_offset_y: -32.0
-  texture_rotation: 180.0
+  texture_rotation: 180
   texture_scale: 1.0
-  w: 64.0
+  w: 128.0
   wall_type: deco
   x: 6592.0
   y: 320.0
@@ -3091,7 +3069,7 @@ rectangles:
   x: 19104.0
   y: 384.0
   z_index: 41.0
-- h: 288.0
+- h: 352.0
   texture: textures/palm.png
   texture_offset_x: 1.0
   texture_offset_y: -45.0
@@ -3100,7 +3078,7 @@ rectangles:
   w: 192.0
   wall_type: deco
   x: 18816.0
-  y: 64.0
+  y: 0.0
   z_index: 43.0
 - h: 128.0
   texture: textures/driftsand_r.png
@@ -3146,6 +3124,17 @@ rectangles:
   x: 13920.0
   y: 384.0
   z_index: 49.0
+- h: 256.0
+  texture: textures/palm.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 128.0
+  wall_type: deco
+  x: 13120.0
+  y: -736.0
+  z_index: 50.0
 sky: textures/sky.png
 start_line:
   x: 160.0

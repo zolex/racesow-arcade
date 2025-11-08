@@ -15,7 +15,7 @@ class Projectile(Vector2):
 
     types = {}
 
-    def __init__(self, type: str, duration: float, x: float, y: float, vel_x: float = 0.0, vel_y: float = 0.0, target_vel: float = 0.0, acc: float = 0.0, sound: pygame.mixer.Sound = None, collide_with: str|list[str] = ['static', 'ramp']):
+    def __init__(self, type: str, duration: float, x: float, y: float, vel_x: float = 0.0, vel_y: float = 0.0, target_vel: float = 0.0, acc: float = 0.0, sound: pygame.mixer.Sound = None, impact_sound: pygame.mixer.Sound = None, collide_with: str|list[str] = ['static', 'ramp']):
         super(Projectile, self).__init__(x, y)
         self.type: str = type
         self.vel_x: float = vel_x
@@ -25,6 +25,7 @@ class Projectile(Vector2):
         self.duration: float = duration
         self.start_time: int = pygame.time.get_ticks()
         self.sound: pygame.mixer.Sound = sound
+        self.impact_sound: pygame.mixer.Sound = impact_sound
         self.collide_with: list[str] = isinstance(collide_with, list) and collide_with or [collide_with]
         self.rotation: float = -math.degrees(math.atan2(vel_y, vel_x))
         self.sprite: pygame.Surface = pygame.transform.rotate(Projectile.types[type], self.rotation)
@@ -55,7 +56,7 @@ class Projectile(Vector2):
                 self.vel_y += self.acc * config.delta_time
             if self.sound is not None:
                 distance = self.get_distance(map.game.player)
-                self.sound.set_volume(self.volume_for_distance(distance))
+                self.sound.set_volume(self.volume_for_distance(distance) * map.game.settings.get_volume())
 
             colliders = []
             for list in self.collide_with:
@@ -70,8 +71,9 @@ class Projectile(Vector2):
             if collider is not None:
                 if self.type == 'rocket':
                     distance = self.get_distance(map.game.player)
-                    sounds.rocket.set_volume(self.volume_for_distance(distance))
-                    sounds.rocket.play()
+                    if self.impact_sound is not None:
+                        self.impact_sound.set_volume(self.volume_for_distance(distance) * map.game.settings.get_volume() * 0.5)
+                        self.impact_sound.play()
                     offset_x = config.ROCKET_DOWN_OFFSET_X * map.game.settings.get_scale()
                     map.game.player.add_rocket_velocity(distance, math.atan2(map.game.player.y - self.y, map.game.player.x - self.x + offset_x))
                     return Decal('rocket', 500, self.x + offset_x, self.y, center=True, fade_out=True)
