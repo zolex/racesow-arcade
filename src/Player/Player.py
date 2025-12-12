@@ -1,18 +1,16 @@
-import math, pygame, random, os
+import math, pygame, os
 
-from pygame.examples.music_drop_fade import play_file
-
-from src.Decal import Decal
-from src.Rectangle import Rectangle
+from src.Item.Decal import Decal
+from src.Player.State.Fall import Fall
+from src.Player.State.Idle import Idle
+from src.World.Rectangle import Rectangle
 from src.SpriteAnim import SpriteAnim
 from src.SpriteSheet import SpriteSheet
-from src.StateMachine import StateMachine
-from src.State import State
-from src.Vector2 import Vector2
-from src.Projectile import Projectile
+from src.Player.State.StateMachine import StateMachine
+from src.World.Vector2 import Vector2
+from src.Item.Projectile import Projectile
 from src import config
-from src.sounds import Sounds
-
+from src.Sounds import Sounds
 
 class Player(Rectangle):
     def __init__(self, game):
@@ -68,7 +66,7 @@ class Player(Rectangle):
         self.rocket_timer = self.rocket_cooldown
         self.previous_frame_height = 0
         self.can_plasma_climb = False
-        self.action_states = StateMachine(self.Idle_State(), self)
+        self.state = StateMachine(Idle(), self)
         self.sounds = Sounds(self.game.settings.get_volume())
         self.load_animations()
 
@@ -93,6 +91,7 @@ class Player(Rectangle):
         self.pressed_shoot = False
         self.pressed_down = False
         self.crouching = False
+        self.was_flipped = False
         self.freeze_movement = False
         self.freeze_input = False
         self.can_uncrouch = False
@@ -117,12 +116,12 @@ class Player(Rectangle):
         self.rocket_cooldown = 1337
         self.rocket_timer = self.rocket_cooldown
         self.vel = Vector2(0, 0)
-        self.action_states = StateMachine(self.Fall_State(), self)
+        self.state = StateMachine(Fall(), self)
         self.x = self.map.player_start.x
         self.y = self.map.player_start.y
         self.previous_frame_height = 0
         self.can_plasma_climb = False
-        self.action_states = StateMachine(self.Idle_State(), self)
+        self.state = StateMachine(Idle(), self)
         self.anim.play('idle', self.visible_direction)
 
     def load_animations(self):
@@ -135,6 +134,7 @@ class Player(Rectangle):
 
         run_no_weapon = {'left': [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)], 'right': [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5)]}
         self.anim.add('idle', [(2, 1)], 'no_weapon', loop=False)
+        self.anim.add('fall', [(0, 0)], 'no_weapon', loop=False)
         self.anim.add('dead', [(10, 5)], 'no_weapon', loop=False)
         self.anim.add('run', run_no_weapon, 'no_weapon', loop=True, callback=self.sounds.play_step)
         self.anim.add('jump', run_no_weapon, 'no_weapon', loop=False)
@@ -144,6 +144,7 @@ class Player(Rectangle):
 
         run_plasma = {'left': [(3, 0), (3, 1), (3, 2), (3, 3), (3, 4), (3, 5)], 'right': [(4, 0), (4, 1), (4, 2), (4, 3), (4, 4), (4, 5)]}
         self.anim.add('idle', [(5, 1)], 'plasma', loop=False)
+        self.anim.add('fall', [(3, 0)], 'plasma', loop=False)
         self.anim.add('dead', [(10, 5)], 'plasma', loop=False)
         self.anim.add('run', run_plasma, 'plasma', loop=True, callback=self.sounds.play_step)
         self.anim.add('jump', run_plasma, 'plasma', loop=False)
@@ -154,6 +155,7 @@ class Player(Rectangle):
 
         run_rocket = {'left': [(6, 0), (6, 1), (6, 2), (6, 3), (6, 4), (6, 5)], 'right': [(7, 0), (7, 1), (7, 2), (7, 3), (7, 4), (7, 5)]}
         self.anim.add('idle', [(8, 1)], 'rocket', loop=False)
+        self.anim.add('fall', [(6, 0)], 'rocket', loop=False)
         self.anim.add('dead', [(10, 5)], 'rocket', loop=False)
         self.anim.add('run', run_rocket, 'rocket', loop=True, callback=self.sounds.play_step)
         self.anim.add('jump', run_rocket, 'rocket', loop=False)
@@ -172,7 +174,7 @@ class Player(Rectangle):
 
     def __getattr__(self, name):
         if name == 'current_action_state':
-            return self.action_states.get_state()
+            return self.state.get_state()
         return object.__getattribute__(self, name)
 
     def draw(self):
@@ -226,23 +228,24 @@ class Player(Rectangle):
 
     def input_wall_jump(self, key_pressed):
         if key_pressed:
-            if pygame.time.get_ticks() - self.last_walljump > 1000 and self.walljump_collisions():
-                self.last_walljump = pygame.time.get_ticks()
-                self.action_states.on_event('wall_jump')
+            self.state.transition('WallJump')
 
     def input_right(self, key_pressed):
         self.pressed_right = key_pressed
+        if key_pressed and self.visible_direction == -1 and self.was_flipped:
+            self.was_flipped = False
 
     def input_left(self, key_pressed):
         self.pressed_left = key_pressed
+        if key_pressed and self.visible_direction == 1 and self.was_flipped:
+            self.was_flipped = False
 
     def input_down(self, key_pressed):
         self.pressed_down = key_pressed
+        self.state.transition('Crouch')
 
     def input_up(self, key_pressed):
         self.pressed_up = key_pressed
-        if self.pressed_shoot and self.plasma_climb_collisions():
-            self.action_states.on_event('plasma')
 
     def input_jump(self, key_pressed):
         self.pressed_jump = key_pressed
@@ -258,8 +261,6 @@ class Player(Rectangle):
 
     def input_shoot(self, key_pressed):
         self.pressed_shoot = key_pressed
-        if key_pressed and self.pressed_down and self.plasma_climb_collisions():
-            self.action_states.on_event('plasma')
 
     def input_switch_weapon(self, key_pressed):
         if key_pressed and self.last_weapon_switch + 666 < pygame.time.get_ticks():
@@ -274,9 +275,6 @@ class Player(Rectangle):
 
     def update(self):
 
-        if self.current_action_state == 'Plasma_State':
-            self.can_plasma_climb = self.plasma_climb_collisions()
-
         self.can_uncrouch = self.crouching and self.check_can_uncrouch()
         self.distance_to_ground = self.get_distance_to_collider_below()
         #print("dist", self.distance_to_ground)
@@ -288,17 +286,17 @@ class Player(Rectangle):
         #print("vely", self.vel.y)
 
         # Trigger falling
-        if self.vel.y > 0 and self.current_action_state != 'Plasma_State':
-            self.action_states.on_event('fall')
+        if self.vel.y > 0 and self.current_action_state != 'Plasma':
+            self.state.transition('Fall')
 
         if self.pressed_jump and self.released_jump and (not self.crouching or self.can_uncrouch):
-            self.action_states.on_event('jump')
+            self.state.transition('Jump')
 
         self.anim.update(config.delta_time, self.direction, self.visible_direction, self.speed_to_fps(abs(self.vel.x)))
 
         if not self.freeze_movement:
             self.state_events()
-            self.action_states.update()
+            self.state.update()
             self.movement()
 
         if self.pressed_shoot:
@@ -343,7 +341,7 @@ class Player(Rectangle):
                 rocket_fly = self.sounds.rocket_fly.play(loops=-1)
                 if self.pressed_down:
                     self.map.projectiles.append(Projectile('rocket', 1337000, self.x + config.ROCKET_DOWN_OFFSET_X * scale, self.y + config.ROCKET_DOWN_OFFSET_Y * scale, self.vel.x, self.vel.y + 1 * scale, 0.7 * scale, -0.0015 * scale, rocket_fly, self.sounds.rocket, ['ramp', 'static']))
-                    self.action_states.on_event('rocket_jump')
+                    self.state.transition('RocketJump')
                 else:
                     self.map.projectiles.append(Projectile('rocket', 1337000, self.x + 30 * scale, self.y + 5 * scale, self.vel.x + 1 * scale * self.visible_direction, 0, 1.1 * scale, -0.00075 * scale, rocket_fly, self.sounds.rocket, ['ramp', 'static']))
 
@@ -356,7 +354,7 @@ class Player(Rectangle):
             else:
                 self.sounds.plasma.play()
                 self.plasma_ammo -= 1
-                if self.current_action_state == 'Plasma_State' and self.can_plasma_climb:
+                if self.current_action_state == 'Plasma' and self.can_plasma_climb:
                     if self.game.settings.new_plasma:
                         x_offset = 0
                         if self.pressed_left:
@@ -397,8 +395,135 @@ class Player(Rectangle):
                 else:
                     self.map.projectiles.append(Projectile('plasma', 10000, self.x + 30 * scale * self.visible_direction, self.y + 2 * scale, self.vel.x + 2 * scale * self.visible_direction))
 
-
     def get_distance_to_collider_below(self):
+        """
+        Returns the vertical distance to the closest line of all static_colliders and ramp_colliders
+        that are directly below the player, considering the player's full width.
+
+        Returns:
+            float: The vertical distance to the closest collider below the player.
+                  Returns float('inf') if no collider is found below the player.
+        """
+
+        # if self.ground_collider is not None:
+        #    return 0
+
+        player_left = self.x
+        player_right = self.x + self.w
+        player_bottom = self.y + self.h - 1  # Player bottom y-coordinate
+
+        min_distance = float('inf')
+
+        # Check static colliders (axis-aligned rectangles)
+        for rectangle in self.map.static_colliders:
+            rect_left = rectangle.x
+            rect_right = rectangle.x + rectangle.w
+            # horizontal overlap check with player's full width
+            if not (rect_right <= player_left or rect_left >= player_right):
+                # Only check colliders that are below the player
+                if rectangle.y > player_bottom:
+                    distance = rectangle.y - player_bottom
+                    if distance < min_distance:
+                        min_distance = distance - 1
+
+        # Check ramp colliders
+        player_x = self.x + self.w / 2  # Player center x-coordinate
+        for triangle in self.map.ramp_colliders:
+            vertices = [triangle.p1, triangle.p2, triangle.p3]
+
+            # Find the horizontal range of the triangle
+            min_x = min(v.x for v in vertices)
+            max_x = max(v.x for v in vertices)
+
+            # Only check triangles that are horizontally aligned with the player
+            if min_x <= player_x <= max_x:
+                # Find the y-coordinate on the triangle at the player's x-coordinate
+                # We need to find the line segment that contains player_x
+                for i in range(3):
+                    p1 = vertices[i]
+                    p2 = vertices[(i + 1) % 3]
+
+                    # Check if player_x is between p1.x and p2.x
+                    if (p1.x <= player_x <= p2.x) or (p2.x <= player_x <= p1.x):
+                        # Calculate the y-coordinate on the line at player_x
+                        if p1.x == p2.x:  # Vertical line
+                            continue
+
+                        # Linear interpolation to find y
+                        t = (player_x - p1.x) / (p2.x - p1.x)
+                        y = p1.y + t * (p2.y - p1.y)
+
+                        # Only consider if the point is below the player
+                        if y > player_bottom:
+                            distance = y - player_bottom
+                            if distance < min_distance:
+                                min_distance = distance - 1
+
+        return min_distance
+
+    def get_distance_to_collider_below_full_width(self):
+        """
+        Returns the vertical distance to the closest line of all static_colliders and ramp_colliders
+        that are directly below the player, considering the player's full width.
+
+        Returns:
+            float: The vertical distance to the closest collider below the player.
+                  Returns float('inf') if no collider is found below the player.
+        """
+
+        # if self.ground_collider is not None:
+        #    return 0
+
+        player_left = self.x
+        player_right = self.x + self.w
+        player_bottom = self.y + self.h - 1  # Player bottom y-coordinate
+
+        min_distance = float('inf')
+
+        # Check static colliders (axis-aligned rectangles)
+        for rectangle in self.map.static_colliders:
+            rect_left = rectangle.x
+            rect_right = rectangle.x + rectangle.w
+            # horizontal overlap check with player's full width
+            if not (rect_right <= player_left or rect_left >= player_right):
+                # Only check colliders that are below the player
+                if rectangle.y > player_bottom:
+                    distance = rectangle.y - player_bottom
+                    if distance < min_distance:
+                        min_distance = distance - 1
+
+        # Check ramp colliders (triangles)
+        for triangle in self.map.ramp_colliders:
+            vertices = [triangle.p1, triangle.p2, triangle.p3]
+
+            # Evaluate triangle height at multiple x positions across player's width
+            x_positions = [player_left, (player_left + player_right) / 2.0, player_right]
+
+            for xq in x_positions:
+                # Determine if xq lies within the triangle's horizontal span
+                min_x = min(v.x for v in vertices)
+                max_x = max(v.x for v in vertices)
+                if not (min_x <= xq <= max_x):
+                    continue
+
+                # For each edge, if xq lies between the edge's x-range, compute y at xq
+                for i in range(3):
+                    p1 = vertices[i]
+                    p2 = vertices[(i + 1) % 3]
+                    if p1.x == p2.x:
+                        # Vertical edge: skip for sampling specific x
+                        continue
+                    if (p1.x <= xq <= p2.x) or (p2.x <= xq <= p1.x):
+                        t = (xq - p1.x) / (p2.x - p1.x)
+                        y = p1.y + t * (p2.y - p1.y)
+                        if y > player_bottom:
+                            distance = y - player_bottom
+                            if distance < min_distance:
+                                min_distance = distance - 1
+
+        return min_distance
+
+    def get_distance_to_collider_below_old(self):
         """
         Returns the vertical distance to the closest line of all static_colliders and ramp_colliders
         that are directly below the player.
@@ -525,20 +650,24 @@ class Player(Rectangle):
         base_factor = config.FRICTION_BASE_FACTOR
         velocity_scaling = config.FRICTION_VELOCITY_SCALING
 
-        if self.current_action_state != 'Plasma_State' and ((self.direction == 1 and self.pressed_left) or (self.direction == -1 and self.pressed_right)):
+        # counter steer while running
+        if (self.current_action_state == 'Move' or self.current_action_state == 'Decel') and ((self.direction == 1 and self.pressed_left) or (self.direction == -1 and self.pressed_right)):
             return 0.9965
 
-        if self.current_action_state == 'Decel_State':
+        if self.current_action_state == 'Plasma' and self.distance_to_ground == 0:
+            return 0.997
+
+        if self.current_action_state == 'Decel':
             return 0.998
 
-        if self.current_action_state == 'Crouch_State':
+        if self.current_action_state == 'Crouch':
             return 0.993
 
         # no friction while mid-air
-        if self.current_action_state == 'Jump_State' or self.current_action_state == 'RocketJump_State' or self.current_action_state == 'Fall_State':
+        if self.current_action_state == 'Jump' or self.current_action_state == 'RocketJump' or self.current_action_state == 'Fall':
             return 1
 
-        if self.current_action_state == 'Slide_State':
+        if self.current_action_state == 'Slide':
             # to have less deceleration for up-ramps
             if (self.last_ramp_radians > 0 and self.direction == 1) or (self.last_ramp_radians < 0 and self.direction == -1):
                 #print("ramp up", self.last_ramp_radians, self.direction)
@@ -547,10 +676,13 @@ class Player(Rectangle):
             elif (self.last_ramp_radians < 0 and self.direction == 1) or (self.last_ramp_radians > 0 and self.direction == -1):
                 #print("ramp down", self.last_ramp_radians, self.direction)
                 gravity_effect = 0.005
-            else:
-                base_factor = 0.99
+            elif abs(self.vel.x) < 1.0:
+                return 0.9992
 
-        return self.get_friction_factor(self.vel.x, self.last_ramp_radians, gravity_effect / self.game.settings.get_scale(), base_factor, velocity_scaling / self.game.settings.get_scale())
+
+        friction = self.get_friction_factor(self.vel.x, self.last_ramp_radians, gravity_effect / self.game.settings.get_scale(), base_factor, velocity_scaling / self.game.settings.get_scale())
+
+        return friction
 
 
     def movement(self):
@@ -558,7 +690,7 @@ class Player(Rectangle):
 
         # DIRECTION CHANGES
         if not self.was_flipped:
-            if self.current_action_state == 'Plasma_State':
+            if self.current_action_state == 'Plasma':
                 if self.pressed_left and self.vel.x >= 0:
                     self.direction = 1
                 elif self.pressed_right and self.vel.x <= 0:
@@ -570,12 +702,11 @@ class Player(Rectangle):
                     self.direction = -1
 
         # AIR CONTROL
-        #air_acceleration = 0
-        #if self.pressed_right or self.pressed_left:
-        #    air_acceleration = config.PLAYER_AIR_ACCEL * self.visible_direction
-
-        #print("air accel", air_acceleration)
-
+        air_acceleration = 0
+        if ((self.pressed_right or self.pressed_left)
+                and (self.current_action_state == 'Fall' or self.current_action_state == 'Jump')):
+           if pygame.time.get_ticks() - self.last_walljump > 1000:
+                air_acceleration = config.PLAYER_AIR_ACCEL * self.visible_direction
 
         # Cap vertical velocity
         if self.vel.y > config.MAX_FALL_VEL * scale:
@@ -583,7 +714,7 @@ class Player(Rectangle):
 
         # Accelerate
         self.vel.x += self.acceleration * scale * config.delta_time
-        #self.vel.x += air_acceleration * scale * config.delta_time
+        self.vel.x += air_acceleration * scale * config.delta_time
 
         if self.distance_to_ground > 0:
             self.vel.y += config.GRAVITY * scale * config.delta_time
@@ -591,7 +722,7 @@ class Player(Rectangle):
         # Apply friction
         self.vel.x *= pow(self.get_friction(), config.delta_time)
 
-        #if self.current_action_state != 'Move_State' and abs(self.vel.x) < 0.025 * scale:
+        #if self.current_action_state != 'Move' and abs(self.vel.x) < 0.025 * scale:
         #    self.vel.x = 0
 
         # Move axes individually for proper collision detection
@@ -613,49 +744,46 @@ class Player(Rectangle):
     def state_events(self):
 
         # ENTER PLASMA STATE
-        if self.pressed_down and self.pressed_shoot and self.plasma_climb_collisions():
-            self.action_states.on_event('plasma')
-            return
+        if self.active_weapon == 'plasma' and self.pressed_down and self.pressed_shoot:
+            self.can_plasma_climb = self.plasma_climb_collisions()
+            if self.can_plasma_climb and self.current_action_state != 'Plasma':
+                self.state.transition('Plasma')
+                return
 
         # MOVE RIGHT AND SLIDE
         if self.pressed_right and not self.pressed_left:
-            self.was_flipped = False
-            self.visible_direction = 1
+            if not self.was_flipped:
+                self.visible_direction = 1
 
             if self.pressed_down and self.direction == 1:
-                self.action_states.on_event('slide')
+                self.state.transition('Slide')
                 return
 
         # MOVE LEFT AND SLIDE
         if self.pressed_left and not self.pressed_right:
-            self.was_flipped = False
-            self.visible_direction = -1
+            if not self.was_flipped:
+                self.visible_direction = -1
 
             if self.pressed_down and self.direction == -1:
-                self.action_states.on_event('slide')
+                self.state.transition('Slide')
                 return
 
         if self.vel.y == 0:
 
-            if self.pressed_down:
-                self.action_states.on_event('crouch')
-                return
-
             if not self.crouching or self.can_uncrouch:
 
                 if self.pressed_left or self.pressed_right:
-                    self.action_states.on_event('move')
+                    self.state.transition('Move')
                     return
 
-                if (self.vel.x > 0 and not self.pressed_right) or (self.vel.x < 0 and not self.pressed_left):
-                    self.action_states.on_event('decel')
-                    return
-
-                if abs(self.vel.x) < 0.02 and self.current_action_state != 'Move_State':
+                if abs(self.vel.x) < config.PLAYER_MIN_VEL and self.current_action_state != 'Move' and not self.pressed_down:
                     self.vel.x = 0
-                    self.action_states.on_event('idle')
+                    self.state.transition('Idle')
                     return
 
+                if (self.vel.x > 0 and not self.pressed_right) or (self.vel.x < 0 and not self.pressed_left) or (self.vel.x == 0 and not self.pressed_down):
+                    self.state.transition('Decel')
+                    return
 
     def collider_collisions(self, dx, dy):
 
@@ -664,57 +792,73 @@ class Player(Rectangle):
         if self.last_ramp_radians != 0:
             return
 
+        #print("collide?")
+
         index = self.collidelist(self.map.static_colliders)
         if index == -1:
             self.ground_collider = None
             return
 
+        #print("collide!")
+
         rect = self.map.static_colliders[index]
         if dx > 0:
             #print("dx > 0")
-            if self.current_action_state == 'Move_State' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
-                self.action_states.on_event('decel')
+            if self.current_action_state == 'Move' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
+                self.state.transition('Decel')
             self.x = rect.x - self.w
             self.vel.x = 0
         elif dx < 0:
             #print("dx < 0")
-            if self.current_action_state == 'Move_State' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
-                self.action_states.on_event('decel')
+            if self.current_action_state == 'Move' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
+                self.state.transition('Decel')
             self.x = rect.x + rect.w
             self.vel.x = 0
         elif dy > 0:
             #print("dy > 0")
-            if self.current_action_state == 'Fall_State':
+            if self.current_action_state == 'Fall':
                 self.ground_touch_pos = Vector2(self.x, self.y)
-                self.action_states.on_event('decel')
+                self.state.transition('Decel')
                 self.sounds.play_step()
             self.ground_collider = rect
+            self.was_flipped = False
             self.y = rect.y - self.h
             self.vel.y = 0
         elif dy < 0:
             #print("dy < 0")
-            if self.current_action_state != 'Plasma_State':
-                self.action_states.on_event('fall')
+            if self.current_action_state != 'Plasma':
+                self.state.transition('Fall')
             self.y = rect.y + rect.h
             self.vel.y = config.BOUNCE_VEL
 
     def launch_from_ramp(self, y_offset = 0, factor = 1.0):
         self.y -= y_offset
-        self.vel.y = -abs(self.vel.x) * math.tan(self.last_ramp_radians * self.direction) * factor
+
+        #print("launch source", "y_off", y_offset, "fact", factor, "abs_vel", abs(self.vel.x), "rad", self.last_ramp_radians, "dir", self.direction, "tan", math.tan(self.last_ramp_radians * self.direction))
+
+        min_launch = -0.1
+
+        launch_speed = -abs(self.vel.x) * math.tan(self.last_ramp_radians * self.direction) * factor
+        # at least 0.1 so we can definitely fall after launching
+        #self.vel.y = min(min_launch, launch_speed)
+
+        self.vel.y = launch_speed
 
         self.last_ramp_radians = 0
 
-        #print("launch from ramp", -abs(self.vel.x) * math.tan(self.last_ramp_radians * self.direction) * factor, y_offset)
-        self.action_states.on_event('launch')
+        #print("launch from ramp", launch_speed, y_offset)
+
+        #if launch_speed < min_launch:
+        self.state.transition('Launch')
 
         return self.vel.y
 
     def ramp_collisions(self):
 
-        if self.current_action_state == 'Launch_State':
+        if self.current_action_state == 'Launch':
             return
 
-        if self.current_action_state == 'Plasma_State' and self.vel.y < 0:
+        if self.current_action_state == 'Plasma' and self.vel.y < 0:
             return
 
         # Get the line of the ramp we collided with (up or down)
@@ -777,7 +921,7 @@ class Player(Rectangle):
 
         self.vel.y = 0
 
-        self.action_states.on_event('ramp')
+        #self.state.transition('Ramp') # still needed???
 
     def item_collisions(self):
         for item in self.map.items:
@@ -814,7 +958,7 @@ class Player(Rectangle):
                 return
 
         if self.collidelist(self.map.death_colliders) != -1:
-            self.action_states.on_event('dead')
+            self.state.transition('Dead')
 
         if self.map.timer == 0 and self.map.start_line is not None:
             if self.colliderect(self.map.start_line) != -1:
@@ -932,420 +1076,9 @@ class Player(Rectangle):
             self.vel.x += vel_x * scale
             self.vel.y += vel_y * scale
 
-            if self.distance_to_ground == 0:
-                self.action_states.on_event('decel')
-            else:
-                self.action_states.on_event('fall')
+            #if self.distance_to_ground == 0:
+            #    self.astate.transition('Decel')
+            #else:
+            self.state.transition('Fall')
 
             #self.anim.play('jump', self.visible_direction)
-
-    class Idle_State(State):
-        """State when on the ground and not moving"""
-        def on_event(self, event):
-            if event == 'jump':
-                return Player.Jump_State()
-            elif event == 'move':
-                return Player.Move_State()
-            elif event == 'decel':
-                return Player.Move_State()
-            #elif event == 'fall':
-            #    return Player.Fall_State()
-            elif event == 'crouch':
-                return Player.Crouch_State()
-            elif event == 'plasma':
-                return Player.Plasma_State()
-            elif event == 'dead':
-                return Player.Dead_State()
-            return self
-
-        def can_enter(self, player):
-            return not player.pressed_right and not player.pressed_left
-
-        def on_enter(self, player):
-            print(__class__, pygame.time.get_ticks())
-            player.anim.play('idle', player.visible_direction)
-            return
-
-        def update(self, player):
-            if player.pressed_down:
-                player.action_states.on_event('crouch')
-
-    class Jump_State(State):
-        """State when jumping when spacebar input affects velocity"""
-
-        def on_event(self, event):
-            if event == 'fall':
-                return Player.Fall_State()
-            elif event == 'wall_jump':
-                return Player.Walljump_State()
-            elif event == 'rocket_jump':
-                return Player.RocketJump_State()
-            elif event == 'plasma':
-                return Player.Plasma_State()
-            #elif event == 'crouch':
-            #    return Player.Crouch_State()
-            elif event == 'ramp':
-                return Player.Move_State()
-            elif event == 'dead':
-                return Player.Dead_State()
-            return self
-
-        def on_enter(self, player):
-            print(__class__, pygame.time.get_ticks())
-
-            player.anim.play('jump', player.visible_direction)
-
-            player.ground_collider = None
-            player.last_walljump = 0
-
-            player.sounds.play_step()
-            player.sounds.play_jump()
-
-
-
-            dash = f'dash{random.choice([1, 2])}'
-            if player.direction == -1:
-                dash = f'{dash}_left'
-
-            player.game.map.decals.append(Decal(dash, 666, player.x, player.y + player.h, bottom=True, fade_out=True))
-            player.add_jump_velocity()
-
-        def update(self, player):
-            pass
-
-    class Walljump_State(State):
-        def __init__(self):
-            self.animation_finished = False
-
-        def on_event(self, event):
-            if event == 'fall':
-                return Player.Fall_State()
-            elif event == 'plasma':
-                return Player.Plasma_State()
-            elif event == 'wall_jump':
-                return Player.Plasma_State()
-            elif event == 'dead':
-                return Player.Dead_State()
-            return self
-
-        def on_animation_finished(self):
-            self.animation_finished = True
-
-        def on_enter(self, player):
-            print(__class__, pygame.time.get_ticks())
-            if random.choice([True, False]):
-                player.sounds.walljump1.play()
-            else:
-                player.sounds.walljump2.play()
-
-            player.anim.play('wall_jump', player.visible_direction, callback=self.on_animation_finished, reset=True)
-            boost = config.WALLJUMP_VELOCITY * player.game.settings.get_scale()
-            player.vel.y = min(-boost, player.vel.y - boost)
-
-
-        def can_exit(self, player):
-            return self.animation_finished
-
-        def on_exit(self, player):
-            player.anim.play('jump', player.visible_direction, reset=False, start_frame=-1)
-
-    class Plasma_State(State):
-        def __init__(self):
-            self.previous_anim = None
-            self.previous_frame = None
-
-        def on_event(self, event):
-            if event == 'fall':
-                return Player.Fall_State()
-            elif event == 'wall_jump':
-                return Player.Walljump_State()
-            elif event == 'move':
-                return Player.Move_State()
-            elif event == 'idle':
-                return Player.Idle_State()
-            elif event == 'decel':
-                return Player.Decel_State()
-            elif event == 'dead':
-                return Player.Dead_State()
-            return self
-
-        def on_enter(self, player):
-            print(__class__, pygame.time.get_ticks())
-            player.last_ramp_radians = 0
-            player.anim.play('plasma_climb', player.visible_direction)
-            pass
-
-        def update(self, player):
-            if not player.can_plasma_climb or not player.pressed_shoot or (not player.pressed_down and not player.pressed_up and not player.pressed_right and not player.pressed_left):
-                player.action_states.on_event('fall')
-
-        def on_exit(self, player):
-            player.anim.play('jump', player.visible_direction, start_frame=-1)
-
-    class Fall_State(State):
-        """State when in mid air but spacebar input does not affect velocity"""
-
-        def on_event(self, event):
-            if event == 'idle':
-                return Player.Idle_State()
-            elif event == 'decel':
-                return Player.Decel_State()
-            elif event == 'move':
-                return Player.Move_State()
-            elif event == 'crouch':
-                return Player.Crouch_State()
-            elif event == 'wall_jump':
-                return Player.Walljump_State()
-            elif event == 'ramp':
-                return Player.Move_State()
-            elif event == 'plasma':
-                return Player.Plasma_State()
-            elif event == 'dead':
-                return Player.Dead_State()
-            return self
-
-        def on_enter(self, player):
-            print(__class__, pygame.time.get_ticks())
-            player.ground_collider = None
-            pass
-
-        def update(self, player):
-            player.acceleration = 0
-
-    class RocketJump_State(State):
-        """State when in mid air but spacebar input does not affect velocity"""
-        def on_event(self, event):
-            if event == 'decel':
-                return Player.Decel_State()
-            elif event == 'move':
-                return Player.Move_State()
-            elif event == 'fall':
-                return Player.Fall_State()
-            elif event == 'wall_jump':
-                return Player.Walljump_State()
-            elif event == 'ramp':
-                return Player.Move_State()
-            elif event == 'plasma':
-                return Player.Plasma_State()
-            elif event == 'dead':
-                return Player.Dead_State()
-            return self
-
-        def on_enter(self, player):
-            print(__class__, pygame.time.get_ticks())
-            pass
-
-
-    class Launch_State(State):
-        def __init__(self):
-            self.launch_time = 0
-
-        def on_event(self, event):
-            if event == 'idle':
-                return Player.Idle_State()
-            elif event == 'decel':
-                return Player.Decel_State()
-            elif event == 'move':
-                return Player.Move_State()
-            #elif event == 'crouch':
-            #    return Player.Crouch_State()
-            elif event == 'wall_jump':
-                return Player.Walljump_State()
-            elif event == 'ramp':
-                return Player.Move_State()
-            elif event == 'fall':
-                return Player.Fall_State()
-            elif event == 'plasma':
-                return Player.Plasma_State()
-            elif event == 'dead':
-                return Player.Dead_State()
-            return self
-
-        def on_enter(self, player):
-            print(__class__, pygame.time.get_ticks())
-            player.last_ramp_radians = 0
-            self.launch_time = 0
-            player.anim.play('jump', player.visible_direction, reset=False, start_frame=-1)
-
-        def update(self, player):
-            player.acceleration = 0
-            self.launch_time += config.delta_time
-            if self.launch_time > 100:
-                player.action_states.on_event('fall')
-
-    class Move_State(State):
-        """State when moving on the ground and not breaking or decelerating"""
-        def on_event(self, event):
-            if event == 'decel':
-                return Player.Decel_State()
-            #elif event == 'fall':
-            #    return Player.Fall_State()
-            elif event == 'jump':
-                return Player.Jump_State()
-            elif event == 'launch':
-                return Player.Launch_State()
-            elif event == 'crouch':
-                return Player.Crouch_State()
-            elif event == 'slide':
-                return Player.Slide_State()
-            elif event == 'plasma':
-                return Player.Plasma_State()
-            elif event == 'dead':
-                return Player.Dead_State()
-            return self
-
-        def on_enter(self, player):
-            print(__class__, pygame.time.get_ticks())
-            player.anim.play('run', player.visible_direction)
-            return
-
-        def update(self, player):
-            player.acceleration = config.PLAYER_ACCELERATION * player.visible_direction
-            if player.pressed_down:
-                if (player.direction == 1 and player.pressed_right) or (player.direction == -1 and player.pressed_left):
-                    player.action_states.on_event('slide')
-                else:
-                    player.action_states.on_event('crouch')
-
-    class Decel_State(State):
-        """State when moving when there is no longer any input"""
-        def on_event(self, event):
-            if event == 'idle':
-                return Player.Idle_State()
-            elif event == 'move':
-                return Player.Move_State()
-            #elif event == 'fall':
-            #    return Player.Fall_State()
-            elif event == 'launch':
-                return Player.Launch_State()
-            elif event == 'jump':
-                return Player.Jump_State()
-            elif event == 'crouch':
-                return Player.Crouch_State()
-            elif event == 'slide':
-                return Player.Slide_State()
-            elif event == 'plasma':
-                return Player.Plasma_State()
-            elif event == 'dead':
-                return Player.Dead_State()
-            return self
-
-        def on_enter(self, player):
-            print(__class__, pygame.time.get_ticks())
-            if not player.pressed_down:
-                player.anim.play('run', player.visible_direction)
-            player.acceleration = 0
-
-        def update(self, player):
-            if player.pressed_down:
-                if (player.direction == 1 and player.pressed_right) or (player.direction == -1 and player.pressed_left):
-                    player.action_states.on_event('slide')
-                else:
-                    player.action_states.on_event('crouch')
-
-    class Crouch_State(State):
-        """State when player is crouching"""
-
-        def on_event(self, event):
-            if event == 'jump':
-                return Player.Jump_State()
-            elif event == 'decel':
-                return Player.Decel_State()
-            elif event == 'fall':
-                 return Player.Fall_State()
-            elif event == 'rocket_jump':
-                return Player.RocketJump_State()
-            elif event == 'launch':
-                return Player.Launch_State()
-            elif event == 'slide':
-                return Player.Slide_State()
-            elif event == 'move':
-                return Player.Move_State()
-            elif event == 'idle':
-                return Player.Idle_State()
-            elif event == 'plasma':
-                return Player.Plasma_State()
-            elif event == 'dead':
-                return Player.Dead_State()
-            return self
-
-        def can_enter(self, player):
-            return True
-
-        def on_enter(self, player):
-            print(__class__, pygame.time.get_ticks())
-            player.anim.play('crouch', player.visible_direction)
-            player.crouching = True
-            player.acceleration = 0
-
-        def update(self, player):
-            if (player.visible_direction == 1 and player.pressed_right) or (player.visible_direction == -1 and player.pressed_left):
-                player.action_states.on_event('slide')
-
-        def on_exit(self, player):
-            player.crouching = False
-
-    class Slide_State(State):
-        """State when player is crouching"""
-        def on_event(self, event):
-            if event == 'decel':
-                return Player.Decel_State()
-            elif event == 'fall':
-                return Player.Fall_State()
-            elif event == 'launch':
-                return Player.Launch_State()
-            elif event == 'move':
-                return Player.Move_State()
-            elif event == 'jump':
-                return Player.Jump_State()
-            elif event == 'dead':
-                return Player.Dead_State()
-            elif event == 'crouch':
-                return Player.Crouch_State()
-            return self
-
-        #def can_enter(self, player):
-        #    return player.distance_to_ground <= 2
-
-        def on_enter(self, player):
-            print(__class__, pygame.time.get_ticks())
-            player.acceleration = 0
-            player.sounds.slide.play(loops=-1, fade_ms=333)
-            player.anim.play('slide', player.visible_direction)
-            player.crouching = True
-            if player.vel.x == 0:
-                player.vel.x = 0.05 * player.visible_direction * player.game.settings.get_scale()
-
-        def update(self, player):
-            player.sounds.slide.set_volume(0.1 * player.vel.x)
-            if (player.visible_direction == 1 and not player.pressed_right) or (player.visible_direction == -1 and not player.pressed_left):
-                player.action_states.on_event('crouch')
-
-        def on_exit(self, player):
-            player.sounds.slide.fadeout(100)
-            player.crouching = False
-
-    class Dead_State(State):
-        """State when player is dead"""
-        def __init__(self):
-            self.death_timer = 0
-
-        def on_event(self, event):
-            return self
-
-        def on_enter(self, player):
-            print(__class__, pygame.time.get_ticks())
-            #player.freeze_movement = True
-            player.freeze_input = True
-            player.sounds.death.play()
-            player.anim.play('dead', player.visible_direction)
-
-        def update(self, player):
-            self.death_timer += config.delta_time
-            player.vel.x = 0
-            player.vel.y = 0.1
-            if self.death_timer > 300 * config.delta_time:
-                self.death_timer = float("-inf")
-                player.game.map.reset()
-                player.reset()
-                player.action_states.on_event('idle')

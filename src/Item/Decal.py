@@ -1,5 +1,5 @@
 import pygame, os
-from src.Vector2 import Vector2
+from src.World.Vector2 import Vector2
 from src import config
 
 def pre_load_decals(SCALE:int = 1):

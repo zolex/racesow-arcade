@@ -1,6 +1,6 @@
 class State:
     """State Class"""
-    def on_event(self, event):
+    def can_transition(self, event):
         """Handles events delegated to this state"""
         pass
 
@@ -8,7 +8,7 @@ class State:
         """Determines if state can enter"""
         return True
 
-    def on_enter(self, owner_object):
+    def on_enter(self, owner_object, old_state):
         """Performs actions when entering state"""
         pass
 

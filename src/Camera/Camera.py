@@ -1,11 +1,9 @@
 import pygame
 from abc import abstractmethod, ABC
 
-from numpy.f2py.auxfuncs import throw_error
-
 from src.Settings import Settings
-from src.Triangle import Triangle
-from src.Vector2 import Vector2
+from src.World.Triangle import Triangle
+from src.World.Vector2 import Vector2
 
 class Camera(pygame.Rect, ABC):
     def __init__(self, settings: Settings):

@@ -1,8 +1,7 @@
 import os, pygame
 
 from src import config
-from src.StartLine import StartLine
-from src.Vector2 import Vector2
+from src.Item.StartLine import StartLine
 
 
 class FinishLine(StartLine):

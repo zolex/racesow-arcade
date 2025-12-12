@@ -1,5 +1,5 @@
-from src.Texture import Texture
-from src.Vector2 import Vector2
+from src.World.Texture import Texture
+from src.World.Vector2 import Vector2
 import pygame
 
 class Rectangle(pygame.Rect):

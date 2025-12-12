@@ -1,21 +1,21 @@
 import copy, os, pygame
 
-from src.CameraAi import CameraAI
-from src.CameraFixed import CameraFixed
-from src.CameraLookahead import CameraLookahead
-from src.CameraSnappy import CameraSnappy
-from src.Input import Input
-from src.Music import Music
+from src.Camera.CameraAi import CameraAI
+from src.Camera.CameraFixed import CameraFixed
+from src.Camera.CameraLookahead import CameraLookahead
+from src.Camera.CameraSnappy import CameraSnappy
+from src.Player.Input import Input
+#from src.Music import Music
 from src.Scene import GameScene
 from src.Map import Map
-from src.Player import Player
+from src.Player.Player import Player
 from src import config
 from src.Settings import Settings
 from src.HUD import HUD
 
-from src.Decal import pre_load_decals
-from src.Item import pre_load_items
-from src.Projectile import pre_load_projectiles
+from src.Item.Decal import pre_load_decals
+from src.Item.Item import pre_load_items
+from src.Item.Projectile import pre_load_projectiles
 
 def create_camera(settings: Settings):
     if settings.camera_style == 'fixed':
@@ -53,8 +53,8 @@ class Game(GameScene):
         self.input_mappings = None
         self.show_options = False
 
-        self.music = Music(settings)
-        self.music.play()
+        #self.music = Music(settings)
+        #self.music.play()
 
     def draw(self):
         self.map.draw()

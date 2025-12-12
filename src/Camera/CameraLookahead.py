@@ -1,6 +1,6 @@
 import math
 from src import config
-from src.Camera import Camera
+from src.Camera.Camera import Camera
 from src.Settings import Settings
 from src.utils import ease_in_out_cubic
 
@@ -63,7 +63,7 @@ class CameraLookahead(Camera):
         t = self.transition_elapsed / self.transition_duration
         eased_t = ease_in_out_cubic(t)
 
-        if player.current_action_state == 'Plasma_State':
+        if player.current_action_state == 'Plasma':
             velocity_smoothing = self.plasma_velocity_smoothing
         else:
             velocity_smoothing = self.run_smoothing

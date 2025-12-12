@@ -1,8 +1,8 @@
-from src.Texture import Texture
+from src.World.Texture import Texture
 import pygame
 import math
 
-from src.Vector2 import Vector2
+from src.World.Vector2 import Vector2
 
 
 class Triangle():

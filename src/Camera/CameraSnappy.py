@@ -1,8 +1,7 @@
 import math
 from src import config
-from src.Camera import Camera
+from src.Camera.Camera import Camera
 from src.Settings import Settings
-from src.Vector2 import Vector2
 from src.utils import ease_in_out_cubic
 
 

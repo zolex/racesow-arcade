@@ -1,5 +1,5 @@
 import pygame
-from src.Camera import Camera
+from src.Camera.Camera import Camera
 from src.Settings import Settings
 
 class CameraAI(Camera):

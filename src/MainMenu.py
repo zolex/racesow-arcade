@@ -1,8 +1,8 @@
-import copy, os, pygame, random, yaml, webbrowser
+import copy, os, pygame, yaml, webbrowser
 from datetime import date
 from src import config
 from src.Game import Game
-from src.Input import Input
+from src.Player.Input import Input
 from src.Music import Music
 from src.Settings import Settings
 from src.Scene import GameScene

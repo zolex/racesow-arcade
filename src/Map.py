@@ -1,16 +1,16 @@
-import os.path, pygame, yaml
+import os.path, pygame, yaml, math
 from pyqtree import Index as QuadTree
-from src.Decal import Decal
-from src.FinishLine import FinishLine
-from src.JumpPad import JumpPad
-from src.Portal import Portal
-from src.StartLine import StartLine
-from src.Vector2 import Vector2
-from src.Triangle import Triangle
-from src.Rectangle import Rectangle
-from src.Item import Item
-from src.Projectile import Projectile
-from src.Texture import Texture
+from src.Item.Decal import Decal
+from src.Item.FinishLine import FinishLine
+from src.Item.JumpPad import JumpPad
+from src.Item.Portal import Portal
+from src.Item.StartLine import StartLine
+from src.World.Vector2 import Vector2
+from src.World.Triangle import Triangle
+from src.World.Rectangle import Rectangle
+from src.Item.Item import Item
+from src.Item.Projectile import Projectile
+from src.World.Texture import Texture
 from src.Player import Player
 from src import config
 
@@ -117,7 +117,9 @@ class Map:
                 max_x = max(jump_pad['x'] * scale, max_x)
                 min_y = min(jump_pad['y'] * scale, min_y)
                 max_y = max(jump_pad['y'] * scale, max_y)
-                self.jump_pads.append(JumpPad(jump_pad['x'] * scale, jump_pad['y'] * scale, Vector2(jump_pad['vel_x'] * scale, jump_pad['vel_y'] * scale), scale, volume))
+                rotation = float(jump_pad.get('rotation', 0.0))
+                vel = float(jump_pad.get('vel', 0.7))
+                self.jump_pads.append(JumpPad(jump_pad['x'] * scale, jump_pad['y'] * scale, vel, rotation, scale, volume))
 
         rectangles = data.get('rectangles', None)
         if rectangles is not None:

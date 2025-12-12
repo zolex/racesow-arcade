@@ -1,6 +1,6 @@
 import pygame, os, math
 from src import config
-from src.Item import Item
+from src.Item.Item import Item
 from src.utils import color_gradient, resource_path
 
 

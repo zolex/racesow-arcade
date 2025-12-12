@@ -1,10 +1,11 @@
-import pygame, os, math, random
+import pygame, os, math
 
-from src.Decal import Decal
-from src.Rectangle import Rectangle
-from src.Triangle import Triangle
-from src.Vector2 import Vector2
-from src import config, sounds
+from src.Item.Decal import Decal
+from src.World.Rectangle import Rectangle
+from src.World.Triangle import Triangle
+from src.World.Vector2 import Vector2
+from src import config
+
 
 def pre_load_projectiles(SCALE:int = 1):
     for projectile in ['rocket', 'plasma']:

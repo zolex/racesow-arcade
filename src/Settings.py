@@ -2,7 +2,7 @@ import os, stat, pygame, random, tempfile, yaml
 from pathlib import Path
 from pygame._sdl2 import Window
 from src import config
-from src.Input import DEFAULT_INPUT
+from src.Player.Input import DEFAULT_INPUT
 
 class Settings:
     def __init__(self):

@@ -1,5 +1,5 @@
 import os, pygame, random
-from src.Vector2 import Vector2
+from src.World.Vector2 import Vector2
 from src import config
 
 def pre_load_items(SCALE:int = 1):
