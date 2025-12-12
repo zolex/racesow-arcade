@@ -3,6 +3,7 @@ import pygame
 class SpriteAnim:
     def __init__(self, sprite_sheet):
         self.paused = False
+        self.stopped = False
         self.sheet = sprite_sheet
         self.animations = {}  # {group: {direction: {name: {sequences, fps, loop, callback}}}}
         self.group = 'default'  # logical state of the animation
@@ -11,8 +12,9 @@ class SpriteAnim:
         self.frame_index = 0
         self.timer = 0
         self.callback = None
-        #self.previous_anim = None
-        #self.previous_frame = None
+        self.prev_anim = None
+        self.prev_sequence = None
+        self.prev_frame = None
 
     def add(self, name, frames, group='default', fps=None, loop=True, callback=None, padding=None):
         """
@@ -52,23 +54,19 @@ class SpriteAnim:
                 "callback": callback,
             }
 
-    #def previous(self, direction=1):
-    #    if self.previous_anim is not None and self.previous_frame is not None:
-    #        self.play(self.previous_anim, direction, reset=False, start_frame=self.previous_frame)
-    #        self.previous_anim = None
-    #        self.previous_frame = None
+    def previous(self, direction=1):
+        if self.prev_anim is not None and self.prev_frame is not None:
+            self.play(self.prev_anim, direction, reset=False, start_frame=self.prev_anim)
 
-    def play(self, name, direction=1, callback=None, reset=True, start_frame=0):
+    def play(self, name, direction=1, callback=None, reset=True, start_frame=0, stopped=False):
         """play a specific animation by name."""
-        #print("play anim", name, direction)
-        #self.previous_anim = self.current_animation
-        #self.previous_frame = self.frame_index
         try:
             anim_new = self.animations[self.group][direction][name]
         except KeyError:
             return
 
         self.paused = False
+        self.stopped = stopped
 
         sequence_names_new = list(anim_new["sequences"].keys())
         if callback is not None:
@@ -76,6 +74,7 @@ class SpriteAnim:
 
         # switching to a new animation
         if self.current_animation != name:
+            self.prev_anim = self.current_animation
             # if the current sequence name also exists in the new animation (e.g., left → left)
             if self.current_sequence in sequence_names_new:
                 frames_new = anim_new["sequences"][self.current_sequence]
@@ -104,6 +103,7 @@ class SpriteAnim:
                     self.timer = 0
 
             self.current_animation = name
+            self.prev_frame = self.frame_index
 
         # one-shot: progress to the next sequence of the same animation (e.g., left → right)
         elif not anim_new["loop"]:
@@ -120,6 +120,10 @@ class SpriteAnim:
         self.paused = True
 
     def update(self, dt, direction=1, visual_direction=1, fps=None):
+
+        if self.stopped:
+            return
+
         if self.current_animation is None:
             return
 
