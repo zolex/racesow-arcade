@@ -12,7 +12,9 @@ class Idle(State):
             'Decel',
             'Crouch',
             'Plasma',
-            'Dead'
+            'Dead',
+
+            'Slide',
         ]
 
     def can_enter(self, player):

@@ -31,6 +31,7 @@ class CameraLookahead(Camera):
         self.smooth_speed_y_top = 0.01
         self.fall_lookahead_time = -220
         self.max_fall_lookahead = -180 * self.settings.get_scale()
+        self.max_rise_lookahead = 360 * self.settings.get_scale()
         self.settling_time = 666
         self.settling = False
         self.settling_elapsed = None
@@ -38,6 +39,7 @@ class CameraLookahead(Camera):
         self.settling_target_y = None
         self.initial_falling_distance = None
         self.is_looking_ahead_y = False
+        self.last_lookahead_dir_y = 0  # -1 = down, +1 = up, 0 = none
         self.top_threshold = self.h * 0.15  # 15% from top
         self.bottom_threshold_base = self.h * 0.66  # 75% from top
 
@@ -83,35 +85,66 @@ class CameraLookahead(Camera):
 
 
     def update_y(self, player):
-        fall_lookahead_px = 0.0
+        # Compute vertical lookahead both for falling (down) and rising (up)
+        fall_lookahead_px = 0.0   # negative values move bottom threshold upward
+        rise_lookahead_px = 0.0   # positive values move top threshold downward (i.e., larger margin)
+
+        # Downward lookahead (existing behavior)
         if player.vel.y > 0 and player.distance_to_ground > self.settings.resolution[1] - self.bottom_threshold_base:
             alpha_fall = 1.0 - math.exp(-self.smooth_speed_y * config.delta_time)
-            eased_alpha = ease_in_out_cubic(alpha_fall)
-            fall_lookahead_px = player.vel.y * self.fall_lookahead_time * eased_alpha
+            eased_alpha_fall = ease_in_out_cubic(alpha_fall)
+            fall_lookahead_px = player.vel.y * self.fall_lookahead_time * eased_alpha_fall
             if fall_lookahead_px < self.max_fall_lookahead:
-                t = fall_lookahead_px / self.max_fall_lookahead
-                t_eased = 1 - pow(1 - t, 3)
+                # Exceeded the cap: snap faster toward the limit with a stronger ease-out and clamp
+                t = min(1.0, fall_lookahead_px / self.max_fall_lookahead)
+                t_eased = 1 - pow(1 - t, 4)  # quartic ease-out for faster response
                 fall_lookahead_px = t_eased * self.max_fall_lookahead
 
+        # Upward lookahead (amplified vs falling)
+        if player.vel.y < 0:
+            alpha_rise = 1.0 - math.exp(-self.smooth_speed_y * config.delta_time)
+            eased_alpha_rise = ease_in_out_cubic(alpha_rise)
+            # Start from symmetric amount and amplify with factor
+            rise_lookahead_px = (-player.vel.y) * (-self.fall_lookahead_time) * eased_alpha_rise
+            if rise_lookahead_px > self.max_rise_lookahead:
+                t = rise_lookahead_px / self.max_rise_lookahead
+                t_eased = 1 - pow(1 - t, 3)
+                rise_lookahead_px = t_eased * self.max_rise_lookahead
+
+        # Track whether we are currently looking ahead and in which direction
+        self.is_looking_ahead_y = fall_lookahead_px < 0 or rise_lookahead_px > 0
         if fall_lookahead_px < 0:
-            self.is_looking_ahead_y = True
+            self.last_lookahead_dir_y = -1
+        elif rise_lookahead_px > 0:
+            self.last_lookahead_dir_y = 1
 
         player_rel_y = player.y - self.y
+
+        # Effective thresholds including lookahead offsets
         bottom_threshold = self.bottom_threshold_base + fall_lookahead_px
-        if player_rel_y < self.top_threshold and fall_lookahead_px == 0:
+        top_threshold_eff = self.top_threshold + rise_lookahead_px
+
+        # Move up toward top threshold (disabled while falling lookahead is active to prevent conflicts)
+        if player_rel_y < top_threshold_eff and fall_lookahead_px == 0 and not self.settling:
             self.settling = False
-            # move up so the player reaches the top threshold
-            target_y = player.y - self.top_threshold
+            target_y = player.y - top_threshold_eff
             alpha_y = 1.0 - math.exp(-self.smooth_speed_y_top * config.delta_time)
             self.y += (target_y - self.y) * alpha_y
+        # Move down toward bottom threshold (disabled while settling)
         elif player_rel_y > bottom_threshold and not self.settling:
-            # move down so the player reaches the bottom threshold
             target_y = player.y - bottom_threshold
             alpha_y = 1.0 - math.exp(-self.smooth_speed_y * config.delta_time)
             eased_alpha_y = alpha_y * alpha_y
             self.y += (target_y - self.y) * eased_alpha_y
+        # Settling phase after a lookahead
         elif self.is_looking_ahead_y:
-            desired_target_y = player.y - bottom_threshold + player.h
+            if self.last_lookahead_dir_y == -1:
+                # Settling after downward lookahead
+                desired_target_y = player.y - bottom_threshold + player.h
+            else:
+                # Settling after upward lookahead
+                desired_target_y = player.y - top_threshold_eff
+
             if not self.settling and player.vel.y == 0:
                 self.settling = True
                 self.settling_elapsed = 0.0

@@ -709,15 +709,21 @@ class Player(Rectangle):
                 air_acceleration = config.PLAYER_AIR_ACCEL * self.visible_direction
 
         # Cap vertical velocity
-        if self.vel.y > config.MAX_FALL_VEL * scale:
-            self.vel.y = config.MAX_FALL_VEL * scale
+        #if self.vel.y > config.MAX_FALL_VEL * scale:
+        #    self.vel.y = config.MAX_FALL_VEL * scale
 
         # Accelerate
         self.vel.x += self.acceleration * scale * config.delta_time
         self.vel.x += air_acceleration * scale * config.delta_time
 
         if self.distance_to_ground > 0:
-            self.vel.y += config.GRAVITY * scale * config.delta_time
+            # Apply gravity with fall-speed damping: the faster we already fall, the less additional gravity accelerates us
+            if self.vel.y > config.MAX_FALL_VEL * scale:
+                v = self.vel.y / max(1e-9, scale)  # scale-independent fall speed
+                gravity_factor = 1.0 / (1.0 + config.GRAVITY_FALL_DAMPING * max(0.0, v))
+            else:
+                gravity_factor = 1.0
+            self.vel.y += config.GRAVITY * scale * config.delta_time * gravity_factor
 
         # Apply friction
         self.vel.x *= pow(self.get_friction(), config.delta_time)
@@ -953,7 +959,7 @@ class Player(Rectangle):
                 return
 
         for jump_pad in self.map.jump_pads:
-            if jump_pad.collidepoint(self.midbottom[0], self.midbottom[1]):
+            if jump_pad.colliderect(pygame.Rect(self.x + self.w/3, self.y, self.w/3, self.h)):
                 jump_pad.jump(self)
                 return
 
@@ -1061,7 +1067,7 @@ class Player(Rectangle):
             vel_x = vel_magnitude * math.cos(angle_rad)
             vel_y = vel_magnitude * math.sin(angle_rad)
 
-            #print("distance", distance, "angle", math.degrees(angle_rad), "vel_mag", vel_magnitude, "vel_x", vel_x, "vel_y", vel_y)
+            print("distance", distance, "angle", math.degrees(angle_rad), "vel_mag", vel_magnitude, "vel_x", vel_x, "vel_y", vel_y)
 
             # add additional momentum when jumping from a ramp
             #if self.last_ramp_radians > 0:
@@ -1071,7 +1077,7 @@ class Player(Rectangle):
 
             # Apply velocity components
 
-            #print("add rocket velocity", vel_x * scale, vel_y * scale)
+            print("add rocket velocity", vel_x * scale, vel_y * scale)
 
             self.vel.x += vel_x * scale
             self.vel.y += vel_y * scale

@@ -1,7 +1,9 @@
-finish_line:
-  x: 35392.0
-  y: 256.0
 items:
+- ammo: 10
+  stay: false
+  type: rocket
+  x: 28000.0
+  y: -1552.0
 - ammo: 1000
   stay: false
   type: plasma
@@ -40,24 +42,28 @@ items:
 - ammo: 1
   stay: true
   type: rocket
-  x: 19712.0
-  y: -128.0
-jump_pads:
-- rotation: 130.0
-  vel: 3.0
-  x: 25568.0
-  y: -240.0
-- rotation: 0.0
-  vel: 4.0
-  x: 25552.0
+  x: 25504.0
   y: 352.0
+jump_pads:
+- rotation: -140.0
+  vel: 1.0
+  x: 28032.0
+  y: -1584.0
 - rotation: 0.0
   vel: 2.2
-  x: 11776.0
-  y: 352.0
+  x: 11808.0
+  y: 368.0
+- rotation: 0.0
+  vel: 4.0
+  x: -2928.0
+  y: 304.0
+- rotation: 0.0
+  vel: 7.2
+  x: 25584.0
+  y: 368.0
 parallax_1: textures/parallax1.png
 player_spawnpoint:
-  x: -128.0
+  x: -112.0
   y: 320.0
 portals:
 - entry_flipped: false
@@ -294,7 +300,7 @@ rectangles:
   x: 9824.0
   y: 288.0
   z_index: -17.0
-- h: 2048.0
+- h: 1792.0
   texture: textures/stone.png
   texture_offset_x: 0.0
   texture_offset_y: 0.0
@@ -303,7 +309,7 @@ rectangles:
   w: 256.0
   wall_type: static
   x: 13728.0
-  y: -2304.0
+  y: -2048.0
   z_index: -16.0
 - h: 128.0
   texture: textures/wall.png
@@ -404,7 +410,18 @@ rectangles:
   x: 11776.0
   y: 224.0
   z_index: -1.0
-- h: 800.0
+- h: 1936.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 176.0
+  wall_type: static
+  x: 28112.0
+  y: -2048.0
+  z_index: 0.0
+- h: 2320.0
   texture: textures/stone.png
   texture_offset_x: 0.0
   texture_offset_y: 0.0
@@ -413,7 +430,7 @@ rectangles:
   w: 160.0
   wall_type: static
   x: 25424.0
-  y: -512.0
+  y: -2048.0
   z_index: 0.0
 - h: 32.0
   texture: textures/border_tsfr.png
@@ -580,16 +597,16 @@ rectangles:
   x: 20592.0
   y: -592.0
   z_index: 0.0
-- h: 512.0
+- h: 2288.0
   texture: textures/stone.png
   texture_offset_x: 0.0
   texture_offset_y: 0.0
-  texture_rotation: 0.0
+  texture_rotation: -45
   texture_scale: 1.0
   w: 64.0
   wall_type: static
   x: 25680.0
-  y: -128.0
+  y: -1888.0
   z_index: 0.0
 - h: 1952.0
   texture: textures/wall.png
@@ -1180,7 +1197,7 @@ rectangles:
   texture_offset_y: 0.0
   texture_rotation: 0.0
   texture_scale: 1.0
-  w: 992.0
+  w: 1248.0
   wall_type: static
   x: 12736.0
   y: -2304.0
@@ -1349,17 +1366,6 @@ rectangles:
   wall_type: deco
   x: 68256.0
   y: 128.0
-  z_index: 0.0
-- h: 256.0
-  texture: textures/bird.png
-  texture_offset_x: 0.0
-  texture_offset_y: 0.0
-  texture_rotation: 0.0
-  texture_scale: 1.1025
-  w: 256.0
-  wall_type: static
-  x: 35296.0
-  y: -64.0
   z_index: 0.0
 - h: 64.0
   texture: textures/stone.png
@@ -2901,6 +2907,72 @@ rectangles:
   x: 22336.0
   y: 256.0
   z_index: 0.0
+- h: 64.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 3136.0
+  wall_type: static
+  x: -3584.0
+  y: 320.0
+  z_index: 0.0
+- h: 80.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 64.0
+  wall_type: static
+  x: -2944.0
+  y: -96.0
+  z_index: 0.0
+- h: 80.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 160.0
+  wall_type: static
+  x: -2944.0
+  y: -176.0
+  z_index: 0.0
+- h: 48.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 112.0
+  wall_type: static
+  x: -2784.0
+  y: -176.0
+  z_index: 0.0
+- h: 144.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 2864.0
+  wall_type: static
+  x: 25424.0
+  y: -2192.0
+  z_index: 0.0
+- h: 1920.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  w: 2288.0
+  wall_type: static
+  x: 25744.0
+  y: -1520.0
+  z_index: 0.0
 - h: 128.0
   texture: textures/driftsand_l.png
   texture_offset_x: 0.0
@@ -3336,6 +3408,90 @@ start_line:
   y: 256.0
 triangles:
 - points:
+  - x: 28032.0
+    y: 16.0
+  - x: 28032.0
+    y: 384.0
+  - x: 30320.0
+    y: 384.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  wall_type: ramp
+  z_index: 0.0
+- points:
+  - x: -3440.0
+    y: 288.0
+  - x: -3184.0
+    y: 192.0
+  - x: -3440.0
+    y: 192.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  wall_type: ramp
+  z_index: 0.0
+- points:
+  - x: -800.0
+    y: 320.0
+  - x: -560.0
+    y: 320.0
+  - x: -784.0
+    y: 224.0
+  texture: null
+  texture_offset_x: 0
+  texture_offset_y: 0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  wall_type: ramp
+  z_index: 0.0
+- points:
+  - x: -1520.0
+    y: 320.0
+  - x: -1104.0
+    y: 320.0
+  - x: -1312.0
+    y: 224.0
+  texture: null
+  texture_offset_x: 0
+  texture_offset_y: 0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  wall_type: ramp
+  z_index: 0.0
+- points:
+  - x: -2064.0
+    y: 320.0
+  - x: -1824.0
+    y: 320.0
+  - x: -2064.0
+    y: 256.0
+  texture: null
+  texture_offset_x: 0
+  texture_offset_y: 0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  wall_type: ramp
+  z_index: 0.0
+- points:
+  - x: -2416.0
+    y: 320.0
+  - x: -2176.0
+    y: 320.0
+  - x: -2176.0
+    y: 256.0
+  texture: null
+  texture_offset_x: 0
+  texture_offset_y: 0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  wall_type: ramp
+  z_index: 0.0
+- points:
   - x: 20640.0
     y: -464.0
   - x: 21248.0
@@ -3365,11 +3521,11 @@ triangles:
   z_index: 0.0
 - points:
   - x: 25744.0
-    y: -128.0
+    y: -1888.0
   - x: 25744.0
-    y: 384.0
-  - x: 26816.0
-    y: 384.0
+    y: -1520.0
+  - x: 28032.0
+    y: -1520.0
   texture: textures/stone.png
   texture_offset_x: 0.0
   texture_offset_y: 0.0
@@ -3476,12 +3632,12 @@ triangles:
   wall_type: ramp
   z_index: 0.0
 - points:
-  - x: 28400.0
-    y: 240.0
-  - x: 28032.0
-    y: 384.0
-  - x: 29248.0
-    y: 384.0
+  - x: -2944.0
+    y: 80.0
+  - x: -2880.0
+    y: -16.0
+  - x: -2944.0
+    y: -16.0
   texture: textures/stone.png
   texture_offset_x: 0.0
   texture_offset_y: 0.0
@@ -3490,12 +3646,26 @@ triangles:
   wall_type: ramp
   z_index: 0.0
 - points:
-  - x: 31872.0
-    y: 128.0
-  - x: 29824.0
-    y: 384.0
-  - x: 31872.0
-    y: 384.0
+  - x: -2880.0
+    y: -16.0
+  - x: -2784.0
+    y: -96.0
+  - x: -2880.0
+    y: -96.0
+  texture: textures/stone.png
+  texture_offset_x: 0.0
+  texture_offset_y: 0.0
+  texture_rotation: 0.0
+  texture_scale: 1.0
+  wall_type: ramp
+  z_index: 0.0
+- points:
+  - x: -2784.0
+    y: -96.0
+  - x: -2672.0
+    y: -128.0
+  - x: -2784.0
+    y: -128.0
   texture: textures/stone.png
   texture_offset_x: 0.0
   texture_offset_y: 0.0

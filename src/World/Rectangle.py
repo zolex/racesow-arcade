@@ -99,6 +99,18 @@ class Rectangle(pygame.Rect):
 
         return None
 
+    def check_triangle_collision(self, collider_list):
+        for triangle in collider_list:
+            sides = [(triangle.p1, triangle.p2), (triangle.p2, triangle.p3), (triangle.p3, triangle.p1)]
+            # Check if the rectangle intersects with either of these sides
+            for side in sides:
+                if self.line_segments_intersect(side[0], side[1], Vector2(self.topleft[0], self.topleft[1]), Vector2(self.topright[0], self.topright[1])):
+                    return side, 'top'
+                if self.line_segments_intersect(side[0], side[1], Vector2(self.bottomleft[0], self.bottomleft[1]), Vector2(self.bottomright[0], self.bottomright[1])):
+                    return side, 'bottom'
+
+        return None, None
+
     def line_intersects_rectangle(self, p1, p2):
         """
         Checks if a line segment intersects with this rectangle.

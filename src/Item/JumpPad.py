@@ -14,8 +14,8 @@ class JumpPad(pygame.Rect):
         # store scalar velocity (strength) and rotation in degrees (0 = straight up)
         self.vel = vel
         self.rotation = rotation
-        self.x += self.w // 2 + (32 * scale)
-        self.y += self.h
+        self.x += self.w / 2
+        #self.y += self.h
         sprite = pygame.image.load(os.path.join(config.assets_folder, 'graphics', 'jumppad.png')).convert_alpha()
         new_size = (sprite.get_width() / 2 * scale, sprite.get_height() / 2 * scale)
         self.sprite = pygame.transform.smoothscale(sprite, new_size)
@@ -25,7 +25,6 @@ class JumpPad(pygame.Rect):
         self.sound.set_volume(volume)
 
     def draw(self, surface: pygame.Surface, camera):
-
         view_pos = camera.to_view_space(self)
         # Draw pre-rotated sprite centered on the pad's rect position on screen
         rect = self.rotated_sprite.get_rect(center=(view_pos.x + self.w / 2, view_pos.y + self.h / 2))
@@ -39,7 +38,7 @@ class JumpPad(pygame.Rect):
             self.sound.play()
 
             # Compute surface normal from rotation (0 deg = straight up). CCW-positive.
-            rad = math.radians(-self.rotation)
+            rad = math.radians(self.rotation)
             nx = math.sin(rad)
             ny = -math.cos(rad)
             # normalize just in case
@@ -51,43 +50,43 @@ class JumpPad(pygame.Rect):
                 nx /= nlen
                 ny /= nlen
 
+            # Tangent (perpendicular) vector (right-handed): t = (ny, -nx)
+            tx, ty = ny, -nx
+
+            # Current velocity
             vx, vy = player.vel.x, player.vel.y
-            # Determine if the pad's push direction (its normal) goes against the player's velocity
-            dot_to_normal = vx * nx + vy * ny
-            min_push = max(0.0, float(self.vel))
 
-            if dot_to_normal < 0.0:
-                # Ignore player's velocity: use canonical entry=exit based solely on pad rotation
-                vin_x, vin_y = 0.0, 1.0  # canonical incoming (falling straight down)
-                dot_in = vin_x * nx + vin_y * ny
-                rx = vin_x - 2.0 * dot_in * nx
-                ry = vin_y - 2.0 * dot_in * ny
-                # Normalize reflected direction and scale by strength
-                rlen = math.hypot(rx, ry)
-                if rlen < 1e-6:
-                    # Fallback to using the normal if reflection is degenerate
-                    rx, ry = nx, ny
-                    rlen = 1.0
-                player.vel.x = (rx / rlen) * min_push
-                player.vel.y = (ry / rlen) * min_push
+            # Decompose into normal and tangential components
+            vn = vx * nx + vy * ny
+            vt = vx * tx + vy * ty
+
+            # Physics parameters: restitution for normal bounce, and tangential keep factor
+            restitution = 0.6  # 0 = stick, 1 = perfect reflection
+            tangential_keep = 0.9  # 1 = keep all tangential speed, <1 dampens slide
+
+            # If player is moving into the pad (vn < 0), bounce with restitution
+            if vn < 0.0:
+                vn_out = -vn * restitution
             else:
-                # Use player's velocity with reflection and enforce a minimum push along the normal
-                dot = vx * nx + vy * ny
-                rx = vx - 2.0 * dot * nx
-                ry = vy - 2.0 * dot * ny
+                # Already moving away from the pad along the normal; keep it
+                vn_out = vn
 
-                speed = math.hypot(rx, ry)
-                if speed < 1e-6:
-                    # If player was nearly stationary, launch along the normal with min_push
-                    rx = nx * min_push
-                    ry = ny * min_push
-                else:
-                    # Ensure outgoing normal component is at least min_push
-                    normal_comp = rx * nx + ry * ny
-                    if normal_comp < min_push:
-                        add = (min_push - normal_comp)
-                        rx += add * nx
-                        ry += add * ny
+            # Ensure a minimum outward speed along the pad's normal based on pad strength
+            min_push = max(0.0, float(self.vel))
+            if vn_out < min_push:
+                vn_out = min_push
 
-                player.vel.x = rx
-                player.vel.y = ry
+            # Apply tangential damping to reduce sideways energy imparted by the pad
+            vt_out = vt * tangential_keep
+
+            # Recompose velocity from components
+            rx = vn_out * nx + vt_out * tx
+            ry = vn_out * ny + vt_out * ty
+
+            # Handle nearly stationary total speed by forcing a launch strictly along normal
+            if math.hypot(vx, vy) < 1e-6:
+                rx = nx * min_push
+                ry = ny * min_push
+
+            player.vel.x = rx
+            player.vel.y = ry

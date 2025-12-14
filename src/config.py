@@ -40,9 +40,16 @@ FRICTION_BASE_FACTOR=0.9324
 FRICTION_VELOCITY_SCALING=0.005
 FRICTION_GRAVITY_EFFECT=0.002
 
+
 MAX_OVERAL_VEL = float("inf")
-MAX_FALL_VEL = 1
+
+
 GRAVITY = 0.00092
+MAX_FALL_VEL = 1
+# Gravity damping: reduces gravity's incremental effect as fall speed increases
+# Higher value = stronger reduction when already falling fast
+GRAVITY_FALL_DAMPING = 1.5
+
 MAX_JUMP_HEIGHT = 100000
 MAX_WALLJUMP_HEIGHT = 42
 
