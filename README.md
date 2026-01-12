@@ -22,6 +22,8 @@ The game rewards:
 
 Just like in the original Racesow, **milliseconds matter**.
 
+[![Watch the video](https://img.youtube.com/vi/eLXDjQ6lVJg/maxresdefault.jpg)](https://www.youtube.com/watch?v=eLXDjQ6lVJg)
+
 ---
 
 ## 🚀 Core Mechanics
