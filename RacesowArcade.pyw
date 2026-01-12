@@ -21,13 +21,15 @@ def main(args):
         display_options += pygame.FULLSCREEN
 
     pygame.init()
+    pygame.mixer.pre_init(44100, 16, 64, 4096)
     pygame.mixer.init()
-    pygame.mixer.set_num_channels(64)
+    settings.load_game_sounds()
     pygame.display.set_caption("Racesow Arcade")
     pygame.mouse.set_visible(settings.cursor is None)
 
     screen = pygame.display.set_mode((settings.resolution[0], settings.resolution[1]), display_options)
     clock = pygame.time.Clock()
+
 
     scene = MainMenu(screen, clock, settings)
     while scene is not None:
@@ -37,6 +39,7 @@ def main(args):
     settings.save()
 
     back = pygame.mixer.Sound(os.path.join(assets_folder, 'sounds', 'menu', 'back.wav'))
+    back.set_volume(settings.get_volume())
     back.play()
     sleep(0.75)
 

@@ -31,26 +31,35 @@ CAPTION = 'Racesow Arcade'
 
 # Physics values
 
+PLAYER_MIN_VEL=0.0666
+PLAYER_SLIDE_IMPULSE=0.175
 PLAYER_ACCELERATION=0.00015
-PLAYER_AIR_ACCEL=0.003
+PLAYER_AIR_ACCEL=0.00009
 PLAYER_AIR_BREAK=0.0003
-FRICTION_BASE_FACTOR=0.9323
+FRICTION_BASE_FACTOR=0.9324
 FRICTION_VELOCITY_SCALING=0.005
 FRICTION_GRAVITY_EFFECT=0.002
 
+
 MAX_OVERAL_VEL = float("inf")
-MAX_FALL_VEL = 1
+
+
 GRAVITY = 0.00092
+MAX_FALL_VEL = 1
+# Gravity damping: reduces gravity's incremental effect as fall speed increases
+# Higher value = stronger reduction when already falling fast
+GRAVITY_FALL_DAMPING = 1.5
+
 MAX_JUMP_HEIGHT = 100000
 MAX_WALLJUMP_HEIGHT = 42
 
-ROCKET_DOWN_OFFSET_X = 9
+ROCKET_DOWN_OFFSET_X = 10
 ROCKET_DOWN_OFFSET_Y = 10
 
 #Velocities for different events
-BOUNCE_VEL = 0.1
+BOUNCE_VEL = 0
 JUMP_VELOCITY = -0.325
-WALLJUMP_VELOCITY = -0.22
+WALLJUMP_VELOCITY = 0.22
 DEATH_VEL_Y = -0.35
 
 #Sets timer value so animations start instantly instead of counting up first

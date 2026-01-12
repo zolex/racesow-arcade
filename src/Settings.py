@@ -2,7 +2,7 @@ import os, stat, pygame, random, tempfile, yaml
 from pathlib import Path
 from pygame._sdl2 import Window
 from src import config
-from src.Input import DEFAULT_INPUT
+from src.Player.Input import DEFAULT_INPUT
 
 class Settings:
     def __init__(self):
@@ -17,7 +17,12 @@ class Settings:
         self.camera_style = 'fixed'
         self.launch_on_ramp_jump = True
         self.new_plasma = False
+        self.game_sounds = []
+        self.settings_file = self.get_settings_file()
+        self.mapping = DEFAULT_INPUT
 
+
+    def load_game_sounds(self):
         self.game_sounds = [
             pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'player', 'jump_1.ogg')),
             pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'player', 'jump_2.ogg')),
@@ -28,10 +33,6 @@ class Settings:
             pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'items', 'rocket.ogg')),
             pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'items', 'empty_shot.mp3')),
         ]
-
-        self.settings_file = self.get_settings_file()
-        self.mapping = DEFAULT_INPUT
-
 
     def get_settings_file(self):
         filename = 'config.yaml'
@@ -79,7 +80,7 @@ class Settings:
         self.update_music_volume()
 
     def update_music_volume(self):
-        pygame.mixer.music.set_volume(self.music_volume / self.max_volume)
+        pygame.mixer.music.set_volume(self.music_volume / 10)
 
     def get_scale(self):
         return self.resolution[1] / 320
@@ -143,11 +144,9 @@ class Settings:
         if isinstance(music_enabled, bool):
             self.music_enabled = music_enabled
 
-        window = Window.from_display_module()
-        position = data.get('window', {}).get('position', {'x': 0, 'y': 0})
-        window.position = (position.get('x', 0), position.get('y', 0))
-
-        pygame.mixer.music.set_volume(self.music_volume / (self.max_volume / self.volume))
+        #window = Window.from_display_module()
+        #position = data.get('window', {}).get('position', {'x': 0, 'y': 0})
+        #window.position = (position.get('x', 0), position.get('y', 0))
 
         mapping = data.get('mapping', {})
         controller = mapping.get('controller', {})

@@ -2,7 +2,7 @@ import pygame
 from abc import ABC, abstractmethod
 from typing import final
 
-from src.Input import Input
+from src.Player.Input import Input
 from src.Settings import Settings
 
 

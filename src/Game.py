@@ -1,20 +1,21 @@
 import copy, os, pygame
 
-from src.CameraAi import CameraAI
-from src.CameraFixed import CameraFixed
-from src.CameraLookahead import CameraLookahead
-from src.CameraSnappy import CameraSnappy
-from src.Input import Input
+from src.Camera.CameraAi import CameraAI
+from src.Camera.CameraFixed import CameraFixed
+from src.Camera.CameraLookahead import CameraLookahead
+from src.Camera.CameraSnappy import CameraSnappy
+from src.Player.Input import Input
+#from src.Music import Music
 from src.Scene import GameScene
 from src.Map import Map
-from src.Player import Player
+from src.Player.Player import Player
 from src import config
 from src.Settings import Settings
 from src.HUD import HUD
 
-from src.Decal import pre_load_decals
-from src.Item import pre_load_items
-from src.Projectile import pre_load_projectiles
+from src.Item.Decal import pre_load_decals
+from src.Item.Item import pre_load_items
+from src.Item.Projectile import pre_load_projectiles
 
 def create_camera(settings: Settings):
     if settings.camera_style == 'fixed':
@@ -51,6 +52,9 @@ class Game(GameScene):
         self.start_time = pygame.time.get_ticks()
         self.input_mappings = None
         self.show_options = False
+
+        #self.music = Music(settings)
+        #self.music.play()
 
     def draw(self):
         self.map.draw()
@@ -94,13 +98,14 @@ class Game(GameScene):
             Input.DOWN: lambda v, e: self.player.input_down(v),
             Input.JUMP: lambda v, e: self.player.input_jump(v),
             Input.WALL_JUMP: lambda v, e: self.player.input_wall_jump(v),
-            Input.SHOOT: lambda v, e: setattr(self.player, "pressed_shoot", v),
+            Input.SHOOT: lambda v, e: self.player.input_shoot(v),
             Input.SWITCH_WEAPON: lambda v, e: self.player.input_switch_weapon(v),
             Input.BACK: lambda v, e: self.set_quit(v),
             Input.MENU: lambda v, e: self.show_settings(v),
         }
 
     def game_loop(self):
+
         while True:
             config.delta_time = self.clock.tick(self.settings.max_fps)
             if self.hud.ready:
@@ -112,6 +117,7 @@ class Game(GameScene):
 
             if self.quit:
                 back = pygame.mixer.Sound(os.path.join(config.assets_folder, 'sounds', 'menu', 'back.wav'))
+                back.set_volume(self.settings.get_volume())
                 back.play()
                 next_scene = copy.copy(self.next_scene)
                 self.next_scene = None
