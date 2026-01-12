@@ -105,9 +105,9 @@ class Rectangle(pygame.Rect):
             # Check if the rectangle intersects with either of these sides
             for side in sides:
                 if self.line_segments_intersect(side[0], side[1], Vector2(self.topleft[0], self.topleft[1]), Vector2(self.topright[0], self.topright[1])):
-                    return side, 'top'
+                    return side, 'head'
                 if self.line_segments_intersect(side[0], side[1], Vector2(self.bottomleft[0], self.bottomleft[1]), Vector2(self.bottomright[0], self.bottomright[1])):
-                    return side, 'bottom'
+                    return side, 'feet'
 
         return None, None
 

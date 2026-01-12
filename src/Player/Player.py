@@ -742,8 +742,8 @@ class Player(Rectangle):
         self.x += dx * config.delta_time
         self.y += dy * config.delta_time
 
-        self.collider_collisions(dx, dy)
-        self.ramp_collisions()
+        self.rect_collisions(dx, dy)
+        self.triangle_collisions()
         self.item_collisions()
         self.functional_collisions()
 
@@ -791,7 +791,80 @@ class Player(Rectangle):
                     self.state.transition('Decel')
                     return
 
-    def collider_collisions(self, dx, dy):
+    def rect_collisions(self, dx, dy):
+
+        # when currently colliding with a ramp, ignore static (rect) colliders
+        # fixes weird warping, when running from a static collider onto a down-ramp
+        if self.last_ramp_radians != 0:
+            return
+
+        # Check if our current rectangle overlaps a static collider
+        index = self.collidelist(self.map.static_colliders)
+        if index == -1:
+            self.ground_collider = None
+            return
+
+        # There would be a collision at the new position -> move only as far as possible without colliding
+        rect = self.map.static_colliders[index]
+
+        # previous (non-colliding) position before the attempted step
+        prev_x = self.x - dx * config.delta_time
+        prev_y = self.y - dy * config.delta_time
+
+        moved_fully = True
+
+        if dx > 0:
+            # moving right: distance from our right edge to collider's left edge
+            max_move = rect.x - (prev_x + self.w)
+            allowed = max(0.0, min(dx * config.delta_time, max_move))
+            if allowed < dx * config.delta_time:
+                moved_fully = False
+            self.x = prev_x + allowed
+            if not moved_fully:
+                if self.current_action_state == 'Move' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
+                    self.state.transition('Decel')
+                self.vel.x = 0
+        elif dx < 0:
+            # moving left: distance from our left edge to collider's right edge
+            max_move = (prev_x) - (rect.x + rect.w)
+            allowed = max(0.0, min(abs(dx * config.delta_time), max_move))
+            if allowed < abs(dx * config.delta_time):
+                moved_fully = False
+            self.x = prev_x - allowed
+            if not moved_fully:
+                if self.current_action_state == 'Move' and not self.pressed_down and not self.pressed_right and not self.pressed_left and not self.pressed_up:
+                    self.state.transition('Decel')
+                self.vel.x = 0
+        elif dy > 0:
+            # moving down: distance from our bottom edge to collider's top edge
+            max_move = rect.y - (prev_y + self.h)
+            allowed = max(0.0, min(dy * config.delta_time, max_move))
+            if allowed < dy * config.delta_time:
+                moved_fully = False
+            self.y = prev_y + allowed
+            if not moved_fully:
+                if self.current_action_state == 'Fall':
+                    self.ground_touch_pos = Vector2(self.x, self.y)
+                    self.state.transition('Decel')
+                    self.sounds.play_step()
+                self.ground_collider = rect
+                self.was_flipped = False
+                self.vel.y = 0
+        elif dy < 0:
+            # moving up: distance from our top edge to collider's bottom edge
+            max_move = (prev_y) - (rect.y + rect.h)
+            allowed = max(0.0, min(abs(dy * config.delta_time), max_move))
+            if allowed < abs(dy * config.delta_time):
+                moved_fully = False
+            self.y = prev_y - allowed
+            if not moved_fully:
+                if self.current_action_state != 'Plasma':
+                    self.state.transition('Fall')
+                self.vel.y = config.BOUNCE_VEL
+
+
+
+    def rect_collisions_old(self, dx, dy):
 
         # when currently colliding with a ramp, ignore static (rect) colliders
         # fixes weird warping, when running from a static collider onto a down-ramp
@@ -837,29 +910,135 @@ class Player(Rectangle):
             self.y = rect.y + rect.h
             self.vel.y = config.BOUNCE_VEL
 
-    def launch_from_ramp(self, y_offset = 0, factor = 1.0):
+    def launch_from_ramp(self, y_offset=0, factor=1.0):
         self.y -= y_offset
 
-        #print("launch source", "y_off", y_offset, "fact", factor, "abs_vel", abs(self.vel.x), "rad", self.last_ramp_radians, "dir", self.direction, "tan", math.tan(self.last_ramp_radians * self.direction))
+        # print("launch source", "y_off", y_offset, "fact", factor, "abs_vel", abs(self.vel.x), "rad", self.last_ramp_radians, "dir", self.direction, "tan", math.tan(self.last_ramp_radians * self.direction))
 
         min_launch = -0.1
 
         launch_speed = -abs(self.vel.x) * math.tan(self.last_ramp_radians * self.direction) * factor
         # at least 0.1 so we can definitely fall after launching
-        #self.vel.y = min(min_launch, launch_speed)
+        # self.vel.y = min(min_launch, launch_speed)
 
         self.vel.y = launch_speed
 
         self.last_ramp_radians = 0
 
-        #print("launch from ramp", launch_speed, y_offset)
+        # print("launch from ramp", launch_speed, y_offset)
 
-        #if launch_speed < min_launch:
+        # if launch_speed < min_launch:
         self.state.transition('Launch')
 
         return self.vel.y
 
-    def ramp_collisions(self):
+    def triangle_collisions(self):
+
+        if self.current_action_state == 'Launch':
+            return
+
+        if self.current_action_state == 'Plasma' and self.vel.y < 0:
+            return
+
+        # Get the line of the ramp we collided with
+        ramp_collider, side = self.check_triangle_collision(self.map.ramp_colliders)
+
+        if ramp_collider is None:
+            # launch when leaving a ramp
+            if (self.direction == 1 and self.last_ramp_radians > 0) or (
+                    self.direction == -1 and self.last_ramp_radians < 0):
+                self.launch_from_ramp()
+
+            # no ramp collision
+            self.last_ramp_radians = 0
+            return
+
+        self.game.camera.stop_settling(self)
+
+        # unordered points of the ramp line
+        point0 = ramp_collider[0]
+        point1 = ramp_collider[1]
+
+        # determine which is the start and which is the end point
+        if point0.x < point1.x:
+            left_point = point0
+            right_point = point1
+        else:
+            left_point = point1
+            right_point = point0
+
+        x_start, y_start = left_point.x, left_point.y
+        x_end, y_end = right_point.x, right_point.y
+
+        # get the angle from proper start and end points
+        dy = y_end - y_start
+        dx = x_end - x_start
+
+        next_rad = -math.atan2(dy, dx)  # WHY - ???
+
+        # Calculate horizontal progress (progress ratio) across the ramp
+        x = self.x + self.w / 2  # Player center x
+        progress = max(0, min(1, (x - x_start) / dx)) if dx != 0 else 0  # Clamp to [0,1] and guard div/0
+
+        # Linear interpolation from base y to top y
+        y_on_ramp = (1 - progress) * y_start + progress * y_end
+        
+        if dx == 0 or dy == 0:
+            return
+
+        if side == 'feet':
+            # launch when sliding over the peak of a two-sided ramp
+            if (self.direction == 1 and self.last_ramp_radians > 0 > next_rad) or (
+                    self.direction == - 1 and self.last_ramp_radians < 0 < next_rad):
+                self.launch_from_ramp()
+                return
+
+            # Remember for launching when leaving the ramp
+            self.last_ramp_radians = next_rad
+
+            # Set player's feet to ramp surface
+            self.y = y_on_ramp - self.h
+
+            if not self.ground_touch_pos:
+                self.ground_touch_pos = Vector2(self.x, self.y)
+
+            self.vel.y = 0
+
+            # self.state.transition('Ramp') # still needed???
+
+        elif side == 'head' and self.vel.y < 0:
+
+            # Place player's head on the ramp line
+            self.y = y_on_ramp + 15 * self.game.settings.get_scale()
+
+            # Do not use ramp radians for ceiling to avoid ground-launch logic
+            self.last_ramp_radians = 0
+
+            self.state.transition('Fall')
+            seg_dx = x_end - x_start
+            seg_dy = y_end - y_start
+            length = math.hypot(seg_dx, seg_dy)
+            if length != 0:
+                # Unit tangent of the ramp segment
+                tx = seg_dx / length
+                ty = seg_dy / length
+                # Two possible unit normals (perpendiculars)
+                nx1, ny1 = -ty, tx
+                nx2, ny2 = ty, -tx
+                # Choose the normal that the player is moving into
+                vdotn1 = self.vel.x * nx1 + self.vel.y * ny1
+                if vdotn1 > 0:
+                    nx, ny = nx1, ny1
+                    vdotn = vdotn1
+                else:
+                    nx, ny = nx2, ny2
+                    vdotn = self.vel.x * nx2 + self.vel.y * ny2
+                # Remove only the component of velocity that points into the surface normal
+                if vdotn > 0:
+                    self.vel.x -= vdotn * nx
+                    self.vel.y -= vdotn * ny
+
+    def triangle_collisions_old(self):
 
         if self.current_action_state == 'Launch':
             return
