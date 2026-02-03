@@ -4,6 +4,9 @@ from src.MainMenu import MainMenu
 from src.Settings import Settings
 from src.config import assets_folder
 
+from src.PygameFontMonkeyPatch import ApplyPygameFontMonkeyPatch
+ApplyPygameFontMonkeyPatch()
+
 #from profilehooks import profile
 #@profile
 def main(args):
