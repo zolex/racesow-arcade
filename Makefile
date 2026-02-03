@@ -1,6 +1,11 @@
 .PHONY: build help
 .DEFAULT_GOAL:=help
 
+venv: ## create venv
+	rm -rf .venv
+	python -m venv .venv
+	.venv/bin/pip install -r requirements.txt
+
 build: clean ## Build to folder
 	pyinstaller RacesowArcade.spec
 
